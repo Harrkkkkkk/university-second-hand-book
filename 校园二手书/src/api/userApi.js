@@ -30,3 +30,11 @@ export const getUserInfo = () => {
         }
     })
 }
+
+export const register = (data) => {
+    return request({
+        url: '/user/register',
+        method: 'post',
+        data
+    })
+}

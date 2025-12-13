@@ -1,0 +1,52 @@
+<template>
+  <div class="buyer-cart">
+    <page-header title="买家中心 - 我的购物车">
+      <el-button type="text" @click="logout" style="color: #e64340;">退出登录</el-button>
+    </page-header>
+
+    <el-table :data="items" border style="margin-top: 20px;">
+      <el-table-column prop="bookId" label="教材ID" width="100" />
+      <el-table-column prop="bookName" label="教材名称" />
+      <el-table-column prop="sellPrice" label="售价" width="120" />
+      <el-table-column prop="quantity" label="数量" width="100" />
+      <el-table-column label="操作" width="200">
+        <template #default="scope">
+          <el-button type="danger" size="small" @click="removeItem(scope.row.bookId)">移除</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+
+    <div style="margin-top: 10px;">
+      <el-button type="warning" @click="clear">清空购物车</el-button>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
+import PageHeader from '@/components/PageHeader.vue'
+import { logoutAndBackToLogin } from '@/utils/auth.js'
+import { listCart, removeFromCart, clearCart } from '@/api/cartApi'
+
+const items = ref([])
+const logout = () => logoutAndBackToLogin()
+
+const load = async () => {
+  try { items.value = await listCart() || [] } catch { ElMessage.error('加载购物车失败') }
+}
+
+const removeItem = async (bookId) => {
+  try { await removeFromCart(bookId); ElMessage.success('移除成功'); load() } catch { ElMessage.error('移除失败') }
+}
+
+const clear = async () => {
+  try { await clearCart(); ElMessage.success('已清空'); load() } catch { ElMessage.error('清空失败') }
+}
+
+onMounted(load)
+</script>
+
+<style scoped>
+.buyer-cart { max-width: 1200px; margin: 0 auto; padding: 20px; }
+</style>

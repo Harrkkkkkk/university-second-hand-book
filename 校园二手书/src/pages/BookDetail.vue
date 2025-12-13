@@ -24,7 +24,8 @@
           <div class="book-actions" style="margin-top: 20px;">
             <el-button type="primary" @click="addToCart">加入购物车</el-button>
             <el-button type="success" @click="buyNow">立即购买</el-button>
-            <el-button type="warning" icon="el-icon-star-off" @click="collectBook"></el-button>
+            <el-button type="warning" icon="el-icon-star-off" @click="collectBook">收藏</el-button>
+            <el-button type="info" @click="chat">在线沟通</el-button>
           </div>
         </el-card>
       </el-col>
@@ -38,53 +39,63 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
 import { logoutAndBackToLogin } from '@/utils/auth.js'
+import { getBookDetail } from '@/api/bookApi'
+import { createOrder } from '@/api/orderApi'
+import { addFavorite } from '@/api/collectApi'
+import { addToCart as apiAddToCart } from '@/api/cartApi'
 
 const route = useRoute()
 const router = useRouter()
 
-// 模拟教材数据
-const book = ref({
-  id: 1,
-  bookName: 'Java编程思想',
-  author: 'Bruce Eckel',
-  originalPrice: 108,
-  sellPrice: 30,
-  sellerName: '卖家1',
-  description: '九成新，无笔记，无缺页，适合Java初学者学习'
-})
+const book = ref({})
 
 // 退出登录
 const logout = () => {
   logoutAndBackToLogin()
 }
 
-// 加入购物车
-const addToCart = () => {
-  ElMessage.success('加入购物车成功！')
+const addToCart = async () => {
+  try {
+    await apiAddToCart(book.value.id)
+    ElMessage.success('加入购物车成功！')
+  } catch (e) {
+    ElMessage.error('加入购物车失败')
+  }
 }
 
-// 立即购买
-const buyNow = () => {
-  ElMessage.info('跳转到支付页面...')
+const buyNow = async () => {
+  try {
+    const res = await createOrder(book.value.id)
+    if (!res || !res.id) {
+      ElMessage.error('下单失败')
+      return
+    }
+    ElMessage.success('下单成功，前往我的订单付款')
+  } catch (e) {
+    ElMessage.error('下单失败')
+  }
 }
 
-// 收藏教材
-const collectBook = () => {
-  ElMessage.success('收藏成功！')
+const collectBook = async () => {
+  try {
+    await addFavorite(book.value.id)
+    ElMessage.success('收藏成功！')
+  } catch (e) {
+    ElMessage.error('收藏失败')
+  }
 }
 
-// 根据路由ID加载不同教材
-onMounted(() => {
+const chat = () => {
+  router.push({ path: '/chat', query: { peer: book.value.sellerName } })
+}
+
+onMounted(async () => {
   const bookId = Number(route.params.id)
-  // 模拟根据ID加载数据
-  const bookList = [
-    { id: 1, bookName: 'Java编程思想', author: 'Bruce Eckel', originalPrice: 108, sellPrice: 30, sellerName: '卖家1' },
-    { id: 2, bookName: 'Python入门到精通', author: '张三', originalPrice: 89, sellPrice: 25, sellerName: '卖家1' },
-    { id: 3, bookName: '红楼梦', author: '曹雪芹', originalPrice: 45, sellPrice: 15, sellerName: '卖家2' }
-  ]
-  const targetBook = bookList.find(item => item.id === bookId)
-  if (targetBook) {
-    book.value = targetBook
+  try {
+    const res = await getBookDetail(bookId)
+    book.value = res || {}
+  } catch (e) {
+    ElMessage.error('加载教材详情失败')
   }
 })
 </script>

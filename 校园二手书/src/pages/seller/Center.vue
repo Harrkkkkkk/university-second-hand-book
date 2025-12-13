@@ -14,18 +14,45 @@
             <el-table-column prop="sellPrice" label="售价" width="100"></el-table-column>
             <el-table-column prop="status" label="状态" width="100">
               <template #default="scope">
-                <el-tag type="success" v-if="scope.row.status === 0">上架中</el-tag>
-                <el-tag type="warning" v-else>已下架</el-tag>
+                <el-tag type="success" v-if="scope.row.status === 'on_sale'">上架中</el-tag>
+                <el-tag type="warning" v-else-if="scope.row.status === 'under_review'">待审核</el-tag>
+                <el-tag type="info" v-else-if="scope.row.status === 'offline'">已下架</el-tag>
+                <el-tag type="danger" v-else>已驳回</el-tag>
               </template>
             </el-table-column>
             <el-table-column label="操作" width="200">
               <template #default="scope">
-                <el-button type="primary" size="small">编辑</el-button>
-                <el-button type="warning" size="small">下架</el-button>
-                <el-button type="danger" size="small">删除</el-button>
+                <el-button type="primary" size="small" @click="openEdit(scope.row)">编辑</el-button>
+                <el-button type="warning" size="small" @click="offline(scope.row.id)">下架</el-button>
+                <el-button type="danger" size="small" @click="remove(scope.row.id)">删除</el-button>
               </template>
             </el-table-column>
           </el-table>
+
+          <el-dialog v-model="editVisible" title="编辑教材" width="500px">
+            <el-form :model="editForm" label-width="100px">
+              <el-form-item label="教材名称">
+                <el-input v-model="editForm.bookName" />
+              </el-form-item>
+              <el-form-item label="售价">
+                <el-input-number v-model="editForm.sellPrice" :min="1" :max="9999" />
+              </el-form-item>
+              <el-form-item label="成色">
+                <el-select v-model="editForm.conditionLevel">
+                  <el-option label="全新" value="全新" />
+                  <el-option label="九成新" value="九成新" />
+                  <el-option label="八成新" value="八成新" />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="库存">
+                <el-input-number v-model="editForm.stock" :min="1" :max="999" />
+              </el-form-item>
+            </el-form>
+            <template #footer>
+              <el-button @click="editVisible=false">取消</el-button>
+              <el-button type="primary" @click="submitEdit">保存</el-button>
+            </template>
+          </el-dialog>
         </el-tab-pane>
         <el-tab-pane label="我的订单" name="myOrders">
           <el-table :data="orderList" border>
@@ -34,6 +61,7 @@
             <el-table-column prop="buyerName" label="买家"></el-table-column>
             <el-table-column prop="price" label="订单金额" width="100"></el-table-column>
             <el-table-column prop="status" label="状态" width="100"></el-table-column>
+            
           </el-table>
         </el-tab-pane>
       </el-tabs>
@@ -46,6 +74,8 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import PageHeader from '@/components/PageHeader.vue'
 import { logoutAndBackToLogin } from '@/utils/auth.js'
+import { listMyBooks, updateBook, offlineBook, deleteBook } from '@/api/sellerApi'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const router = useRouter()
 // 退出登录
@@ -54,13 +84,48 @@ const logout = () => {
 }
 
 const activeTab = ref('myBooks')
+const editVisible = ref(false)
+const editForm = ref({})
+const bookList = ref([])
+
+const loadMyBooks = async () => {
+  try {
+    const res = await listMyBooks()
+    bookList.value = res || []
+  } catch (e) {
+    ElMessage.error('加载我的教材失败')
+  }
+}
 
 // 模拟我的教材数据
-const bookList = ref([
-  { id: 1, bookName: 'Java编程思想', sellPrice: 30, status: 0 },
-  { id: 2, bookName: 'Python入门到精通', sellPrice: 25, status: 0 },
-  { id: 3, bookName: '数据结构与算法', sellPrice: 20, status: 1 }
-])
+const openEdit = (row) => {
+  editForm.value = { id: row.id, bookName: row.bookName, sellPrice: row.sellPrice, conditionLevel: row.conditionLevel, stock: row.stock }
+  editVisible.value = true
+}
+
+const submitEdit = async () => {
+  try {
+    const res = await updateBook(editForm.value.id, editForm.value)
+    if (!res || !res.id) throw new Error('更新失败')
+    ElMessage.success('更新成功，待审核')
+    editVisible.value = false
+    loadMyBooks()
+  } catch (e) {
+    ElMessage.error('更新失败')
+  }
+}
+
+const offline = (id) => {
+  ElMessageBox.confirm('确认下架该教材？', '提示', { confirmButtonText: '确认', cancelButtonText: '取消' }).then(() => {
+    offlineBook(id).then(() => { ElMessage.success('下架成功'); loadMyBooks() }).catch(() => ElMessage.error('下架失败'))
+  })
+}
+
+const remove = (id) => {
+  ElMessageBox.confirm('确认删除该教材？', '提示', { confirmButtonText: '确认', cancelButtonText: '取消' }).then(() => {
+    deleteBook(id).then(() => { ElMessage.success('删除成功'); loadMyBooks() }).catch(() => ElMessage.error('删除失败'))
+  })
+}
 
 // 模拟我的订单数据
 const orderList = ref([
@@ -72,6 +137,12 @@ const orderList = ref([
 const toPublish = () => {
   router.push('/publish')
 }
+
+
+import { onMounted } from 'vue'
+onMounted(() => {
+  loadMyBooks()
+})
 </script>
 
 <style scoped>

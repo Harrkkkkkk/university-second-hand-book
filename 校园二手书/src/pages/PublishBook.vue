@@ -13,10 +13,20 @@
           <el-input v-model="publishForm.author" placeholder="请输入作者姓名"></el-input>
         </el-form-item>
         <el-form-item label="原价" prop="originalPrice">
-          <el-input v-model="publishForm.originalPrice" type="number" placeholder="请输入教材原价"></el-input>
+          <el-input-number v-model="publishForm.originalPrice" :min="1" :max="9999" :step="1" placeholder="请输入教材原价" style="width: 100%" />
         </el-form-item>
         <el-form-item label="售价" prop="sellPrice">
-          <el-input v-model="publishForm.sellPrice" type="number" placeholder="请输入出售价格"></el-input>
+          <el-input-number v-model="publishForm.sellPrice" :min="1" :max="9999" :step="1" placeholder="请输入出售价格" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="成色" prop="conditionLevel">
+          <el-select v-model="publishForm.conditionLevel" placeholder="请选择成色">
+            <el-option label="全新" value="全新" />
+            <el-option label="九成新" value="九成新" />
+            <el-option label="八成新" value="八成新" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="库存" prop="stock">
+          <el-input-number v-model="publishForm.stock" :min="1" :max="999" :step="1" style="width: 100%" />
         </el-form-item>
         <el-form-item label="教材描述" prop="description">
           <el-input v-model="publishForm.description" type="textarea" rows="5" placeholder="请描述教材成色、是否有笔记等"></el-input>
@@ -45,6 +55,7 @@ import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
 import { logoutAndBackToLogin } from '@/utils/auth.js'
+import { addBook } from '@/api/bookApi'
 
 const publishFormRef = ref(null)
 
@@ -52,17 +63,21 @@ const publishFormRef = ref(null)
 const publishForm = ref({
   bookName: '',
   author: '',
-  originalPrice: '',
-  sellPrice: '',
-  description: ''
+  originalPrice: 1,
+  sellPrice: 1,
+  description: '',
+  conditionLevel: '九成新',
+  stock: 1
 })
 
 // 表单校验规则
 const publishRules = ref({
   bookName: [{ required: true, message: '请输入教材名称', trigger: 'blur' }],
   author: [{ required: true, message: '请输入作者姓名', trigger: 'blur' }],
-  originalPrice: [{ required: true, message: '请输入原价', trigger: 'blur', type: 'number' }],
-  sellPrice: [{ required: true, message: '请输入售价', trigger: 'blur', type: 'number' }]
+  originalPrice: [{ required: true, message: '请输入原价', trigger: 'change' }],
+  sellPrice: [{ required: true, message: '请输入售价', trigger: 'change' }],
+  conditionLevel: [{ required: true, message: '请选择成色', trigger: 'change' }],
+  stock: [{ required: true, message: '请输入库存', trigger: 'change' }]
 })
 
 // 退出登录
@@ -75,13 +90,15 @@ const handleFileChange = (file) => {
   ElMessage.info(`已选择文件：${file.name}`)
 }
 
-// 提交发布
 const submitPublish = async () => {
   try {
     await publishFormRef.value.validate()
-    // 模拟发布成功
+    const res = await addBook(publishForm.value)
+    if (!res || !res.id) {
+      ElMessage.error('发布失败')
+      return
+    }
     ElMessage.success('教材发布成功！')
-    // 重置表单
     publishFormRef.value.resetFields()
   } catch (error) {
     ElMessage.error('发布失败，请检查表单！')

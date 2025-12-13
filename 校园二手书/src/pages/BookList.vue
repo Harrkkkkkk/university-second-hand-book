@@ -12,6 +12,14 @@
           <span style="margin: 0 5px;">-</span>
           <el-input v-model="searchForm.maxPrice" placeholder="最高价格" style="width: 100px;"></el-input>
         </el-form-item>
+        <el-form-item label="排序">
+          <el-select v-model="searchForm.sortBy" placeholder="选择排序" style="width: 160px;">
+            <el-option label="默认" value="id" />
+            <el-option label="价格升序" value="price_asc" />
+            <el-option label="价格降序" value="price_desc" />
+            <el-option label="最新上架" value="created_desc" />
+          </el-select>
+        </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="searchBooks">搜索</el-button>
           <el-button @click="resetSearch">重置</el-button>
@@ -21,6 +29,10 @@
 
     <div class="book-list">
       <book-card v-for="book in bookList" :key="book.id" :book="book"></book-card>
+      <div v-if="bookList.length === 0" style="padding:20px; text-align:center; color:#666">暂无搜索结果，看看热门推荐</div>
+      <div v-if="bookList.length === 0" style="margin-top:10px;">
+        <book-card v-for="book in recommendList" :key="'rec-'+book.id" :book="book"></book-card>
+      </div>
     </div>
 
     <el-pagination
@@ -36,7 +48,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { getBookPage } from '@/api/bookApi'
 import BookCard from '@/components/BookCard.vue'
 import PageHeader from '@/components/PageHeader.vue'
@@ -46,17 +58,26 @@ const searchForm = ref({
   minPrice: '',
   maxPrice: '',
   pageNum: 1,
-  pageSize: 10
+  pageSize: 10,
+  sortBy: 'id'
 })
 
 const bookList = ref([])
 const total = ref(0)
+const recommendList = ref([])
+let lastSortChange = 0
 
 const loadBooks = async () => {
   try {
     const res = await getBookPage(searchForm.value)
     bookList.value = res.records || []
     total.value = res.total || 0
+    if (bookList.value.length === 0) {
+      const rec = await getBookPage({ pageNum: 1, pageSize: 6, sortBy: 'created_desc' })
+      recommendList.value = rec.records || []
+    } else {
+      recommendList.value = []
+    }
   } catch (error) {
     console.error('加载商品失败：', error)
   }
@@ -86,6 +107,16 @@ const handleCurrentChange = (val) => {
   searchForm.value.pageNum = val
   loadBooks()
 }
+
+const handleSortChange = () => {
+  const now = Date.now()
+  if (now - lastSortChange < 800) return
+  lastSortChange = now
+  searchForm.value.pageNum = 1
+  loadBooks()
+}
+
+watch(() => searchForm.value.sortBy, handleSortChange)
 
 onMounted(() => {
   loadBooks()

@@ -19,6 +19,7 @@
           <el-menu-item v-if="role === 'buyer'" index="1" @click="toBuyerHome">教材选购</el-menu-item>
           <el-menu-item v-if="role === 'buyer'" index="2" @click="toBuyerOrder">我的订单</el-menu-item>
           <el-menu-item v-if="role === 'buyer'" index="3" @click="toBuyerCollect">我的收藏</el-menu-item>
+          <el-menu-item v-if="role === 'buyer'" index="4" @click="toBuyerCart">我的购物车</el-menu-item>
 
           <!-- 卖家专属菜单 -->
           <el-menu-item v-if="role === 'seller'" index="1" @click="toSellerCenter">卖家中心</el-menu-item>
@@ -39,6 +40,7 @@
               <i class="el-icon-more" style="font-size: 20px; color: white;"></i>
             </template>
             <el-menu-item index="99-1" @click="toUserCenter">个人中心</el-menu-item>
+            <el-menu-item index="99-3" @click="toMessageCenter">消息中心</el-menu-item>
             <el-menu-item index="99-2" @click="handleLogout">退出登录</el-menu-item>
           </el-sub-menu>
         </el-menu>
@@ -104,6 +106,10 @@ const toBuyerCollect = () => {
   router.push('/buyer/collect')
   activeIndex.value = '3'
 }
+const toBuyerCart = () => {
+  router.push('/buyer/cart')
+  activeIndex.value = '4'
+}
 const toSellerCenter = () => {
   router.push('/seller/center')
   activeIndex.value = '1'
@@ -115,6 +121,10 @@ const toPublish = () => {
 const toAdminDashboard = () => {
   router.push('/admin/dashboard')
   activeIndex.value = '1'
+}
+
+const toMessageCenter = () => {
+  router.push('/messages')
 }
 
 // 个人中心

@@ -41,6 +41,6 @@ npm run build
 ```
 
 ## 黎：
-安装node.js https://nodejs.org/zh-cn
-项目已经通过npm install 下载完依赖，目标位置node_modules
-直接运行npm run dev即可
+- 安装node.js   https://nodejs.org/zh-cn
+- 项目已经通过npm install 下载完依赖，目标位置node_modules
+- 直接运行npm run dev即可

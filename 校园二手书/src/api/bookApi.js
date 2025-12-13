@@ -4,7 +4,10 @@ export const addBook = (data) => {
     return request({
         url: '/books/add',
         method: 'post',
-        data
+        data,
+        headers: {
+            token: localStorage.getItem('token')
+        }
     })
 }
 

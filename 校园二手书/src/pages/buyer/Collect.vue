@@ -32,6 +32,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
 import { logoutAndBackToLogin } from '@/utils/auth.js'
+import { listFavorites, removeFavorite } from '@/api/collectApi'
 
 const router = useRouter()
 // 退出登录
@@ -39,12 +40,16 @@ const logout = () => {
   logoutAndBackToLogin()
 }
 
-// 模拟收藏数据
-const collectList = ref([
-  { id: 1, bookName: 'Java编程思想', sellPrice: 30, coverUrl: '' },
-  { id: 5, bookName: '数据结构与算法', sellPrice: 20, coverUrl: '' },
-  { id: 7, bookName: 'MySQL实战', sellPrice: 28, coverUrl: '' }
-])
+const collectList = ref([])
+
+const loadFavorites = async () => {
+  try {
+    const res = await listFavorites()
+    collectList.value = res || []
+  } catch (e) {
+    ElMessage.error('加载收藏失败')
+  }
+}
 
 // 跳转到教材详情
 const toBookDetail = (id) => {
@@ -57,10 +62,19 @@ const removeCollect = (id) => {
     confirmButtonText: '确认',
     cancelButtonText: '取消'
   }).then(() => {
-    collectList.value = collectList.value.filter(item => item.id !== id)
-    ElMessage.success('取消收藏成功！')
+    removeFavorite(id).then(() => {
+      collectList.value = collectList.value.filter(item => item.id !== id)
+      ElMessage.success('取消收藏成功！')
+    }).catch(() => {
+      ElMessage.error('取消收藏失败')
+    })
   })
 }
+
+import { onMounted } from 'vue'
+onMounted(() => {
+  loadFavorites()
+})
 </script>
 
 <style scoped>

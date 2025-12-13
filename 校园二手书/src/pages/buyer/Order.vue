@@ -30,13 +30,16 @@
           <el-tag type="primary" v-if="scope.row.status === 'paid'">已付款</el-tag>
           <el-tag type="success" v-if="scope.row.status === 'received'">已收货</el-tag>
           <el-tag type="danger" v-if="scope.row.status === 'cancelled'">已取消</el-tag>
+          <el-tag type="info" v-if="scope.row.status === 'expired'">已超时</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="200">
+      <el-table-column label="操作" width="340">
         <template #default="scope">
           <el-button v-if="scope.row.status === 'pending'" type="primary" size="small" @click="payOrder(scope.row.id)">立即付款</el-button>
           <el-button v-if="scope.row.status === 'pending'" type="danger" size="small" @click="cancelOrder(scope.row.id)">取消订单</el-button>
           <el-button v-if="scope.row.status === 'paid'" type="success" size="small" @click="confirmReceive(scope.row.id)">确认收货</el-button>
+          <el-button v-if="scope.row.status === 'received'" type="warning" size="small" @click="toEvaluate(scope.row.id)">去评价</el-button>
+          <el-button v-if="scope.row.status === 'paid'" type="info" size="small" @click="toComplaint(scope.row.id)">发起投诉</el-button>
           <el-button type="text" size="small" @click="viewOrderDetail(scope.row.id)">查看详情</el-button>
         </template>
       </el-table-column>
@@ -50,6 +53,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
 import { logoutAndBackToLogin } from '@/utils/auth.js'
+import { listOrders, payOrder as apiPayOrder, cancelOrder as apiCancelOrder, receiveOrder as apiReceiveOrder } from '@/api/orderApi'
 
 const router = useRouter()
 // 退出登录
@@ -60,13 +64,16 @@ const logout = () => {
 // 订单状态筛选
 const orderStatus = ref('all')
 
-// 模拟订单数据
-const orderList = ref([
-  { id: 101, bookName: 'Java编程思想', sellerName: '卖家1', price: 30, createTime: '2025-12-01 10:00', status: 'pending' },
-  { id: 102, bookName: 'Python入门到精通', sellerName: '卖家1', price: 25, createTime: '2025-12-02 14:30', status: 'paid' },
-  { id: 103, bookName: '红楼梦', sellerName: '卖家2', price: 15, createTime: '2025-11-28 09:15', status: 'received' },
-  { id: 104, bookName: '数据结构与算法', sellerName: '卖家1', price: 20, createTime: '2025-12-03 16:20', status: 'cancelled' }
-])
+const orderList = ref([])
+
+const loadOrders = async () => {
+  try {
+    const res = await listOrders()
+    orderList.value = res || []
+  } catch (e) {
+    ElMessage.error('加载订单失败')
+  }
+}
 
 // 筛选订单
 const filterOrder = () => {
@@ -84,9 +91,13 @@ const payOrder = (id) => {
     confirmButtonText: '确认',
     cancelButtonText: '取消'
   }).then(() => {
-    const order = orderList.value.find(item => item.id === id)
-    if (order) order.status = 'paid'
-    ElMessage.success('付款成功！')
+    apiPayOrder(id).then((res) => {
+      const order = orderList.value.find(item => item.id === id)
+      if (order) order.status = res.status
+      ElMessage.success('付款成功！')
+    }).catch(() => {
+      ElMessage.error('付款失败')
+    })
   })
 }
 
@@ -96,9 +107,13 @@ const cancelOrder = (id) => {
     confirmButtonText: '确认',
     cancelButtonText: '取消'
   }).then(() => {
-    const order = orderList.value.find(item => item.id === id)
-    if (order) order.status = 'cancelled'
-    ElMessage.success('订单已取消！')
+    apiCancelOrder(id).then((res) => {
+      const order = orderList.value.find(item => item.id === id)
+      if (order) order.status = res.status
+      ElMessage.success('订单已取消！')
+    }).catch(() => {
+      ElMessage.error('取消失败')
+    })
   })
 }
 
@@ -108,9 +123,13 @@ const confirmReceive = (id) => {
     confirmButtonText: '确认',
     cancelButtonText: '取消'
   }).then(() => {
-    const order = orderList.value.find(item => item.id === id)
-    if (order) order.status = 'received'
-    ElMessage.success('确认收货成功！')
+    apiReceiveOrder(id).then((res) => {
+      const order = orderList.value.find(item => item.id === id)
+      if (order) order.status = res.status
+      ElMessage.success('确认收货成功！')
+    }).catch(() => {
+      ElMessage.error('确认收货失败')
+    })
   })
 }
 
@@ -118,6 +137,14 @@ const confirmReceive = (id) => {
 const viewOrderDetail = (id) => {
   ElMessage.info(`查看订单ID${id}详情`)
 }
+
+const toEvaluate = (id) => router.push({ path: '/buyer/evaluate', query: { orderId: id } })
+const toComplaint = (id) => router.push({ path: '/buyer/complaint', query: { orderId: id } })
+
+import { onMounted } from 'vue'
+onMounted(() => {
+  loadOrders()
+})
 </script>
 
 <style scoped>

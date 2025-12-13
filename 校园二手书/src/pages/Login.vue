@@ -11,7 +11,7 @@
       </el-radio-group>
 
       <!-- 登录表单 -->
-      <el-form :model="loginForm" :rules="loginRules" ref="loginFormRef" label-width="80px">
+  <el-form :model="loginForm" :rules="loginRules" ref="loginFormRef" label-width="80px">
         <el-form-item label="账号" prop="username">
           <el-input v-model="loginForm.username" placeholder="请输入账号"></el-input>
         </el-form-item>
@@ -21,6 +21,7 @@
         <el-form-item>
           <el-button type="primary" class="login-btn" @click="submitLogin">登录</el-button>
           <el-button type="text" @click="useTestAccount">使用测试账号</el-button>
+          <el-button type="text" @click="toRegister">没有账号？去注册</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -31,6 +32,7 @@
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
+import { login as apiLogin } from '@/api/userApi'
 
 const router = useRouter()
 const loginFormRef = ref(null)
@@ -62,39 +64,43 @@ const useTestAccount = () => {
   loginForm.value = { ...testAccounts[role.value] }
 }
 
-// 提交登录（纯前端模拟）
 const submitLogin = async () => {
   try {
-    // 表单校验
     await loginFormRef.value.validate()
-
-    // 模拟账号密码校验
-    const testAccount = testAccounts[role.value]
-    if (
-        loginForm.value.username !== testAccount.username ||
-        loginForm.value.password !== testAccount.password
-    ) {
-      ElMessage.error('账号或密码错误！')
+    const res = await apiLogin({
+      username: loginForm.value.username,
+      password: loginForm.value.password,
+      role: role.value
+    })
+    if (!res || !res.token) {
+      ElMessage.error('登录失败')
       return
     }
-
-    // 登录成功：强制写入localStorage
-    localStorage.setItem('token', `mock-token-${role.value}`)
-    localStorage.setItem('role', role.value)
-    localStorage.setItem('username', loginForm.value.username)
+    localStorage.setItem('token', res.token)
+    localStorage.setItem('role', res.role)
+    localStorage.setItem('username', res.username)
     ElMessage.success('登录成功！')
-
-    // 根据角色跳转不同页面（修改买家路径）
-    if (role.value === 'admin') {
+    if (res.role === 'admin') {
       router.push('/admin/dashboard')
-    } else if (role.value === 'seller') {
+    } else if (res.role === 'seller') {
       router.push('/seller/center')
     } else {
       router.push('/buyer/home')
     }
   } catch (error) {
-    ElMessage.error('登录失败：' + error.message)
+    const code = error?.response?.status
+    if (code === 401) {
+      ElMessage.error('账号或密码错误')
+    } else if (code === 500) {
+      ElMessage.error('服务异常或后端未启动，请检查后端')
+    } else {
+      ElMessage.error('登录失败：' + (error?.message || '未知错误'))
+    }
   }
+}
+
+const toRegister = () => {
+  router.push('/register')
 }
 </script>
 

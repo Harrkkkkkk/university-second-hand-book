@@ -3,19 +3,26 @@ import { ElMessage } from 'element-plus'
 
 // 登录页（核心：默认跳转页）
 import Login from '@/pages/Login.vue'
+import Register from '@/pages/Register.vue'
 
 // 买家专属页面
 import BuyerHome from '@/pages/buyer/Home.vue'
 import BuyerOrder from '@/pages/buyer/Order.vue'
 import BuyerCollect from '@/pages/buyer/Collect.vue'
 import BuyerProfile from '@/pages/buyer/Profile.vue' // 买家个人中心
+import BuyerCart from '@/pages/buyer/Cart.vue'
+import BuyerEvaluate from '@/pages/buyer/Evaluate.vue'
+import BuyerComplaint from '@/pages/buyer/Complaint.vue'
+import Chat from '@/pages/Chat.vue'
 
 // 公共页面
 import BookDetail from '@/pages/BookDetail.vue'
+import MessageCenter from '@/pages/MessageCenter.vue'
 
 // 卖家页面
 import PublishBook from '@/pages/PublishBook.vue'
 import SellerCenter from '@/pages/seller/Center.vue'
+
 
 // 管理员页面
 import AdminDashboard from '@/pages/admin/Dashboard.vue'
@@ -26,6 +33,7 @@ const routes = [
     { path: '/', redirect: '/login' },
     // 登录页
     { path: '/login', name: 'Login', component: Login },
+    { path: '/register', name: 'Register', component: Register },
 
     // ---------------------- 买家专属路由 ----------------------
     {
@@ -47,6 +55,36 @@ const routes = [
         meta: { requireAuth: true, roles: ['buyer'] }
     },
     {
+        path: '/buyer/cart',
+        name: 'BuyerCart',
+        component: BuyerCart,
+        meta: { requireAuth: true, roles: ['buyer'] }
+    },
+    {
+        path: '/buyer/evaluate',
+        name: 'BuyerEvaluate',
+        component: BuyerEvaluate,
+        meta: { requireAuth: true, roles: ['buyer'] }
+    },
+    {
+        path: '/buyer/complaint',
+        name: 'BuyerComplaint',
+        component: BuyerComplaint,
+        meta: { requireAuth: true, roles: ['buyer'] }
+    },
+    {
+        path: '/chat',
+        name: 'Chat',
+        component: Chat,
+        meta: { requireAuth: true, roles: ['buyer','seller','admin'] }
+    },
+    {
+        path: '/messages',
+        name: 'MessageCenter',
+        component: MessageCenter,
+        meta: { requireAuth: true, roles: ['buyer','seller','admin'] }
+    },
+    {
         path: '/buyer/profile', // 买家个人中心路由
         name: 'BuyerProfile',
         component: BuyerProfile,
@@ -60,6 +98,7 @@ const routes = [
         component: BookDetail,
         meta: { requireAuth: true, roles: ['buyer', 'seller', 'admin'] }
     },
+
 
     // ---------------------- 卖家专属路由 ----------------------
     {
