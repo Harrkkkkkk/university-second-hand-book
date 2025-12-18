@@ -57,7 +57,14 @@
             <div class="book-actions">
               <el-button type="primary" size="small" @click="toBookDetail(book.id)">查看详情</el-button>
               <el-button type="success" size="small" @click="addToCart(book.id)">加入购物车</el-button>
-              <el-button type="warning" size="small" icon="el-icon-star-off" @click="collectBook(book.id)">收藏</el-button>
+              <el-button 
+                :type="collectedMap[book.id] ? 'default' : 'warning'" 
+                size="small" 
+                :icon="collectedMap[book.id] ? 'el-icon-star-on' : 'el-icon-star-off'" 
+                @click="collectBook(book.id)"
+              >
+                {{ collectedMap[book.id] ? '已收藏' : '收藏' }}
+              </el-button>
             </div>
           </div>
         </el-card>
@@ -84,7 +91,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getBookPage, getHotBooks } from '@/api/bookApi'
-import { addFavorite } from '@/api/collectApi'
+import { addFavorite, removeFavorite, getCollectedIds } from '@/api/collectApi'
 import { addToCart as apiAddToCart } from '@/api/cartApi'
 import PageHeader from '@/components/PageHeader.vue'
 import { logoutAndBackToLogin } from '@/utils/auth.js'
@@ -110,6 +117,20 @@ const bookList = ref([])
 const hotBooks = ref([])
 const selectedIds = ref([])
 const selectedMap = ref({})
+const collectedMap = ref({})
+
+const loadCollectedIds = async () => {
+  try {
+    const ids = await getCollectedIds()
+    if (ids) {
+      const m = {}
+      ids.forEach(id => { m[id] = true })
+      collectedMap.value = m
+    }
+  } catch (e) {
+    console.error('加载收藏列表失败', e)
+  }
+}
 
 const loadBooks = async () => {
   try {
@@ -120,6 +141,8 @@ const loadBooks = async () => {
     const res = await getBookPage(params)
     bookList.value = res.records || []
     total.value = res.total || 0
+    // Load collected status
+    loadCollectedIds()
   } catch (e) {
     ElMessage.error('加载教材失败')
   }
@@ -188,10 +211,17 @@ const bulkAddToCart = async () => {
 // 收藏教材
 const collectBook = async (id) => {
   try {
-    await addFavorite(id)
-    ElMessage.success(`教材ID${id}已收藏！`)
+    if (collectedMap.value[id]) {
+      await removeFavorite(id)
+      delete collectedMap.value[id]
+      ElMessage.success(`教材ID${id}已取消收藏`)
+    } else {
+      await addFavorite(id)
+      collectedMap.value[id] = true
+      ElMessage.success(`教材ID${id}已收藏！`)
+    }
   } catch (e) {
-    ElMessage.error('收藏失败')
+    ElMessage.error('操作失败')
   }
 }
 

@@ -11,3 +11,7 @@ export const getHistory = (params) => {
 export const getConversations = () => {
   return request({ url: '/chat/conversations', method: 'get', headers: { token: localStorage.getItem('token') } })
 }
+
+export const markRead = (peer) => {
+  return request({ url: `/chat/read/${peer}`, method: 'post', headers: { token: localStorage.getItem('token') } })
+}

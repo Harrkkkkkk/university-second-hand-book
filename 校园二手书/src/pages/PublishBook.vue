@@ -1,7 +1,6 @@
 <template>
   <div class="publish-book">
-    <page-header title="发布二手教材">
-      <el-button type="text" @click="logout" style="color: #e64340;">退出登录</el-button>
+    <page-header title="发布二手教材" :goBack="goBack">
     </page-header>
 
     <el-card>
@@ -52,12 +51,15 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
-import { logoutAndBackToLogin } from '@/utils/auth.js'
 import { addBook } from '@/api/bookApi'
 
+const router = useRouter()
+const goBack = () => router.back()
 const publishFormRef = ref(null)
+const fileList = ref([])
 
 // 发布表单
 const publishForm = ref({
@@ -79,11 +81,6 @@ const publishRules = ref({
   conditionLevel: [{ required: true, message: '请选择成色', trigger: 'change' }],
   stock: [{ required: true, message: '请输入库存', trigger: 'change' }]
 })
-
-// 退出登录
-const logout = () => {
-  logoutAndBackToLogin()
-}
 
 // 文件上传（模拟）
 const handleFileChange = (file) => {

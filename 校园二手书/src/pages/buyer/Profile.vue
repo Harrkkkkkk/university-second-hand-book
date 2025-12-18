@@ -1,7 +1,7 @@
 <template>
   <div class="buyer-profile">
     <div class="page-header">
-      <h2>买家个人中心</h2>
+      <h2>个人中心</h2>
       <el-button type="text" @click="goBack" style="color: #409eff;">返回</el-button>
     </div>
 
@@ -12,7 +12,7 @@
           <div class="avatar-box">
             <img src="https://picsum.photos/100/100" alt="头像" class="avatar">
             <h3 class="username">{{ username }}</h3>
-            <p class="role-tag">买家</p>
+            <p class="role-tag">{{ roleName }}</p>
           </div>
           <el-menu
               default-active="1"
@@ -119,7 +119,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 
@@ -128,6 +128,16 @@ const router = useRouter()
 const activeTab = ref('1')
 // 用户名（从localStorage读取）
 const username = ref(localStorage.getItem('username') || '买家用户')
+const role = ref(localStorage.getItem('role') || 'buyer')
+
+const roleName = computed(() => {
+  const map = {
+    buyer: '买家',
+    seller: '卖家',
+    admin: '管理员'
+  }
+  return map[role.value] || '用户'
+})
 
 // 个人信息模拟数据
 const userInfo = ref({

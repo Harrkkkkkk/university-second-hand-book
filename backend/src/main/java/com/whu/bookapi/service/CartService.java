@@ -12,21 +12,43 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class CartService {
     private final Map<String, Map<Long, CartItem>> carts = new ConcurrentHashMap<>();
+    private final BookService bookService;
+
+    public CartService(BookService bookService) {
+        this.bookService = bookService;
+    }
 
     public void add(String username, Long bookId) {
+        Book book = bookService.get(bookId);
+        if (book == null) {
+            throw new RuntimeException("Book not found");
+        }
+        
+        if (username.equals(book.getSellerName())) {
+            throw new RuntimeException("Cannot buy your own book");
+        }
+        
         Map<Long, CartItem> cart = carts.computeIfAbsent(username, k -> new ConcurrentHashMap<>());
-        cart.compute(bookId, (k, v) -> {
-            if (v == null) {
-                CartItem ci = new CartItem();
-                ci.setUsername(username);
-                ci.setBookId(bookId);
-                ci.setQuantity(1);
-                return ci;
-            } else {
-                v.setQuantity(v.getQuantity() + 1);
-                return v;
-            }
-        });
+        
+        synchronized (cart) {
+            cart.compute(bookId, (k, v) -> {
+                int currentQty = (v == null) ? 0 : v.getQuantity();
+                if (currentQty + 1 > book.getStock()) {
+                    throw new RuntimeException("Inventory insufficient");
+                }
+                
+                if (v == null) {
+                    CartItem ci = new CartItem();
+                    ci.setUsername(username);
+                    ci.setBookId(bookId);
+                    ci.setQuantity(1);
+                    return ci;
+                } else {
+                    v.setQuantity(v.getQuantity() + 1);
+                    return v;
+                }
+            });
+        }
     }
 
     public void remove(String username, Long bookId) {

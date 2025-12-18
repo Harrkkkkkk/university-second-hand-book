@@ -42,6 +42,11 @@ public class OrderController {
         if (user == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         Book b = bookService.get(bookId);
         if (b == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        
+        if (user.getUsername().equals(b.getSellerName())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(java.util.Map.of("message", "Cannot buy your own book"));
+        }
+
         boolean reserved = bookService.tryReserveStock(bookId);
         if (!reserved) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(java.util.Map.of("message", "库存不足"));

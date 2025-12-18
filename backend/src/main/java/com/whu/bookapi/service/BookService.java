@@ -119,8 +119,9 @@ public class BookService {
                 ok = conditionLevel.equals(b.getConditionLevel());
             }
             if (ok) {
-                // 默认只展示在售与审核通过的商品
-                ok = "on_sale".equals(b.getStatus()) || "under_review".equals(b.getStatus());
+                // 默认只展示在售的商品，待审核的不展示
+                // 且库存必须大于0
+                ok = "on_sale".equals(b.getStatus()) && (b.getStock() != null && b.getStock() > 0);
             }
             if (ok) filtered.add(b);
         }
@@ -147,7 +148,7 @@ public class BookService {
                 ok = b.getSellPrice() != null && b.getSellPrice() <= maxPrice;
             }
             if (ok) {
-                ok = "on_sale".equals(b.getStatus()) || "under_review".equals(b.getStatus());
+                ok = "on_sale".equals(b.getStatus()) && (b.getStock() != null && b.getStock() > 0);
             }
             if (ok) c++;
         }

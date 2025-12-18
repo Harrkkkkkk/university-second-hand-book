@@ -26,6 +26,9 @@ public class ChatController {
                                   @RequestBody ChatMessage msg) {
         User u = userService.getByToken(token);
         if (u == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        if (msg.getToUser() == null || !userService.exists(msg.getToUser())) {
+            return ResponseEntity.badRequest().body("Target user does not exist");
+        }
         msg.setFromUser(u.getUsername());
         return ResponseEntity.ok(chatService.send(msg));
     }
@@ -47,5 +50,14 @@ public class ChatController {
         if (u == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         java.util.List<java.util.Map<String, Object>> list = chatService.listConversations(u.getUsername());
         return ResponseEntity.ok(list);
+    }
+
+    @PostMapping("/read/{peer}")
+    public ResponseEntity<?> markRead(@RequestHeader(value = "token", required = false) String token,
+                                      @PathVariable("peer") String peer) {
+        User u = userService.getByToken(token);
+        if (u == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        chatService.markRead(u.getUsername(), peer);
+        return ResponseEntity.ok().build();
     }
 }

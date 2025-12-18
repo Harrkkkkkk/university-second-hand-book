@@ -1,7 +1,6 @@
 <template>
   <div class="chat-page">
-    <page-header title="在线沟通">
-      <el-button type="text" @click="logout" style="color:#e64340">退出登录</el-button>
+    <page-header title="在线沟通" :goBack="goBack">
     </page-header>
     <el-card>
       <div>与 {{ peer }} 的对话（{{ contextLabel }}）</div>
@@ -21,14 +20,19 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import PageHeader from '@/components/PageHeader.vue'
 import { logoutAndBackToLogin } from '@/utils/auth.js'
-import { sendMessage, getHistory } from '@/api/chatApi'
+import { sendMessage, getHistory, markRead } from '@/api/chatApi'
 import { ElMessage } from 'element-plus'
 
 const route = useRoute()
+const router = useRouter()
 const username = localStorage.getItem('username')
+
+const goBack = () => {
+  router.back()
+}
 const peer = route.query.peer || ''
 const bookId = route.query.bookId ? Number(route.query.bookId) : undefined
 const orderId = route.query.orderId ? Number(route.query.orderId) : undefined
@@ -39,7 +43,12 @@ const messages = ref([])
 const text = ref('')
 
 const load = async () => {
-  try { messages.value = await getHistory({ peer, bookId, orderId }) || [] } catch { ElMessage.error('加载历史失败') }
+  try {
+    messages.value = await getHistory({ peer, bookId, orderId }) || []
+    if (peer) {
+      await markRead(peer)
+    }
+  } catch { ElMessage.error('加载历史失败') }
 }
 
 const send = async () => {

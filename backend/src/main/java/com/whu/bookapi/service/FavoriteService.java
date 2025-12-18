@@ -19,6 +19,16 @@ public class FavoriteService {
         if (s != null) s.remove(bookId);
     }
 
+    public boolean isCollected(String username, Long bookId) {
+        Set<Long> s = favs.get(username);
+        return s != null && s.contains(bookId);
+    }
+
+    public List<Long> listIds(String username) {
+        Set<Long> s = favs.getOrDefault(username, Collections.emptySet());
+        return new ArrayList<>(s);
+    }
+
     public List<Book> list(String username, Map<Long, Book> bookStore) {
         Set<Long> s = favs.getOrDefault(username, Collections.emptySet());
         List<Book> res = new ArrayList<>();

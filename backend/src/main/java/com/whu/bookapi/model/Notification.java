@@ -8,6 +8,7 @@ public class Notification {
     private String content;
     private long createTime;
     private boolean read;
+    private java.util.Set<String> readByUsers = new java.util.HashSet<>();
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -23,4 +24,22 @@ public class Notification {
     public void setCreateTime(long createTime) { this.createTime = createTime; }
     public boolean isRead() { return read; }
     public void setRead(boolean read) { this.read = read; }
+    public java.util.Set<String> getReadByUsers() { return readByUsers; }
+    public void setReadByUsers(java.util.Set<String> readByUsers) { this.readByUsers = readByUsers; }
+    
+    // Helper to check if read by a specific user
+    public boolean isReadBy(String username) {
+        if ("*".equals(toUser)) {
+            return readByUsers.contains(username);
+        }
+        return read;
+    }
+
+    public void markReadBy(String username) {
+        if ("*".equals(toUser)) {
+            readByUsers.add(username);
+        } else {
+            this.read = true;
+        }
+    }
 }

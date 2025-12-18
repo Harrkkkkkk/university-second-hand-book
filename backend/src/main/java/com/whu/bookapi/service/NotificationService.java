@@ -54,15 +54,25 @@ public class NotificationService {
     public long countUnread(String username) {
         long count = 0;
         for (Notification n : store.values()) {
-            if ((username.equals(n.getToUser()) || "*".equals(n.getToUser())) && !n.isRead()) {
+            if ((username.equals(n.getToUser()) || "*".equals(n.getToUser())) && !n.isReadBy(username)) {
                 count++;
             }
         }
         return count;
     }
 
-    public void markRead(Long id) {
+    public void markRead(Long id, String username) {
         Notification n = store.get(id);
-        if (n != null) n.setRead(true);
+        if (n != null) n.markReadBy(username);
+    }
+
+    public void markAllRead(String username) {
+        for (Notification n : store.values()) {
+            if (username.equals(n.getToUser()) || "*".equals(n.getToUser())) {
+                if (!n.isReadBy(username)) {
+                    n.markReadBy(username);
+                }
+            }
+        }
     }
 }

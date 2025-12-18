@@ -92,6 +92,10 @@ public class UserService {
         return true;
     }
 
+    public boolean exists(String username) {
+        return passwordStore.containsKey(username);
+    }
+
     public java.util.List<User> listAllUsers() {
         java.util.List<User> res = new java.util.ArrayList<>();
         for (Map.Entry<String, String> e : roleStore.entrySet()) {

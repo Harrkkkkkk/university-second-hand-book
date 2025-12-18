@@ -52,8 +52,12 @@ public class CartController {
                                  @PathVariable("bookId") Long bookId) {
         User user = token == null ? null : userService.getByToken(token);
         if (user == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        cartService.add(user.getUsername(), bookId);
-        return ResponseEntity.ok().build();
+        try {
+            cartService.add(user.getUsername(), bookId);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
     }
 
     @DeleteMapping("/remove/{bookId}")

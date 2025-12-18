@@ -6,7 +6,7 @@
 
     <!-- 订单筛选 -->
     <el-card class="filter-card">
-      <el-radio-group v-model="orderStatus" @change="filterOrder">
+      <el-radio-group v-model="orderStatus">
         <el-radio label="all">全部订单</el-radio>
         <el-radio label="pending">待付款</el-radio>
         <el-radio label="paid">已付款</el-radio>
@@ -48,7 +48,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
@@ -64,25 +64,22 @@ const logout = () => {
 // 订单状态筛选
 const orderStatus = ref('all')
 
-const orderList = ref([])
+const allOrders = ref([])
+
+const orderList = computed(() => {
+  if (orderStatus.value === 'all') {
+    return allOrders.value
+  }
+  return allOrders.value.filter(order => order.status === orderStatus.value)
+})
 
 const loadOrders = async () => {
   try {
     const res = await listOrders()
-    orderList.value = res || []
+    allOrders.value = res || []
   } catch (e) {
     ElMessage.error('加载订单失败')
   }
-}
-
-// 筛选订单
-const filterOrder = () => {
-  if (orderStatus.value === 'all') {
-    // 显示全部
-    return
-  }
-  // 模拟筛选逻辑
-  ElMessage.info(`筛选状态：${orderStatus.value}`)
 }
 
 // 付款
@@ -92,7 +89,7 @@ const payOrder = (id) => {
     cancelButtonText: '取消'
   }).then(() => {
     apiPayOrder(id).then((res) => {
-      const order = orderList.value.find(item => item.id === id)
+      const order = allOrders.value.find(item => item.id === id)
       if (order) order.status = res.status
       ElMessage.success('付款成功！')
     }).catch(() => {
@@ -108,7 +105,7 @@ const cancelOrder = (id) => {
     cancelButtonText: '取消'
   }).then(() => {
     apiCancelOrder(id).then((res) => {
-      const order = orderList.value.find(item => item.id === id)
+      const order = allOrders.value.find(item => item.id === id)
       if (order) order.status = res.status
       ElMessage.success('订单已取消！')
     }).catch(() => {
@@ -124,7 +121,7 @@ const confirmReceive = (id) => {
     cancelButtonText: '取消'
   }).then(() => {
     apiReceiveOrder(id).then((res) => {
-      const order = orderList.value.find(item => item.id === id)
+      const order = allOrders.value.find(item => item.id === id)
       if (order) order.status = res.status
       ElMessage.success('确认收货成功！')
     }).catch(() => {

@@ -1,21 +1,26 @@
 package com.whu.bookapi.controller;
 
+import com.whu.bookapi.model.Order;
 import com.whu.bookapi.model.Review;
 import com.whu.bookapi.model.User;
+import com.whu.bookapi.service.OrderService;
 import com.whu.bookapi.service.ReviewService;
 import com.whu.bookapi.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.text.SimpleDateFormat;
+import java.util.*;
+
 @RestController
 @RequestMapping("/reviews")
 public class ReviewController {
     private final ReviewService reviewService;
     private final UserService userService;
-    private final com.whu.bookapi.service.OrderService orderService;
+    private final OrderService orderService;
 
-    public ReviewController(ReviewService reviewService, UserService userService, com.whu.bookapi.service.OrderService orderService) {
+    public ReviewController(ReviewService reviewService, UserService userService, OrderService orderService) {
         this.reviewService = reviewService;
         this.userService = userService;
         this.orderService = orderService;
@@ -49,33 +54,24 @@ public class ReviewController {
         return ResponseEntity.ok(r);
     }
 
-    @GetMapping("/draft/my")
-    public ResponseEntity<?> getDraft(@RequestHeader(value = "token", required = false) String token,
-                                      @RequestParam("orderId") Long orderId) {
-        User u = userService.getByToken(token);
-        if (u == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        Review r = reviewService.getDraft(u.getUsername(), orderId);
-        if (r == null) return ResponseEntity.ok().build();
-        return ResponseEntity.ok(r);
-    }
-
     @GetMapping("/received")
     public ResponseEntity<?> received(@RequestHeader(value = "token", required = false) String token) {
         User u = userService.getByToken(token);
         if (u == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        java.util.List<Review> all = reviewService.listAll();
-        java.util.List<java.util.Map<String, Object>> res = new java.util.ArrayList<>();
+        List<Review> all = reviewService.listAll();
+        List<Map<String, Object>> res = new ArrayList<>();
         for (Review r : all) {
-            com.whu.bookapi.model.Order o = orderService.get(r.getOrderId());
+            if (r.getOrderId() == null) continue;
+            Order o = orderService.get(r.getOrderId());
             if (o != null && u.getUsername().equals(o.getSellerName())) {
-                java.util.Map<String, Object> m = new java.util.HashMap<>();
+                Map<String, Object> m = new HashMap<>();
                 m.put("id", r.getId());
                 m.put("orderId", r.getOrderId());
                 m.put("buyerName", r.getUsername());
                 m.put("scoreCondition", r.getScoreCondition());
                 m.put("scoreService", r.getScoreService());
                 m.put("comment", r.getComment());
-                m.put("createTime", r.getCreateTime());
+                m.put("createTime", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(r.getCreateTime())));
                 m.put("tags", r.getTags());
                 res.add(m);
             }
@@ -83,25 +79,26 @@ public class ReviewController {
         return ResponseEntity.ok(res);
     }
 
-    @GetMapping("/stats/good-rate")
-    public ResponseEntity<?> goodRate(@RequestHeader(value = "token", required = false) String token) {
-        User u = userService.getByToken(token);
-        if (u == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        int total = 0;
-        int positive = 0;
-        for (Review r : reviewService.listAll()) {
-            com.whu.bookapi.model.Order o = orderService.get(r.getOrderId());
-            if (o != null && u.getUsername().equals(o.getSellerName())) {
-                total++;
-                double avg = (r.getScoreCondition() + r.getScoreService()) / 2.0;
-                if (avg >= 4.0) positive++;
+    @GetMapping("/seller/{sellerName}")
+    public ResponseEntity<?> listBySeller(@PathVariable String sellerName) {
+        List<Review> all = reviewService.listAll();
+        List<Map<String, Object>> res = new ArrayList<>();
+        for (Review r : all) {
+            if (r.getOrderId() == null) continue;
+            Order o = orderService.get(r.getOrderId());
+            if (o != null && sellerName.equals(o.getSellerName())) {
+                Map<String, Object> m = new HashMap<>();
+                m.put("id", r.getId());
+                m.put("orderId", r.getOrderId());
+                m.put("buyerName", r.getUsername());
+                m.put("scoreCondition", r.getScoreCondition());
+                m.put("scoreService", r.getScoreService());
+                m.put("comment", r.getComment());
+                m.put("createTime", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(r.getCreateTime())));
+                m.put("tags", r.getTags());
+                res.add(m);
             }
         }
-        double rate = total == 0 ? 0.0 : (positive * 100.0 / total);
-        java.util.Map<String, Object> res = new java.util.HashMap<>();
-        res.put("totalReviews", total);
-        res.put("positiveReviews", positive);
-        res.put("goodRate", rate);
         return ResponseEntity.ok(res);
     }
 }

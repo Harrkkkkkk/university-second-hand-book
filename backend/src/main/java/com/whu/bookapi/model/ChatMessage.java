@@ -8,6 +8,7 @@ public class ChatMessage {
     private Long orderId;
     private String content;
     private long createTime;
+    private boolean read;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -23,4 +24,6 @@ public class ChatMessage {
     public void setContent(String content) { this.content = content; }
     public long getCreateTime() { return createTime; }
     public void setCreateTime(long createTime) { this.createTime = createTime; }
+    public boolean isRead() { return read; }
+    public void setRead(boolean read) { this.read = read; }
 }

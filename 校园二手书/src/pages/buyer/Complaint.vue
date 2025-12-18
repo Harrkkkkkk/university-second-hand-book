@@ -1,7 +1,6 @@
 <template>
   <div class="complaint-page">
-    <page-header title="发起投诉">
-      <el-button type="text" @click="logout" style="color:#e64340">退出登录</el-button>
+    <page-header title="发起投诉" :goBack="goBack">
     </page-header>
     <el-card>
       <el-form :model="form" label-width="120px">
@@ -28,10 +27,13 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import PageHeader from '@/components/PageHeader.vue'
 import { logoutAndBackToLogin } from '@/utils/auth.js'
 import { ElMessage } from 'element-plus'
 
+const router = useRouter()
+const goBack = () => router.back()
 const logout = () => logoutAndBackToLogin()
 const form = ref({ orderId: '', type: '', detail: '' })
 

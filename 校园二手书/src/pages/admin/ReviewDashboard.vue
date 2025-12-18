@@ -1,6 +1,6 @@
 <template>
   <div class="admin-dashboard">
-    <page-header title="管理员后台 - 内容审核">
+    <page-header title="管理员后台 - 内容审核" :goBack="goBack">
       <el-button type="text" @click="logout" style="color:#e64340">退出登录</el-button>
     </page-header>
 
@@ -26,11 +26,14 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import PageHeader from '@/components/PageHeader.vue'
 import { logoutAndBackToLogin } from '@/utils/auth.js'
 import { listUnderReviewBooks, approveBook, rejectBook } from '@/api/adminApi'
 import { ElMessage } from 'element-plus'
 
+const router = useRouter()
+const goBack = () => router.back()
 const logout = () => logoutAndBackToLogin()
 const underReview = ref([])
 

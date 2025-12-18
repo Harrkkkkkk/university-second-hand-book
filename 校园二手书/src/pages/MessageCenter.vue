@@ -1,7 +1,6 @@
 <template>
   <div class="message-center">
-    <page-header title="消息中心">
-      <el-button type="text" @click="logout" style="color:#e64340">退出登录</el-button>
+    <page-header title="消息中心" :goBack="goBack">
     </page-header>
     <el-row :gutter="20">
       <el-col :span="12">
@@ -9,7 +8,14 @@
           <template #header><div class="card-header">会话列表</div></template>
           <el-input v-model="peer" placeholder="输入用户名发起会话" @keyup.enter.native="startChat" />
           <el-table :data="threads" border style="margin-top:10px;">
-            <el-table-column prop="peer" label="对方" width="160" />
+            <el-table-column prop="peer" label="对方" width="160">
+              <template #default="scope">
+                <el-badge :value="scope.row.unread" :max="99" class="item" v-if="scope.row.unread > 0">
+                  <span>{{ scope.row.peer }}</span>
+                </el-badge>
+                <span v-else>{{ scope.row.peer }}</span>
+              </template>
+            </el-table-column>
             <el-table-column prop="lastContent" label="最近消息" />
             <el-table-column prop="lastTime" label="时间" width="180">
               <template #default="scope">{{ formatTime(scope.row.lastTime) }}</template>
@@ -24,19 +30,24 @@
       </el-col>
       <el-col :span="12">
         <el-card>
-          <template #header><div class="card-header">系统通知</div></template>
+          <template #header>
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+              <span>系统通知</span>
+              <el-button type="primary" size="small" @click="handleMarkAllRead">一键已读</el-button>
+            </div>
+          </template>
           <el-table :data="notifications" border>
-            <el-table-column prop="type" label="类型" width="120" />
-            <el-table-column prop="title" label="标题" width="200" />
-            <el-table-column prop="content" label="内容" />
-            <el-table-column prop="createTime" label="时间" width="180">
-              <template #default="scope">{{ formatTime(scope.row.createTime) }}</template>
-            </el-table-column>
             <el-table-column label="操作" width="100">
               <template #default="scope">
                 <el-button v-if="!scope.row.read" type="text" size="small" @click="handleMarkRead(scope.row)">标为已读</el-button>
                 <span v-else style="color:#999; font-size:12px;">已读</span>
               </template>
+            </el-table-column>
+            <el-table-column prop="type" label="类型" width="120" />
+            <el-table-column prop="title" label="标题" width="200" />
+            <el-table-column prop="content" label="内容" />
+            <el-table-column prop="createTime" label="时间" width="180">
+              <template #default="scope">{{ formatTime(scope.row.createTime) }}</template>
             </el-table-column>
           </el-table>
           <div v-if="role==='admin'" style="margin-top:10px;">
@@ -56,10 +67,11 @@ import { useRouter } from 'vue-router'
 import PageHeader from '@/components/PageHeader.vue'
 import { logoutAndBackToLogin } from '@/utils/auth.js'
 import { ElMessage } from 'element-plus'
-import { listNotifications, announce, markRead } from '@/api/notificationApi'
+import { listNotifications, announce, markRead, markAllRead } from '@/api/notificationApi'
 import { getConversations } from '@/api/chatApi'
 
 const router = useRouter()
+const goBack = () => router.back()
 const logout = () => logoutAndBackToLogin()
 
 const role = localStorage.getItem('role') || ''
@@ -81,6 +93,17 @@ const handleMarkRead = async (row) => {
     // ElMessage.success('已标记为已读')
   } catch (e) {
     console.error(e)
+  }
+}
+
+const handleMarkAllRead = async () => {
+  try {
+    await markAllRead()
+    ElMessage.success('全部已读')
+    // 更新本地状态
+    notifications.value.forEach(n => n.read = true)
+  } catch (e) {
+    ElMessage.error('操作失败')
   }
 }
 

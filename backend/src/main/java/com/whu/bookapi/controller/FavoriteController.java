@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
 
 @RestController
@@ -30,6 +31,23 @@ public class FavoriteController {
         if (user == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         List<Book> list = favoriteService.list(user.getUsername(), bookServiceStore());
         return ResponseEntity.ok(list);
+    }
+
+    @GetMapping("/check/{bookId}")
+    public ResponseEntity<?> check(@RequestHeader(value = "token", required = false) String token,
+                                   @PathVariable("bookId") Long bookId) {
+        User user = token == null ? null : userService.getByToken(token);
+        if (user == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        boolean collected = favoriteService.isCollected(user.getUsername(), bookId);
+        return ResponseEntity.ok(Collections.singletonMap("collected", collected));
+    }
+
+    @GetMapping("/ids")
+    public ResponseEntity<?> listIds(@RequestHeader(value = "token", required = false) String token) {
+        User user = token == null ? null : userService.getByToken(token);
+        if (user == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        List<Long> ids = favoriteService.listIds(user.getUsername());
+        return ResponseEntity.ok(ids);
     }
 
     @PostMapping("/add/{bookId}")

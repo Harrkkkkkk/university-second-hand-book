@@ -188,10 +188,8 @@ const toMessageCenter = () => {
 
 // 个人中心
 const toUserCenter = () => {
-  if (role.value === 'buyer') {
+  if (role.value === 'buyer' || role.value === 'seller') {
     router.push('/buyer/profile')
-  } else if (role.value === 'seller') {
-    ElMessage.info('暂未开放卖家个人中心！')
   } else if (role.value === 'admin') {
     ElMessage.info('暂未开放管理员个人中心！')
   }

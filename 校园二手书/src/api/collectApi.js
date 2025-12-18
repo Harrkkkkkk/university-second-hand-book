@@ -23,3 +23,19 @@ export const removeFavorite = (bookId) => {
     headers: { token: localStorage.getItem('token') }
   })
 }
+
+export const checkFavorite = (bookId) => {
+  return request({
+    url: `/favorites/check/${bookId}`,
+    method: 'get',
+    headers: { token: localStorage.getItem('token') }
+  })
+}
+
+export const getCollectedIds = () => {
+  return request({
+    url: '/favorites/ids',
+    method: 'get',
+    headers: { token: localStorage.getItem('token') }
+  })
+}

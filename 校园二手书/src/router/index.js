@@ -13,6 +13,7 @@ import BuyerProfile from '@/pages/buyer/Profile.vue' // 买家个人中心
 import BuyerCart from '@/pages/buyer/Cart.vue'
 import BuyerEvaluate from '@/pages/buyer/Evaluate.vue'
 import BuyerComplaint from '@/pages/buyer/Complaint.vue'
+import BuyerSellerDetail from '@/pages/buyer/SellerDetail.vue'
 import Chat from '@/pages/Chat.vue'
 
 // 公共页面
@@ -72,6 +73,12 @@ const routes = [
         name: 'BuyerComplaint',
         component: BuyerComplaint,
         meta: { requireAuth: true, roles: ['buyer', 'seller'] }
+    },
+    {
+        path: '/seller/detail/:name',
+        name: 'SellerDetail',
+        component: BuyerSellerDetail,
+        meta: { requireAuth: true, roles: ['buyer', 'seller', 'admin'] }
     },
     {
         path: '/chat',

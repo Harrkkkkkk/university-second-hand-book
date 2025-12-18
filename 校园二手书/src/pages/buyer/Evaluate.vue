@@ -1,7 +1,6 @@
 <template>
   <div class="evaluate-page">
-    <page-header title="订单评价">
-      <el-button type="text" @click="logout" style="color:#e64340">退出登录</el-button>
+    <page-header title="订单评价" :goBack="goBack">
     </page-header>
     <el-card>
       <el-form :model="form" label-width="120px">
@@ -31,10 +30,13 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import PageHeader from '@/components/PageHeader.vue'
 import { logoutAndBackToLogin } from '@/utils/auth.js'
 import { ElMessage } from 'element-plus'
 
+const router = useRouter()
+const goBack = () => router.back()
 const logout = () => logoutAndBackToLogin()
 const form = ref({ orderId: '', scoreCondition: 5, scoreService: 5, comment: '', tags: [] })
 const tagOptions = ['书籍很新','笔记实用','发货快','沟通顺畅']

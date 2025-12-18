@@ -25,6 +25,14 @@ export const markRead = async (id) => {
   })
 }
 
+export const markAllRead = async () => {
+  return await request({
+    url: '/notifications/mark-all-read',
+    method: 'post',
+    headers: { token: localStorage.getItem('token') }
+  })
+}
+
 export const announce = async (data) => {
   return await request({
     url: '/notifications/announce',
