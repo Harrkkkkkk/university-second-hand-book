@@ -48,6 +48,7 @@ public class ReviewService {
         copy.setScoreCondition(r.getScoreCondition());
         copy.setScoreService(r.getScoreService());
         copy.setComment(r.getComment());
+        copy.setTags(r.getTags());
         copy.setCreateTime(System.currentTimeMillis());
         drafts.put(key, copy);
         return copy;
@@ -57,5 +58,9 @@ public class ReviewService {
         if (orderId == null) return null;
         String key = username + ":" + orderId;
         return drafts.get(key);
+    }
+
+    public java.util.List<Review> listAll() {
+        return new java.util.ArrayList<>(store.values());
     }
 }

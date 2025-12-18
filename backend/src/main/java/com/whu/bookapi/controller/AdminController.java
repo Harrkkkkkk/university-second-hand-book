@@ -28,6 +28,33 @@ public class AdminController {
         this.notificationService = notificationService;
     }
 
+    @GetMapping("/seller-applications")
+    public ResponseEntity<?> listSellerApplications(@RequestHeader(value = "token", required = false) String token) {
+        User u = userService.getByToken(token);
+        if (u == null || !"admin".equals(u.getRole())) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        return ResponseEntity.ok(userService.listSellerApplications());
+    }
+
+    @PostMapping("/approve-seller/{username}")
+    public ResponseEntity<?> approveSeller(@RequestHeader(value = "token", required = false) String token,
+                                           @PathVariable("username") String username) {
+        User u = userService.getByToken(token);
+        if (u == null || !"admin".equals(u.getRole())) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        userService.approveSeller(username);
+        notificationService.add(username, "恭喜，您的卖家资质申请已通过！");
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/reject-seller/{username}")
+    public ResponseEntity<?> rejectSeller(@RequestHeader(value = "token", required = false) String token,
+                                          @PathVariable("username") String username) {
+        User u = userService.getByToken(token);
+        if (u == null || !"admin".equals(u.getRole())) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        userService.rejectSeller(username);
+        notificationService.add(username, "很遗憾，您的卖家资质申请未通过。");
+        return ResponseEntity.ok().build();
+    }
+
     private boolean isAdmin(User u) {
         return u != null && "admin".equals(u.getRole());
     }

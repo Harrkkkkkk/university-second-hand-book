@@ -22,6 +22,7 @@ import MessageCenter from '@/pages/MessageCenter.vue'
 // 卖家页面
 import PublishBook from '@/pages/PublishBook.vue'
 import SellerCenter from '@/pages/seller/Center.vue'
+import SellerApply from '@/pages/seller/Apply.vue'
 
 
 // 管理员页面
@@ -40,37 +41,37 @@ const routes = [
         path: '/buyer/home',
         name: 'BuyerHome',
         component: BuyerHome,
-        meta: { requireAuth: true, roles: ['buyer'] } // 需登录+买家角色
+        meta: { requireAuth: true, roles: ['buyer', 'seller'] } // 需登录+买家/卖家角色
     },
     {
         path: '/buyer/order',
         name: 'BuyerOrder',
         component: BuyerOrder,
-        meta: { requireAuth: true, roles: ['buyer'] }
+        meta: { requireAuth: true, roles: ['buyer', 'seller'] }
     },
     {
         path: '/buyer/collect',
         name: 'BuyerCollect',
         component: BuyerCollect,
-        meta: { requireAuth: true, roles: ['buyer'] }
+        meta: { requireAuth: true, roles: ['buyer', 'seller'] }
     },
     {
         path: '/buyer/cart',
         name: 'BuyerCart',
         component: BuyerCart,
-        meta: { requireAuth: true, roles: ['buyer'] }
+        meta: { requireAuth: true, roles: ['buyer', 'seller'] }
     },
     {
         path: '/buyer/evaluate',
         name: 'BuyerEvaluate',
         component: BuyerEvaluate,
-        meta: { requireAuth: true, roles: ['buyer'] }
+        meta: { requireAuth: true, roles: ['buyer', 'seller'] }
     },
     {
         path: '/buyer/complaint',
         name: 'BuyerComplaint',
         component: BuyerComplaint,
-        meta: { requireAuth: true, roles: ['buyer'] }
+        meta: { requireAuth: true, roles: ['buyer', 'seller'] }
     },
     {
         path: '/chat',
@@ -88,7 +89,7 @@ const routes = [
         path: '/buyer/profile', // 买家个人中心路由
         name: 'BuyerProfile',
         component: BuyerProfile,
-        meta: { requireAuth: true, roles: ['buyer'] }
+        meta: { requireAuth: true, roles: ['buyer', 'seller'] }
     },
 
     // ---------------------- 公共路由（所有角色可访问） ----------------------
@@ -102,15 +103,21 @@ const routes = [
 
     // ---------------------- 卖家专属路由 ----------------------
     {
+        path: '/seller/center',
+        name: 'SellerCenter',
+        component: SellerCenter,
+        meta: { requireAuth: true, roles: ['seller', 'buyer'] } // 买家申请通过后也可以访问
+    },
+    {
+        path: '/seller/apply',
+        name: 'SellerApply',
+        component: SellerApply,
+        meta: { requireAuth: true, roles: ['buyer'] }
+    },
+    {
         path: '/publish', // 发布教材
         name: 'PublishBook',
         component: PublishBook,
-        meta: { requireAuth: true, roles: ['seller'] }
-    },
-    {
-        path: '/seller/center', // 卖家中心
-        name: 'SellerCenter',
-        component: SellerCenter,
         meta: { requireAuth: true, roles: ['seller'] }
     },
 

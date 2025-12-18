@@ -104,7 +104,10 @@ public class BookService {
         for (Book b : all) {
             boolean ok = true;
             if (bookName != null && !bookName.isEmpty()) {
-                ok = b.getBookName() != null && b.getBookName().contains(bookName);
+                String key = bookName.toLowerCase();
+                String name = b.getBookName() == null ? "" : b.getBookName().toLowerCase();
+                String author = b.getAuthor() == null ? "" : b.getAuthor().toLowerCase();
+                ok = name.contains(key) || author.contains(key);
             }
             if (ok && minPrice != null) {
                 ok = b.getSellPrice() != null && b.getSellPrice() >= minPrice;
@@ -132,7 +135,10 @@ public class BookService {
         for (Book b : store.values()) {
             boolean ok = true;
             if (bookName != null && !bookName.isEmpty()) {
-                ok = b.getBookName() != null && b.getBookName().contains(bookName);
+                String key = bookName.toLowerCase();
+                String name = b.getBookName() == null ? "" : b.getBookName().toLowerCase();
+                String author = b.getAuthor() == null ? "" : b.getAuthor().toLowerCase();
+                ok = name.contains(key) || author.contains(key);
             }
             if (ok && minPrice != null) {
                 ok = b.getSellPrice() != null && b.getSellPrice() >= minPrice;
@@ -146,6 +152,17 @@ public class BookService {
             if (ok) c++;
         }
         return c;
+    }
+
+    public List<Book> listHot(int limit) {
+        List<Book> all = new ArrayList<>(store.values());
+        List<Book> onSale = new ArrayList<>();
+        for (Book b : all) {
+            if ("on_sale".equals(b.getStatus())) onSale.add(b);
+        }
+        onSale.sort((a, b) -> Long.compare(b.getCreatedAt() == null ? 0 : b.getCreatedAt(), a.getCreatedAt() == null ? 0 : a.getCreatedAt()));
+        int n = Math.min(Math.max(limit, 1), onSale.size());
+        return onSale.subList(0, n);
     }
 
     public Book update(Book incoming, String operator) {

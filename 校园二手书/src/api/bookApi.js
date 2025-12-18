@@ -25,3 +25,11 @@ export const getBookDetail = (id) => {
         method: 'get'
     })
 }
+
+export const getHotBooks = (limit = 6) => {
+    return request({
+        url: '/books/hot',
+        method: 'get',
+        params: { limit }
+    })
+}

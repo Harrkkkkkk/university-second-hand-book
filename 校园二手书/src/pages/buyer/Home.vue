@@ -32,20 +32,22 @@
                 <el-option label="价格从高到低" value="price_desc"></el-option>
                 <el-option label="发布时间从新到旧" value="created_desc"></el-option>
               </el-select>
-            </el-col>
-          </el-row>
-          <div style="margin-top:10px;">
-            <el-button type="primary" @click="searchBooks">搜索</el-button>
-            <el-button @click="resetFilter">重置</el-button>
-          </div>
         </el-col>
       </el-row>
+      </el-col>
+      </el-row>
+      <div style="margin-top:10px;">
+        <el-button type="primary" @click="searchBooks">搜索</el-button>
+        <el-button @click="resetFilter">重置</el-button>
+        <el-button type="success" @click="bulkAddToCart" style="margin-left:8px;">批量加入购物车</el-button>
+      </div>
     </el-card>
 
     <!-- 教材列表区 -->
     <el-row :gutter="20" style="margin-top: 20px;">
       <el-col :span="6" v-for="book in bookList" :key="book.id">
         <el-card shadow="hover" class="book-card">
+          <el-checkbox v-model="selectedMap[book.id]" @change="onSelectChange(book.id)" style="position:absolute; z-index:1;"></el-checkbox>
           <img :src="book.coverUrl || 'https://picsum.photos/200/280'" class="book-cover" alt="教材封面">
           <div class="book-info">
             <h3 class="book-name">{{ book.bookName }}</h3>
@@ -81,7 +83,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getBookPage } from '@/api/bookApi'
+import { getBookPage, getHotBooks } from '@/api/bookApi'
 import { addFavorite } from '@/api/collectApi'
 import { addToCart as apiAddToCart } from '@/api/cartApi'
 import PageHeader from '@/components/PageHeader.vue'
@@ -105,6 +107,9 @@ const logout = () => {
 }
 
 const bookList = ref([])
+const hotBooks = ref([])
+const selectedIds = ref([])
+const selectedMap = ref({})
 
 const loadBooks = async () => {
   try {
@@ -158,6 +163,28 @@ const addToCart = async (id) => {
   }
 }
 
+const onSelectChange = (id) => {
+  const checked = !!selectedMap.value[id]
+  const set = new Set(selectedIds.value)
+  if (checked) set.add(id)
+  else set.delete(id)
+  selectedIds.value = Array.from(set)
+}
+
+const bulkAddToCart = async () => {
+  if (!selectedIds.value.length) { ElMessage.warning('请先选择教材'); return }
+  try {
+    for (const id of selectedIds.value) {
+      await apiAddToCart(id)
+    }
+    ElMessage.success(`已批量加入 ${selectedIds.value.length} 本教材到购物车`)
+    selectedIds.value = []
+    selectedMap.value = {}
+  } catch (e) {
+    ElMessage.error('批量加入购物车失败')
+  }
+}
+
 // 收藏教材
 const collectBook = async (id) => {
   try {
@@ -178,9 +205,18 @@ const handleCurrentChange = (val) => {
   loadBooks()
 }
 
+const loadHotBooks = async () => {
+  try {
+    hotBooks.value = await getHotBooks(4) || []
+  } catch (e) {
+    console.error('加载热门书籍失败', e)
+  }
+}
+
 import { onMounted } from 'vue'
 onMounted(() => {
   loadBooks()
+  loadHotBooks()
 })
 </script>
 
@@ -241,5 +277,20 @@ onMounted(() => {
 .book-actions {
   display: flex;
   gap: 5px;
+}
+.hot-card {
+  position: relative;
+  border: 1px solid #ffd04b;
+}
+.hot-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background-color: #f56c6c;
+  color: white;
+  padding: 2px 8px;
+  font-size: 12px;
+  border-bottom-left-radius: 8px;
+  z-index: 10;
 }
 </style>

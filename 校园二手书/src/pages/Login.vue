@@ -3,13 +3,6 @@
     <el-card class="login-card" shadow="hover">
       <h2 class="login-title">校园二手教材交易平台</h2>
 
-      <!-- 角色切换 -->
-      <el-radio-group v-model="role" class="role-group">
-        <el-radio label="buyer">买家</el-radio>
-        <el-radio label="seller">卖家</el-radio>
-        <el-radio label="admin">管理员</el-radio>
-      </el-radio-group>
-
       <!-- 登录表单 -->
   <el-form :model="loginForm" :rules="loginRules" ref="loginFormRef" label-width="80px">
         <el-form-item label="账号" prop="username">
@@ -37,9 +30,6 @@ import { login as apiLogin } from '@/api/userApi'
 const router = useRouter()
 const loginFormRef = ref(null)
 
-// 角色（默认买家）
-const role = ref('buyer')
-
 // 登录表单
 const loginForm = ref({
   username: '',
@@ -53,15 +43,8 @@ const loginRules = ref({
 })
 
 // 测试账号（模拟数据）
-const testAccounts = {
-  buyer: { username: 'buyer1', password: '123456' },
-  seller: { username: 'seller1', password: '123456' },
-  admin: { username: 'admin1', password: '123456' }
-}
-
-// 使用测试账号
 const useTestAccount = () => {
-  loginForm.value = { ...testAccounts[role.value] }
+  loginForm.value = { username: 'buyer1', password: '123456' }
 }
 
 const submitLogin = async () => {
@@ -70,7 +53,7 @@ const submitLogin = async () => {
     const res = await apiLogin({
       username: loginForm.value.username,
       password: loginForm.value.password,
-      role: role.value
+      role: 'user' // 默认传一个值，后端会根据用户名自动判断角色
     })
     if (!res || !res.token) {
       ElMessage.error('登录失败')
@@ -79,12 +62,13 @@ const submitLogin = async () => {
     localStorage.setItem('token', res.token)
     localStorage.setItem('role', res.role)
     localStorage.setItem('username', res.username)
+    if (res.sellerStatus) localStorage.setItem('sellerStatus', res.sellerStatus)
+    
     ElMessage.success('登录成功！')
     if (res.role === 'admin') {
       router.push('/admin/dashboard')
-    } else if (res.role === 'seller') {
-      router.push('/seller/center')
     } else {
+      // 统一跳转到买家首页，卖家功能在菜单中入口
       router.push('/buyer/home')
     }
   } catch (error) {

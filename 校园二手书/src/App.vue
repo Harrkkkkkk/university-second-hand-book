@@ -15,34 +15,42 @@
             active-text-color="#ffd04b"
             border="false"
         >
-          <!-- 买家专属菜单 -->
-          <el-menu-item v-if="role === 'buyer'" index="1" @click="toBuyerHome">教材选购</el-menu-item>
-          <el-menu-item v-if="role === 'buyer'" index="2" @click="toBuyerOrder">我的订单</el-menu-item>
-          <el-menu-item v-if="role === 'buyer'" index="3" @click="toBuyerCollect">我的收藏</el-menu-item>
-          <el-menu-item v-if="role === 'buyer'" index="4" @click="toBuyerCart">我的购物车</el-menu-item>
+          <!-- 买家功能（对所有人开放，除管理员外） -->
+          <el-menu-item v-if="role !== 'admin'" index="1" @click="toBuyerHome">教材选购</el-menu-item>
+          <el-menu-item v-if="role !== 'admin'" index="2" @click="toBuyerOrder">我的订单</el-menu-item>
+          <el-menu-item v-if="role !== 'admin'" index="3" @click="toBuyerCollect">我的收藏</el-menu-item>
+          <el-menu-item v-if="role !== 'admin'" index="4" @click="toBuyerCart">我的购物车</el-menu-item>
 
-          <!-- 卖家专属菜单 -->
-          <el-menu-item v-if="role === 'seller'" index="1" @click="toSellerCenter">卖家中心</el-menu-item>
-          <el-menu-item v-if="role === 'seller'" index="2" @click="toPublish">发布教材</el-menu-item>
+          <!-- 卖家专属菜单（仅通过审核的卖家显示） -->
+          <el-menu-item v-if="role !== 'admin' && sellerStatus === 'APPROVED'" index="5" @click="toSellerCenter">卖家中心</el-menu-item>
+          <el-menu-item v-if="role !== 'admin' && sellerStatus === 'APPROVED'" index="6" @click="toPublish">发布教材</el-menu-item>
+          <el-menu-item v-if="role !== 'admin' && sellerStatus === 'NONE'" index="7" @click="toSellerApply">申请成为卖家</el-menu-item>
+          <el-menu-item v-if="role !== 'admin' && sellerStatus === 'PENDING'" index="7" disabled>卖家资质审核中</el-menu-item>
 
           <!-- 管理员专属菜单 -->
           <el-menu-item v-if="role === 'admin'" index="1" @click="toAdminDashboard">后台管理</el-menu-item>
 
-          <!-- 三个点下拉菜单 -->
-          <el-sub-menu
+          <!-- 三个点下拉菜单（还原为 el-sub-menu，悬停展开显示选项） -->
+          <el-menu
               index="99"
               popper-class="user-dropdown-menu"
               :popper-append-to-body="true"
-              trigger="click"
-              style="display: inline-block; padding: 0 15px; line-height: 60px;"
+              style="display: inline-block; padding: 0 60px; line-height: 60px;"
           >
             <template #title>
-              <i class="el-icon-more" style="font-size: 20px; color: white;"></i>
+              <div style="display: flex; align-items: center; height: 100%;">
+                <el-badge :is-dot="unreadCount > 0" class="item">
+                  <i class="el-icon-more" style="font-size: 30px; color: white;"></i>
+                </el-badge>
+              </div>
             </template>
             <el-menu-item index="99-1" @click="toUserCenter">个人中心</el-menu-item>
-            <el-menu-item index="99-3" @click="toMessageCenter">消息中心</el-menu-item>
+            <el-menu-item index="99-3" @click="toMessageCenter">
+              消息中心
+              <el-badge v-if="unreadCount > 0" :value="unreadCount" class="mark" type="danger" />
+            </el-menu-item>
             <el-menu-item index="99-2" @click="handleLogout">退出登录</el-menu-item>
-          </el-sub-menu>
+          </el-menu>
         </el-menu>
       </div>
     </el-header>
@@ -55,10 +63,12 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { logoutAndBackToLogin } from '@/utils/auth.js'
+import { getUnreadCount } from '@/api/notificationApi'
+import { getUserInfo } from '@/api/userApi'
 
 // 路由实例
 const router = useRouter()
@@ -68,7 +78,10 @@ const route = useRoute()
 const token = ref(localStorage.getItem('token') || '')
 const role = ref(localStorage.getItem('role') || '')
 const username = ref(localStorage.getItem('username') || '')
+const sellerStatus = ref(localStorage.getItem('sellerStatus') || 'NONE')
 const activeIndex = ref('1')
+const unreadCount = ref(0)
+let timer = null
 
 // 角色名称映射
 const roleName = ref({
@@ -77,6 +90,41 @@ const roleName = ref({
   admin: '管理员'
 }[role.value] || '买家')
 
+// 更新未读消息数和用户状态
+const updateStatus = async () => {
+  if (token.value) {
+    try {
+      // 1. 获取未读消息
+      unreadCount.value = await getUnreadCount()
+      
+      // 2. 同步用户最新状态（角色、卖家审核状态）
+      const userInfo = await getUserInfo()
+      if (userInfo) {
+        if (userInfo.role && userInfo.role !== role.value) {
+            localStorage.setItem('role', userInfo.role)
+            role.value = userInfo.role
+        }
+        if (userInfo.sellerStatus && userInfo.sellerStatus !== sellerStatus.value) {
+            localStorage.setItem('sellerStatus', userInfo.sellerStatus)
+            sellerStatus.value = userInfo.sellerStatus
+        }
+        // 更新显示名称
+        roleName.value = {
+            buyer: '买家',
+            seller: '卖家',
+            admin: '管理员'
+        }[role.value] || '买家'
+      }
+    } catch (e) {
+      console.error('状态同步失败', e)
+    }
+  }
+}
+
+const toSellerApply = () => {
+  router.push('/seller/apply')
+}
+
 // 监听路由变化，同步登录状态
 watch(
     () => route.path,
@@ -84,14 +132,25 @@ watch(
       token.value = localStorage.getItem('token') || ''
       role.value = localStorage.getItem('role') || ''
       username.value = localStorage.getItem('username') || ''
+      sellerStatus.value = localStorage.getItem('sellerStatus') || 'NONE'
       roleName.value = {
         buyer: '买家',
         seller: '卖家',
         admin: '管理员'
       }[role.value] || '买家'
+      updateStatus()
     },
     { immediate: true }
 )
+
+onMounted(() => {
+  updateStatus()
+  timer = setInterval(updateStatus, 10000) // 每10秒轮询一次
+})
+
+onUnmounted(() => {
+  if (timer) clearInterval(timer)
+})
 
 // 路由跳转方法
 const toBuyerHome = () => {
@@ -185,35 +244,6 @@ const handleLogout = () => {
 /* 隐藏下拉箭头 */
 :deep(.el-sub-menu__icon-arrow) {
   display: none !important;
-}
-
-/* 🔥 关键：下拉面板样式 —— 白色背景，无蓝色！ */
-:deep(.user-dropdown-menu) {
-  min-width: 120px !important;
-  max-width: 150px !important;
-  width: 150px !important;
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-  border: 1px solid #ebeef5 !important;
-  background-color: white !important; /* 不再是蓝色！ */
-  padding: 4px 0 !important;
-  margin: 4px 0 0 !important;
-  z-index: 9999 !important;
-}
-
-/* 下拉菜单项 */
-:deep(.user-dropdown-menu .el-menu-item) {
-  padding: 0 20px !important;
-  height: 36px !important;
-  line-height: 36px !important;
-  border: none !important;
-  color: #333 !important; /* 深色文字，清晰可读 */
-  background-color: transparent !important;
-  font-size: 14px;
-}
-
-:deep(.user-dropdown-menu .el-menu-item:hover) {
-  background-color: #f5f7fa !important; /* 悬停浅灰 */
 }
 
 /* 水平导航菜单通用样式 */

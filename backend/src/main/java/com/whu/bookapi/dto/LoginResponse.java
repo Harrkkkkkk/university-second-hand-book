@@ -4,6 +4,7 @@ public class LoginResponse {
     private String token;
     private String username;
     private String role;
+    private String sellerStatus;
 
     public String getToken() {
         return token;
@@ -27,5 +28,13 @@ public class LoginResponse {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public String getSellerStatus() {
+        return sellerStatus;
+    }
+
+    public void setSellerStatus(String sellerStatus) {
+        this.sellerStatus = sellerStatus;
     }
 }

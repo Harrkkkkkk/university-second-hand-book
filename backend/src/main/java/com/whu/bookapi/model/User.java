@@ -4,6 +4,7 @@ public class User {
     private String username;
     private String role;
     private String token;
+    private String sellerStatus; // NONE, PENDING, APPROVED, REJECTED
 
     public String getUsername() {
         return username;
@@ -27,5 +28,13 @@ public class User {
 
     public void setToken(String token) {
         this.token = token;
+    }
+
+    public String getSellerStatus() {
+        return sellerStatus;
+    }
+
+    public void setSellerStatus(String sellerStatus) {
+        this.sellerStatus = sellerStatus;
     }
 }

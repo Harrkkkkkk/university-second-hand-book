@@ -9,12 +9,6 @@
         <el-form-item label="密码" prop="password">
           <el-input v-model="form.password" type="password" />
         </el-form-item>
-        <el-form-item label="角色" prop="roles">
-          <el-checkbox-group v-model="form.roles">
-            <el-checkbox label="buyer">买家</el-checkbox>
-            <el-checkbox label="seller">卖家</el-checkbox>
-          </el-checkbox-group>
-        </el-form-item>
         <el-form-item>
           <el-button type="primary" class="register-btn" @click="submit">注册</el-button>
           <el-button type="text" @click="toLogin">去登录</el-button>
@@ -32,17 +26,16 @@ import { register } from '@/api/userApi'
 
 const router = useRouter()
 const formRef = ref(null)
-const form = ref({ username: '', password: '', roles: ['buyer'] })
+const form = ref({ username: '', password: '' })
 const rules = ref({
   username: [{ required: true, message: '请输入账号', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
-  roles: [{ type: 'array', required: true, message: '请选择至少一个角色', trigger: 'change' }]
+  password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
 })
 
 const submit = async () => {
   try {
     await formRef.value.validate()
-    const res = await register({ username: form.value.username, password: form.value.password, roles: form.value.roles })
+    const res = await register({ username: form.value.username, password: form.value.password, roles: ['buyer'] })
     if (!res || res.success !== true) throw new Error('注册失败')
     ElMessage.success('注册成功！请登录')
     router.push('/login')

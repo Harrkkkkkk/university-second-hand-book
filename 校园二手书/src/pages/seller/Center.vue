@@ -5,6 +5,10 @@
     </page-header>
 
     <el-card>
+      <div style="margin-bottom: 12px;">
+        <el-tag type="success">好评率：{{ (goodRate.goodRate || 0).toFixed(1) }}%</el-tag>
+        <span style="margin-left:8px; color:#666;">总评价：{{ goodRate.totalReviews || 0 }}，好评：{{ goodRate.positiveReviews || 0 }}</span>
+      </div>
       <el-tabs v-model="activeTab">
         <el-tab-pane label="我的教材" name="myBooks">
           <el-button type="primary" @click="toPublish">发布新教材</el-button>
@@ -64,6 +68,30 @@
             
           </el-table>
         </el-tab-pane>
+        <el-tab-pane label="收到的评价" name="receivedReviews">
+          <el-table :data="receivedReviews" border>
+            <el-table-column prop="orderId" label="订单ID" width="100"></el-table-column>
+            <el-table-column prop="buyerName" label="买家" width="140"></el-table-column>
+            <el-table-column label="评分" width="160">
+              <template #default="scope">成色{{ scope.row.scoreCondition }}，服务{{ scope.row.scoreService }}</template>
+            </el-table-column>
+            <el-table-column prop="tags" label="标签">
+              <template #default="scope">
+                <el-tag v-for="t in (scope.row.tags || [])" :key="t" style="margin-right:4px;">{{ t }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="comment" label="评论"></el-table-column>
+          </el-table>
+        </el-tab-pane>
+        <el-tab-pane label="收到的投诉" name="receivedComplaints">
+          <el-table :data="receivedComplaints" border>
+            <el-table-column prop="orderId" label="订单ID" width="100"></el-table-column>
+            <el-table-column prop="buyerName" label="买家" width="140"></el-table-column>
+            <el-table-column prop="type" label="类型" width="140"></el-table-column>
+            <el-table-column prop="detail" label="详情"></el-table-column>
+            <el-table-column prop="status" label="状态" width="120"></el-table-column>
+          </el-table>
+        </el-tab-pane>
       </el-tabs>
     </el-card>
   </div>
@@ -76,6 +104,8 @@ import PageHeader from '@/components/PageHeader.vue'
 import { logoutAndBackToLogin } from '@/utils/auth.js'
 import { listMyBooks, updateBook, offlineBook, deleteBook } from '@/api/sellerApi'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { listReceivedReviews, getGoodRate } from '@/api/reviewApi'
+import { listReceivedComplaints } from '@/api/complaintApi'
 
 const router = useRouter()
 // 退出登录
@@ -87,6 +117,9 @@ const activeTab = ref('myBooks')
 const editVisible = ref(false)
 const editForm = ref({})
 const bookList = ref([])
+const receivedReviews = ref([])
+const receivedComplaints = ref([])
+const goodRate = ref({})
 
 const loadMyBooks = async () => {
   try {
@@ -142,6 +175,9 @@ const toPublish = () => {
 import { onMounted } from 'vue'
 onMounted(() => {
   loadMyBooks()
+  listReceivedReviews().then(res => { receivedReviews.value = res || [] }).catch(() => {})
+  listReceivedComplaints().then(res => { receivedComplaints.value = res || [] }).catch(() => {})
+  getGoodRate().then(res => { goodRate.value = res || {} }).catch(() => {})
 })
 </script>
 

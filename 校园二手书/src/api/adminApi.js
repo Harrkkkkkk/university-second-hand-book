@@ -35,3 +35,15 @@ export const approveComplaint = (id) => {
 export const rejectComplaint = (id) => {
   return request({ url: `/admin/complaints/${id}/reject`, method: 'post', headers: { token: localStorage.getItem('token') } })
 }
+
+export const listSellerApplications = () => {
+  return request({ url: '/admin/seller-applications', method: 'get', headers: { token: localStorage.getItem('token') } })
+}
+
+export const approveSeller = (username) => {
+  return request({ url: `/admin/approve-seller/${username}`, method: 'post', headers: { token: localStorage.getItem('token') } })
+}
+
+export const rejectSeller = (username) => {
+  return request({ url: `/admin/reject-seller/${username}`, method: 'post', headers: { token: localStorage.getItem('token') } })
+}

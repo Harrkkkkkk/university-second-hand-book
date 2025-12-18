@@ -49,7 +49,7 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
-import { getBookPage } from '@/api/bookApi'
+import { getBookPage, getHotBooks } from '@/api/bookApi'
 import BookCard from '@/components/BookCard.vue'
 import PageHeader from '@/components/PageHeader.vue'
 
@@ -73,8 +73,8 @@ const loadBooks = async () => {
     bookList.value = res.records || []
     total.value = res.total || 0
     if (bookList.value.length === 0) {
-      const rec = await getBookPage({ pageNum: 1, pageSize: 6, sortBy: 'created_desc' })
-      recommendList.value = rec.records || []
+      const rec = await getHotBooks(6)
+      recommendList.value = rec || []
     } else {
       recommendList.value = []
     }

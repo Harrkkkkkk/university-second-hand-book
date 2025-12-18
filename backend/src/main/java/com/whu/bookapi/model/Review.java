@@ -8,6 +8,7 @@ public class Review {
     private int scoreService;
     private String comment;
     private long createTime;
+    private java.util.List<String> tags;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -23,4 +24,6 @@ public class Review {
     public void setComment(String comment) { this.comment = comment; }
     public long getCreateTime() { return createTime; }
     public void setCreateTime(long createTime) { this.createTime = createTime; }
+    public java.util.List<String> getTags() { return tags; }
+    public void setTags(java.util.List<String> tags) { this.tags = tags; }
 }

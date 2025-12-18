@@ -38,3 +38,14 @@ export const register = (data) => {
         data
     })
 }
+
+// 申请成为卖家
+export const applySeller = () => {
+    return request({
+        url: '/user/apply-seller',
+        method: 'post',
+        headers: {
+            token: localStorage.getItem('token')
+        }
+    })
+}

@@ -13,7 +13,7 @@
               <template #default="scope">
                 <el-select v-model="scope.row.role" size="small" style="width:140px" @change="role => changeRole(scope.row.username, role)">
                   <el-option label="买家" value="buyer" />
-                  <el-option label="卖家" value="seller" />
+                  <el-option label="卖家 (含买家)" value="seller" />
                   <el-option label="管理员" value="admin" />
                 </el-select>
               </template>
@@ -58,6 +58,35 @@
             </el-table-column>
           </el-table>
         </el-tab-pane>
+        <el-tab-pane label="卖家资质审核" name="sellerAudit">
+          <el-table :data="sellerApplications" border>
+            <el-table-column prop="username" label="申请账号" width="180" />
+            <el-table-column label="当前状态" width="120">
+              <template #default="scope">
+                <el-tag type="warning">{{ scope.row.sellerStatus }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="200">
+              <template #default="scope">
+                <el-button type="success" size="small" @click="handleApproveSeller(scope.row.username)">通过</el-button>
+                <el-button type="danger" size="small" @click="handleRejectSeller(scope.row.username)">驳回</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+        <el-tab-pane label="发布公告" name="announce">
+          <el-form label-width="80px" style="max-width: 600px; margin-top: 20px;">
+            <el-form-item label="标题">
+              <el-input v-model="announceTitle" placeholder="请输入公告标题"></el-input>
+            </el-form-item>
+            <el-form-item label="内容">
+              <el-input type="textarea" v-model="announceContent" rows="5" placeholder="请输入公告内容"></el-input>
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="handleAnnounce">发布全员公告</el-button>
+            </el-form-item>
+          </el-form>
+        </el-tab-pane>
       </el-tabs>
     </el-card>
   </div>
@@ -68,7 +97,8 @@ import { ref, onMounted } from 'vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { logoutAndBackToLogin } from '@/utils/auth.js'
 import { ElMessage } from 'element-plus'
-import { listUsers, setUserRole, deleteUser, listUnderReviewBooks, approveBook as apiApproveBook, rejectBook as apiRejectBook, listComplaints, approveComplaint as apiApproveComplaint, rejectComplaint as apiRejectComplaint } from '@/api/adminApi'
+import { listUsers, setUserRole, deleteUser, listUnderReviewBooks, approveBook as apiApproveBook, rejectBook as apiRejectBook, listComplaints, approveComplaint as apiApproveComplaint, rejectComplaint as apiRejectComplaint, listSellerApplications, approveSeller, rejectSeller } from '@/api/adminApi'
+import { announce } from '@/api/notificationApi'
 
 // 退出登录
 const logout = () => {
@@ -79,6 +109,25 @@ const activeTab = ref('userManage')
 const userList = ref([])
 const bookAuditList = ref([])
 const complaints = ref([])
+const sellerApplications = ref([])
+
+// 公告相关
+const announceTitle = ref('')
+const announceContent = ref('')
+const handleAnnounce = async () => {
+  if (!announceTitle.value || !announceContent.value) {
+    ElMessage.warning('请输入标题和内容')
+    return
+  }
+  try {
+    await announce({ title: announceTitle.value, content: announceContent.value })
+    ElMessage.success('公告发布成功')
+    announceTitle.value = ''
+    announceContent.value = ''
+  } catch (e) {
+    ElMessage.error('发布失败')
+  }
+}
 
 const loadUsers = async () => {
   try { userList.value = await listUsers() || [] } catch { ElMessage.error('加载用户失败') }
@@ -104,13 +153,36 @@ const loadComplaints = async () => {
   try { complaints.value = await listComplaints() || [] } catch { ElMessage.error('加载投诉失败') }
 }
 const approveComplaint = async (id) => {
-  try { await apiApproveComplaint(id); ElMessage.success('已通过'); loadComplaints() } catch { ElMessage.error('操作失败') }
+  try { await apiApproveComplaint(id); ElMessage.success('投诉已处理（通过）'); loadComplaints() } catch { ElMessage.error('操作失败') }
 }
 const rejectComplaint = async (id) => {
-  try { await apiRejectComplaint(id); ElMessage.success('已驳回'); loadComplaints() } catch { ElMessage.error('操作失败') }
+  try { await apiRejectComplaint(id); ElMessage.success('投诉已处理（驳回）'); loadComplaints() } catch { ElMessage.error('操作失败') }
 }
 
-onMounted(() => { loadUsers(); loadBooks(); loadComplaints() })
+const loadSellerApps = async () => {
+  try { sellerApplications.value = await listSellerApplications() || [] } catch { /* ignore */ }
+}
+const handleApproveSeller = async (username) => {
+  try { await approveSeller(username); ElMessage.success('已批准卖家资格'); loadSellerApps() } catch { ElMessage.error('操作失败') }
+}
+const handleRejectSeller = async (username) => {
+  try { await rejectSeller(username); ElMessage.success('已驳回卖家资格'); loadSellerApps() } catch { ElMessage.error('操作失败') }
+}
+
+import { watch } from 'vue'
+watch(activeTab, (val) => {
+  if (val === 'userManage') loadUsers()
+  if (val === 'bookAudit') loadBooks()
+  if (val === 'complaintAudit') loadComplaints()
+  if (val === 'sellerAudit') loadSellerApps()
+})
+
+onMounted(() => {
+  loadUsers()
+  loadBooks()
+  loadComplaints()
+  loadSellerApps()
+})
 </script>
 
 <style scoped>

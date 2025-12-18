@@ -65,6 +65,12 @@ public class BookController {
         return ResponseEntity.ok(list);
     }
 
+    @GetMapping("/hot")
+    public ResponseEntity<?> hot(@RequestParam(value = "limit", defaultValue = "6") int limit) {
+        java.util.List<Book> list = bookService.listHot(limit);
+        return ResponseEntity.ok(list);
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@RequestHeader(value = "token", required = false) String token,
                                     @PathVariable("id") Long id,

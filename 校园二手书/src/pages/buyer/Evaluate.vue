@@ -12,6 +12,11 @@
         <el-form-item label="卖家服务态度">
           <el-rate v-model="form.scoreService" :max="5" />
         </el-form-item>
+        <el-form-item label="评价标签">
+          <el-checkbox-group v-model="form.tags">
+            <el-checkbox v-for="t in tagOptions" :key="t" :label="t">{{ t }}</el-checkbox>
+          </el-checkbox-group>
+        </el-form-item>
         <el-form-item label="文字评论">
           <el-input v-model="form.comment" type="textarea" rows="4" />
         </el-form-item>
@@ -31,7 +36,8 @@ import { logoutAndBackToLogin } from '@/utils/auth.js'
 import { ElMessage } from 'element-plus'
 
 const logout = () => logoutAndBackToLogin()
-const form = ref({ orderId: '', scoreCondition: 5, scoreService: 5, comment: '' })
+const form = ref({ orderId: '', scoreCondition: 5, scoreService: 5, comment: '', tags: [] })
+const tagOptions = ['书籍很新','笔记实用','发货快','沟通顺畅']
 
 import request from '@/api/request'
 const submit = async () => {
@@ -63,6 +69,7 @@ onMounted(async () => {
         form.value.scoreCondition = draft.scoreCondition || form.value.scoreCondition
         form.value.scoreService = draft.scoreService || form.value.scoreService
         form.value.comment = draft.comment || form.value.comment
+        form.value.tags = draft.tags || form.value.tags
       }
     } catch {}
   }

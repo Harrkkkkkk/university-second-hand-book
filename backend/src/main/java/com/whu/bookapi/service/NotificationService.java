@@ -21,8 +21,13 @@ public class NotificationService {
         n.setTitle(title);
         n.setContent(content);
         n.setCreateTime(System.currentTimeMillis());
+        n.setRead(false);
         store.put(n.getId(), n);
         return n;
+    }
+
+    public Notification add(String username, String content) {
+        return addToUser(username, "system", "系统通知", content);
     }
 
     public Notification addBroadcast(String type, String title, String content) {
@@ -44,5 +49,20 @@ public class NotificationService {
         }
         res.sort((a,b) -> Long.compare(b.getCreateTime(), a.getCreateTime()));
         return res;
+    }
+
+    public long countUnread(String username) {
+        long count = 0;
+        for (Notification n : store.values()) {
+            if ((username.equals(n.getToUser()) || "*".equals(n.getToUser())) && !n.isRead()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    public void markRead(Long id) {
+        Notification n = store.get(id);
+        if (n != null) n.setRead(true);
     }
 }

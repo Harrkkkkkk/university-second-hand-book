@@ -60,7 +60,16 @@ public class UserController {
         Map<String, Object> m = new HashMap<>();
         m.put("username", user.getUsername());
         m.put("role", user.getRole());
+        m.put("sellerStatus", user.getSellerStatus());
         return ResponseEntity.ok(m);
+    }
+
+    @PostMapping("/apply-seller")
+    public ResponseEntity<?> applySeller(@RequestHeader(value = "token", required = false) String token) {
+        User user = token == null ? null : userService.getByToken(token);
+        if (user == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        userService.applySeller(user.getUsername());
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/register")

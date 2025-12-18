@@ -32,6 +32,12 @@
             <el-table-column prop="createTime" label="时间" width="180">
               <template #default="scope">{{ formatTime(scope.row.createTime) }}</template>
             </el-table-column>
+            <el-table-column label="操作" width="100">
+              <template #default="scope">
+                <el-button v-if="!scope.row.read" type="text" size="small" @click="handleMarkRead(scope.row)">标为已读</el-button>
+                <span v-else style="color:#999; font-size:12px;">已读</span>
+              </template>
+            </el-table-column>
           </el-table>
           <div v-if="role==='admin'" style="margin-top:10px;">
             <el-input v-model="annTitle" placeholder="公告标题" style="margin-bottom:8px;" />
@@ -50,7 +56,7 @@ import { useRouter } from 'vue-router'
 import PageHeader from '@/components/PageHeader.vue'
 import { logoutAndBackToLogin } from '@/utils/auth.js'
 import { ElMessage } from 'element-plus'
-import { listMyNotifications, announce } from '@/api/notificationApi'
+import { listNotifications, announce, markRead } from '@/api/notificationApi'
 import { getConversations } from '@/api/chatApi'
 
 const router = useRouter()
@@ -64,8 +70,18 @@ const annTitle = ref('平台公告')
 const annContent = ref('')
 
 const load = async () => {
-  try { notifications.value = await listMyNotifications() || [] } catch { /* ignore */ }
+  try { notifications.value = await listNotifications() || [] } catch { /* ignore */ }
   try { threads.value = await getConversations() || [] } catch { /* ignore */ }
+}
+
+const handleMarkRead = async (row) => {
+  try {
+    await markRead(row.id)
+    row.read = true
+    // ElMessage.success('已标记为已读')
+  } catch (e) {
+    console.error(e)
+  }
 }
 
 const formatTime = ts => ts ? new Date(ts).toLocaleString() : ''
