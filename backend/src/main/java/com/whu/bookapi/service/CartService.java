@@ -2,20 +2,20 @@ package com.whu.bookapi.service;
 
 import com.whu.bookapi.model.Book;
 import com.whu.bookapi.model.CartItem;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class CartService {
-    private final Map<String, Map<Long, CartItem>> carts = new ConcurrentHashMap<>();
     private final BookService bookService;
+    private final JdbcTemplate jdbcTemplate;
 
-    public CartService(BookService bookService) {
+    public CartService(BookService bookService, JdbcTemplate jdbcTemplate) {
         this.bookService = bookService;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     public void add(String username, Long bookId) {
@@ -27,42 +27,50 @@ public class CartService {
         if (username.equals(book.getSellerName())) {
             throw new RuntimeException("Cannot buy your own book");
         }
-        
-        Map<Long, CartItem> cart = carts.computeIfAbsent(username, k -> new ConcurrentHashMap<>());
-        
-        synchronized (cart) {
-            cart.compute(bookId, (k, v) -> {
-                int currentQty = (v == null) ? 0 : v.getQuantity();
-                if (currentQty + 1 > book.getStock()) {
-                    throw new RuntimeException("Inventory insufficient");
-                }
-                
-                if (v == null) {
-                    CartItem ci = new CartItem();
-                    ci.setUsername(username);
-                    ci.setBookId(bookId);
-                    ci.setQuantity(1);
-                    return ci;
-                } else {
-                    v.setQuantity(v.getQuantity() + 1);
-                    return v;
-                }
-            });
+
+        Integer existingQty = null;
+        try {
+            existingQty = jdbcTemplate.queryForObject(
+                    "SELECT quantity FROM cart_item WHERE username = ? AND book_id = ?",
+                    Integer.class,
+                    username,
+                    bookId
+            );
+        } catch (org.springframework.dao.EmptyResultDataAccessException ignored) {
         }
+        int currentQty = existingQty == null ? 0 : existingQty;
+        int stock = book.getStock() == null ? 0 : book.getStock();
+        if (currentQty + 1 > stock) {
+            throw new RuntimeException("Inventory insufficient");
+        }
+        jdbcTemplate.update(
+                "INSERT INTO cart_item (username, book_id, quantity) VALUES (?, ?, 1) ON DUPLICATE KEY UPDATE quantity = quantity + 1",
+                username,
+                bookId
+        );
     }
 
     public void remove(String username, Long bookId) {
-        Map<Long, CartItem> cart = carts.get(username);
-        if (cart != null) cart.remove(bookId);
+        jdbcTemplate.update("DELETE FROM cart_item WHERE username = ? AND book_id = ?", username, bookId);
     }
 
     public void clear(String username) {
-        Map<Long, CartItem> cart = carts.get(username);
-        if (cart != null) cart.clear();
+        jdbcTemplate.update("DELETE FROM cart_item WHERE username = ?", username);
     }
 
     public List<CartItem> list(String username) {
-        Map<Long, CartItem> cart = carts.getOrDefault(username, new ConcurrentHashMap<>());
-        return new ArrayList<>(cart.values());
+        List<CartItem> res = new ArrayList<>();
+        List<java.util.Map<String, Object>> rows = jdbcTemplate.queryForList(
+                "SELECT book_id, quantity FROM cart_item WHERE username = ? ORDER BY book_id",
+                username
+        );
+        for (java.util.Map<String, Object> row : rows) {
+            CartItem ci = new CartItem();
+            ci.setUsername(username);
+            ci.setBookId(((Number) row.get("book_id")).longValue());
+            ci.setQuantity(((Number) row.get("quantity")).intValue());
+            res.add(ci);
+        }
+        return res;
     }
 }

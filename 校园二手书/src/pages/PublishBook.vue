@@ -36,6 +36,7 @@
               list-type="picture-card"
               :auto-upload="false"
               :on-change="handleFileChange"
+              :disabled="uploadingCover"
           >
             <i class="el-icon-plus"></i>
           </el-upload>
@@ -54,12 +55,13 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
-import { addBook } from '@/api/bookApi'
+import { addBook, uploadFile } from '@/api/bookApi'
 
 const router = useRouter()
 const goBack = () => router.back()
 const publishFormRef = ref(null)
 const fileList = ref([])
+const uploadingCover = ref(false)
 
 // 发布表单
 const publishForm = ref({
@@ -69,7 +71,8 @@ const publishForm = ref({
   sellPrice: 1,
   description: '',
   conditionLevel: '九成新',
-  stock: 1
+  stock: 1,
+  coverUrl: ''
 })
 
 // 表单校验规则
@@ -82,9 +85,23 @@ const publishRules = ref({
   stock: [{ required: true, message: '请输入库存', trigger: 'change' }]
 })
 
-// 文件上传（模拟）
-const handleFileChange = (file) => {
-  ElMessage.info(`已选择文件：${file.name}`)
+const handleFileChange = async (file) => {
+  const raw = file?.raw
+  if (!raw) return
+  uploadingCover.value = true
+  try {
+    const res = await uploadFile(raw)
+    if (res && res.url) {
+      publishForm.value.coverUrl = res.url
+      ElMessage.success('封面上传成功')
+    } else {
+      ElMessage.error('封面上传失败')
+    }
+  } catch (e) {
+    ElMessage.error('封面上传失败')
+  } finally {
+    uploadingCover.value = false
+  }
 }
 
 const submitPublish = async () => {

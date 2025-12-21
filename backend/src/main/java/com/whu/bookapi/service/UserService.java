@@ -4,113 +4,140 @@ import com.whu.bookapi.dto.LoginRequest;
 import com.whu.bookapi.dto.LoginResponse;
 import com.whu.bookapi.model.User;
 import org.springframework.stereotype.Service;
+import org.springframework.jdbc.core.JdbcTemplate;
 
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class UserService {
-    private final Map<String, User> tokenStore = new ConcurrentHashMap<>();
-    private final Map<String, String> passwordStore = new ConcurrentHashMap<>();
-    private final Map<String, String> roleStore = new ConcurrentHashMap<>();
-    private final Map<String, java.util.Set<String>> roleSets = new ConcurrentHashMap<>();
-    private final Map<String, String> sellerStatusStore = new ConcurrentHashMap<>();
+    private final JdbcTemplate jdbcTemplate;
 
-    public UserService() {
-        passwordStore.put("buyer1", "123456");
-        roleStore.put("buyer1", "buyer");
-        sellerStatusStore.put("buyer1", "NONE");
+    public UserService(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
 
-        passwordStore.put("seller1", "123456");
-        roleStore.put("seller1", "seller");
-        sellerStatusStore.put("seller1", "APPROVED");
-
-        passwordStore.put("admin1", "123456");
-        roleStore.put("admin1", "admin");
-        sellerStatusStore.put("admin1", "APPROVED"); // Admin has access? Doesn't matter much.
-
-        passwordStore.put("user1", "123456");
-        roleSets.put("user1", new java.util.HashSet<>(java.util.Arrays.asList("buyer", "seller")));
-        sellerStatusStore.put("user1", "APPROVED");
+    private static String resolveRole(String currentRole, java.util.Set<String> roles, boolean loginPriority) {
+        if (currentRole != null && !currentRole.isBlank()) return currentRole;
+        if (roles == null || roles.isEmpty()) return null;
+        if (loginPriority) {
+            if (roles.contains("admin")) return "admin";
+            if (roles.contains("seller")) return "seller";
+            if (roles.contains("buyer")) return "buyer";
+            return null;
+        }
+        if (roles.contains("buyer")) return "buyer";
+        if (roles.contains("seller")) return "seller";
+        if (roles.contains("admin")) return "admin";
+        return null;
     }
 
     public LoginResponse login(LoginRequest req) {
-        String pwd = passwordStore.get(req.getUsername());
-        if (pwd == null || !pwd.equals(req.getPassword())) {
-            return null;
-        }
-        // Determine role automatically
-        String role = roleStore.get(req.getUsername());
-        java.util.Set<String> roles = roleSets.get(req.getUsername());
-        
-        // Priority: Admin > Seller > Buyer (if multiple roles exist, pick highest)
-        // Or just return the primary role stored in roleStore.
-        // If roleSets exists, we might need logic. For now, trust roleStore or pick one from set.
-        if (role == null && roles != null && !roles.isEmpty()) {
-            if (roles.contains("admin")) role = "admin";
-            else if (roles.contains("seller")) role = "seller";
-            else role = "buyer";
-        }
-        if (role == null) return null; // No role assigned?
+        if (req == null || req.getUsername() == null || req.getPassword() == null) return null;
+        java.util.List<java.util.Map<String, Object>> rows = jdbcTemplate.queryForList(
+                "SELECT username, password, current_role, seller_status FROM users WHERE username = ?",
+                req.getUsername()
+        );
+        if (rows.isEmpty()) return null;
+        java.util.Map<String, Object> row = rows.get(0);
+        String pwd = (String) row.get("password");
+        if (pwd == null || !pwd.equals(req.getPassword())) return null;
+        String currentRole = (String) row.get("current_role");
+        String sellerStatus = (String) row.get("seller_status");
+        java.util.Set<String> roles = new java.util.HashSet<>(jdbcTemplate.queryForList(
+                "SELECT role FROM user_roles WHERE username = ?",
+                String.class,
+                req.getUsername()
+        ));
+        String role = resolveRole(currentRole, roles, true);
+        if (role == null) return null;
 
         String token = UUID.randomUUID().toString();
-        User user = new User();
-        user.setUsername(req.getUsername());
-        user.setRole(role);
-        user.setToken(token);
-        String ss = sellerStatusStore.getOrDefault(req.getUsername(), "NONE");
-        user.setSellerStatus(ss);
-        tokenStore.put(token, user);
+        jdbcTemplate.update(
+                "INSERT INTO user_token (token, username, created_at) VALUES (?, ?, ?)",
+                token,
+                req.getUsername(),
+                System.currentTimeMillis()
+        );
+
         LoginResponse resp = new LoginResponse();
         resp.setToken(token);
-        resp.setUsername(user.getUsername());
-        resp.setRole(user.getRole());
-        resp.setSellerStatus(ss);
+        resp.setUsername(req.getUsername());
+        resp.setRole(role);
+        resp.setSellerStatus(sellerStatus == null ? "NONE" : sellerStatus);
         return resp;
     }
 
     public void logout(String token) {
-        tokenStore.remove(token);
+        if (token == null) return;
+        jdbcTemplate.update("DELETE FROM user_token WHERE token = ?", token);
     }
 
     public User getByToken(String token) {
-        User u = tokenStore.get(token);
-        if (u != null) {
-            u.setSellerStatus(sellerStatusStore.getOrDefault(u.getUsername(), "NONE"));
-        }
+        if (token == null) return null;
+        java.util.List<java.util.Map<String, Object>> rows = jdbcTemplate.queryForList(
+                "SELECT u.username, u.current_role, u.seller_status FROM user_token t JOIN users u ON t.username = u.username WHERE t.token = ?",
+                token
+        );
+        if (rows.isEmpty()) return null;
+        java.util.Map<String, Object> row = rows.get(0);
+        String username = (String) row.get("username");
+        String currentRole = (String) row.get("current_role");
+        String sellerStatus = (String) row.get("seller_status");
+        java.util.Set<String> roles = new java.util.HashSet<>(jdbcTemplate.queryForList(
+                "SELECT role FROM user_roles WHERE username = ?",
+                String.class,
+                username
+        ));
+        String role = resolveRole(currentRole, roles, true);
+        if (role == null) return null;
+        User u = new User();
+        u.setUsername(username);
+        u.setRole(role);
+        u.setToken(token);
+        u.setSellerStatus(sellerStatus == null ? "NONE" : sellerStatus);
         return u;
     }
 
     public boolean register(String username, String password, java.util.Set<String> roles) {
         if (username == null || password == null || username.isEmpty() || password.isEmpty()) return false;
-        if (passwordStore.containsKey(username)) return false;
-        passwordStore.put(username, password);
-        // Default role is buyer
-        roleStore.put(username, "buyer");
-        sellerStatusStore.put(username, "NONE");
+        if (exists(username)) return false;
+        long now = System.currentTimeMillis();
+        jdbcTemplate.update(
+                "INSERT INTO users (username, password, current_role, seller_status, created_at) VALUES (?, ?, ?, ?, ?)",
+                username,
+                password,
+                "buyer",
+                "NONE",
+                now
+        );
+        java.util.Set<String> toInsert = new java.util.HashSet<>();
+        toInsert.add("buyer");
+        if (roles != null) toInsert.addAll(roles);
+        for (String r : toInsert) {
+            if (r == null || r.isBlank()) continue;
+            jdbcTemplate.update("INSERT IGNORE INTO user_roles (username, role) VALUES (?, ?)", username, r);
+        }
         return true;
     }
 
     public boolean exists(String username) {
-        return passwordStore.containsKey(username);
+        if (username == null) return false;
+        Integer c = jdbcTemplate.queryForObject("SELECT COUNT(1) FROM users WHERE username = ?", Integer.class, username);
+        return c != null && c > 0;
     }
 
     public java.util.List<User> listAllUsers() {
+        java.util.List<java.util.Map<String, Object>> rows = jdbcTemplate.queryForList("SELECT username, current_role FROM users");
         java.util.List<User> res = new java.util.ArrayList<>();
-        for (Map.Entry<String, String> e : roleStore.entrySet()) {
-            String username = e.getKey();
-            String role = e.getValue();
-            User u = new User();
-            u.setUsername(username);
-            u.setRole(role);
-            res.add(u);
-        }
-        for (Map.Entry<String, java.util.Set<String>> e : roleSets.entrySet()) {
-            String username = e.getKey();
-            java.util.Set<String> roles = e.getValue();
-            String role = roles.contains("buyer") ? "buyer" : (roles.contains("seller") ? "seller" : (roles.contains("admin") ? "admin" : "buyer"));
-            role = roleStore.getOrDefault(username, role);
+        for (java.util.Map<String, Object> row : rows) {
+            String username = (String) row.get("username");
+            String currentRole = (String) row.get("current_role");
+            java.util.Set<String> roles = new java.util.HashSet<>(jdbcTemplate.queryForList(
+                    "SELECT role FROM user_roles WHERE username = ?",
+                    String.class,
+                    username
+            ));
+            String role = resolveRole(currentRole, roles, false);
             User u = new User();
             u.setUsername(username);
             u.setRole(role);
@@ -122,65 +149,56 @@ public class UserService {
 
     public boolean setUserRole(String username, String role) {
         if (username == null || role == null) return false;
-        if (!passwordStore.containsKey(username)) return false;
-        roleStore.put(username, role);
-        roleSets.remove(username);
+        if (!exists(username)) return false;
+        jdbcTemplate.update("UPDATE users SET current_role = ? WHERE username = ?", role, username);
+        jdbcTemplate.update("DELETE FROM user_roles WHERE username = ?", username);
+        jdbcTemplate.update("INSERT IGNORE INTO user_roles (username, role) VALUES (?, ?)", username, role);
         return true;
     }
 
     public boolean deleteUser(String username) {
         if (username == null) return false;
-        if (!passwordStore.containsKey(username)) return false;
-        passwordStore.remove(username);
-        roleStore.remove(username);
-        roleSets.remove(username);
-        java.util.List<String> tokensToRemove = new java.util.ArrayList<>();
-        for (Map.Entry<String, User> e : tokenStore.entrySet()) {
-            if (username.equals(e.getValue().getUsername())) tokensToRemove.add(e.getKey());
-        }
-        for (String t : tokensToRemove) tokenStore.remove(t);
-        return true;
+        int updated = jdbcTemplate.update("DELETE FROM users WHERE username = ?", username);
+        return updated > 0;
     }
 
     public void applySeller(String username) {
-        sellerStatusStore.put(username, "PENDING");
+        if (username == null) return;
+        jdbcTemplate.update("UPDATE users SET seller_status = 'PENDING' WHERE username = ?", username);
     }
 
     public void approveSeller(String username) {
-        sellerStatusStore.put(username, "APPROVED");
-        // 如果用户角色还不是 seller，则更新为 seller（保留原角色可能更好，但这里简单起见直接升级）
-        // 或者应该支持多角色，但 current logic seems to pick one.
-        // Let's check roleSets
-        java.util.Set<String> roles = roleSets.get(username);
-        if (roles == null) {
-            roles = new java.util.HashSet<>();
-            roles.add("buyer");
-        }
-        roles.add("seller");
-        roleSets.put(username, roles);
-        
-        // 同时更新当前的主要角色为 seller，以便用户不需要重新登录就能获得权限
-        // 注意：这取决于 login 逻辑中的优先级，Admin > Seller > Buyer
-        // 如果已经是 Admin，则不需要降级。如果只是 Buyer，则升级为 Seller。
-        String currentRole = roleStore.get(username);
+        if (username == null) return;
+        jdbcTemplate.update("UPDATE users SET seller_status = 'APPROVED' WHERE username = ?", username);
+        jdbcTemplate.update("INSERT IGNORE INTO user_roles (username, role) VALUES (?, 'buyer')", username);
+        jdbcTemplate.update("INSERT IGNORE INTO user_roles (username, role) VALUES (?, 'seller')", username);
+        java.util.List<String> roles = jdbcTemplate.queryForList(
+                "SELECT current_role FROM users WHERE username = ?",
+                String.class,
+                username
+        );
+        String currentRole = roles.isEmpty() ? null : roles.get(0);
         if (!"admin".equals(currentRole)) {
-            roleStore.put(username, "seller");
+            jdbcTemplate.update("UPDATE users SET current_role = 'seller' WHERE username = ?", username);
         }
     }
 
     public void rejectSeller(String username) {
-        sellerStatusStore.put(username, "REJECTED");
+        if (username == null) return;
+        jdbcTemplate.update("UPDATE users SET seller_status = 'REJECTED' WHERE username = ?", username);
     }
 
     public java.util.List<User> listSellerApplications() {
+        java.util.List<String> usernames = jdbcTemplate.queryForList(
+                "SELECT username FROM users WHERE seller_status = 'PENDING' ORDER BY username",
+                String.class
+        );
         java.util.List<User> res = new java.util.ArrayList<>();
-        for (Map.Entry<String, String> e : sellerStatusStore.entrySet()) {
-            if ("PENDING".equals(e.getValue())) {
-                User u = new User();
-                u.setUsername(e.getKey());
-                u.setSellerStatus("PENDING");
-                res.add(u);
-            }
+        for (String username : usernames) {
+            User u = new User();
+            u.setUsername(username);
+            u.setSellerStatus("PENDING");
+            res.add(u);
         }
         return res;
     }

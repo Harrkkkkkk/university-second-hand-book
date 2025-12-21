@@ -33,3 +33,16 @@ export const getHotBooks = (limit = 6) => {
         params: { limit }
     })
 }
+
+export const uploadFile = (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return request({
+        url: '/files/upload',
+        method: 'post',
+        data: formData,
+        headers: {
+            token: localStorage.getItem('token')
+        }
+    })
+}

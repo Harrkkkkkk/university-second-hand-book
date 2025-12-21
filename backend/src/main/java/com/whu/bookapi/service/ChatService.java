@@ -1,17 +1,21 @@
 package com.whu.bookapi.service;
 
 import com.whu.bookapi.model.ChatMessage;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class ChatService {
-    private final ConcurrentHashMap<String, List<ChatMessage>> conv = new ConcurrentHashMap<>();
-    private final AtomicLong idGen = new AtomicLong(1);
+    private final JdbcTemplate jdbcTemplate;
+
+    public ChatService(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
 
     private String key(String a, String b, Long bookId, Long orderId) {
         String u1 = a.compareTo(b) <= 0 ? a : b;
@@ -20,55 +24,94 @@ public class ChatService {
     }
 
     public ChatMessage send(ChatMessage m) {
-        m.setId(idGen.incrementAndGet());
+        if (m == null || m.getFromUser() == null || m.getToUser() == null) return null;
         m.setCreateTime(System.currentTimeMillis());
         m.setRead(false);
         String k = key(m.getFromUser(), m.getToUser(), m.getBookId(), m.getOrderId());
-        conv.computeIfAbsent(k, kk -> new ArrayList<>()).add(m);
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        String sql = "INSERT INTO chat_message (conv_key, from_user, to_user, book_id, order_id, content, create_time, is_read) VALUES (?, ?, ?, ?, ?, ?, ?, 0)";
+        jdbcTemplate.update(connection -> {
+            var ps = connection.prepareStatement(sql, new String[]{"id"});
+            ps.setString(1, k);
+            ps.setString(2, m.getFromUser());
+            ps.setString(3, m.getToUser());
+            if (m.getBookId() == null) ps.setObject(4, null);
+            else ps.setLong(4, m.getBookId());
+            if (m.getOrderId() == null) ps.setObject(5, null);
+            else ps.setLong(5, m.getOrderId());
+            ps.setString(6, m.getContent());
+            ps.setLong(7, m.getCreateTime());
+            return ps;
+        }, keyHolder);
+        Number id = keyHolder.getKey();
+        if (id != null) m.setId(id.longValue());
         return m;
     }
 
     public void markRead(String username, String peer) {
-        for (String k : conv.keySet()) {
-            String[] parts = k.split(":", 3);
-            if (parts.length < 3) continue;
-            String u1 = parts[1];
-            String u2 = parts[2];
-            if ((username.equals(u1) && peer.equals(u2)) || (username.equals(u2) && peer.equals(u1))) {
-                List<ChatMessage> list = conv.get(k);
-                if (list != null) {
-                    for (ChatMessage m : list) {
-                        if (username.equals(m.getToUser()) && !m.isRead()) {
-                            m.setRead(true);
-                        }
-                    }
-                }
-            }
-        }
+        if (username == null || peer == null) return;
+        jdbcTemplate.update(
+                "UPDATE chat_message SET is_read = 1 WHERE to_user = ? AND from_user = ? AND is_read = 0",
+                username,
+                peer
+        );
     }
 
     public long countTotalUnread(String username) {
-        long count = 0;
-        for (List<ChatMessage> list : conv.values()) {
-            for (ChatMessage m : list) {
-                if (username.equals(m.getToUser()) && !m.isRead()) {
-                    count++;
-                }
-            }
-        }
-        return count;
+        if (username == null) return 0;
+        Long c = jdbcTemplate.queryForObject(
+                "SELECT COUNT(1) FROM chat_message WHERE to_user = ? AND is_read = 0",
+                Long.class,
+                username
+        );
+        return c == null ? 0 : c;
     }
 
     public List<ChatMessage> history(String a, String b, Long bookId, Long orderId) {
         String k = key(a, b, bookId, orderId);
-        return new ArrayList<>(conv.getOrDefault(k, new ArrayList<>()));
+        return jdbcTemplate.query(
+                "SELECT id, from_user, to_user, book_id, order_id, content, create_time, is_read FROM chat_message WHERE conv_key = ? ORDER BY create_time ASC, id ASC",
+                (rs, rowNum) -> {
+                    ChatMessage m = new ChatMessage();
+                    m.setId(rs.getLong("id"));
+                    m.setFromUser(rs.getString("from_user"));
+                    m.setToUser(rs.getString("to_user"));
+                    Object bid = rs.getObject("book_id");
+                    if (bid != null) m.setBookId(((Number) bid).longValue());
+                    Object oid = rs.getObject("order_id");
+                    if (oid != null) m.setOrderId(((Number) oid).longValue());
+                    m.setContent(rs.getString("content"));
+                    m.setCreateTime(rs.getLong("create_time"));
+                    m.setRead(rs.getInt("is_read") != 0);
+                    return m;
+                },
+                k
+        );
     }
 
     public java.util.List<java.util.Map<String, Object>> listConversations(String username) {
+        if (username == null) return new java.util.ArrayList<>();
+        java.util.List<java.util.Map<String, Object>> rows = jdbcTemplate.queryForList(
+                "SELECT agg.conv_key, agg.last_id, agg.last_time, agg.unread, m.content AS last_content " +
+                        "FROM (" +
+                        "  SELECT conv_key, MAX(id) AS last_id, MAX(create_time) AS last_time, " +
+                        "         SUM(CASE WHEN to_user = ? AND is_read = 0 THEN 1 ELSE 0 END) AS unread " +
+                        "  FROM chat_message " +
+                        "  WHERE from_user = ? OR to_user = ? " +
+                        "  GROUP BY conv_key" +
+                        ") agg " +
+                        "JOIN chat_message m ON m.id = agg.last_id " +
+                        "ORDER BY agg.last_time DESC",
+                username,
+                username,
+                username
+        );
+
         java.util.List<java.util.Map<String, Object>> res = new java.util.ArrayList<>();
-        for (String k : conv.keySet()) {
-            String[] parts = k.split(":", 3);
-            if (parts.length < 3) continue;
+        for (java.util.Map<String, Object> row : rows) {
+            String k = (String) row.get("conv_key");
+            String[] parts = k == null ? null : k.split(":", 3);
+            if (parts == null || parts.length < 3) continue;
             String ctx = parts[0];
             String u1 = parts[1];
             String u2 = parts[2];
@@ -78,22 +121,11 @@ public class ChatService {
             item.put("peer", peer);
             if (ctx.startsWith("B")) item.put("bookId", Long.parseLong(ctx.substring(1)));
             else if (ctx.startsWith("O")) item.put("orderId", Long.parseLong(ctx.substring(1)));
-            java.util.List<ChatMessage> list = conv.getOrDefault(k, new java.util.ArrayList<>());
-            int unread = 0;
-            if (!list.isEmpty()) {
-                ChatMessage last = list.get(list.size() - 1);
-                item.put("lastContent", last.getContent());
-                item.put("lastTime", last.getCreateTime());
-                for (ChatMessage m : list) {
-                    if (username.equals(m.getToUser()) && !m.isRead()) {
-                        unread++;
-                    }
-                }
-            }
-            item.put("unread", unread);
+            item.put("lastContent", row.get("last_content"));
+            item.put("lastTime", ((Number) row.getOrDefault("last_time", 0L)).longValue());
+            item.put("unread", ((Number) row.getOrDefault("unread", 0)).intValue());
             res.add(item);
         }
-        res.sort((a,b) -> Long.compare((Long)b.getOrDefault("lastTime", 0L), (Long)a.getOrDefault("lastTime", 0L)));
         return res;
     }
 }

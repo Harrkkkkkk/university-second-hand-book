@@ -1,175 +1,206 @@
 package com.whu.bookapi.service;
 
 import com.whu.bookapi.model.Book;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class BookService {
-    private final ConcurrentHashMap<Long, Book> store = new ConcurrentHashMap<>();
-    private final AtomicLong idGen = new AtomicLong(0);
-    private final java.util.concurrent.ConcurrentHashMap<Long, java.util.concurrent.locks.ReentrantLock> locks = new java.util.concurrent.ConcurrentHashMap<>();
+    private final JdbcTemplate jdbcTemplate;
 
-    public BookService() {
-        addSample("Java编程思想", "Bruce Eckel", 108d, 30d, "卖家1");
-        addSample("Python入门到精通", "张三", 89d, 25d, "卖家1");
-        addSample("红楼梦", "曹雪芹", 45d, 15d, "卖家2");
-        addSample("经济学原理", "曼昆", 68d, 20d, "卖家2");
-        addSample("数据结构与算法", "李四", 79d, 20d, "卖家1");
-        addSample("西游记", "吴承恩", 38d, 12d, "卖家2");
-        addSample("MySQL实战", "王五", 99d, 28d, "卖家1");
-        addSample("财务管理", "赵六", 59d, 18d, "卖家2");
-    }
-
-    private void addSample(String name, String author, Double original, Double sell, String seller) {
-        Book b = new Book();
-        b.setId(idGen.incrementAndGet());
-        b.setBookName(name);
-        b.setAuthor(author);
-        b.setOriginalPrice(original);
-        b.setSellPrice(sell);
-        b.setSellerName(seller);
-        b.setConditionLevel("九成新");
-        b.setStock(10);
-        b.setStatus("on_sale");
-        b.setCreatedAt(System.currentTimeMillis());
-        store.put(b.getId(), b);
-        locks.put(b.getId(), new java.util.concurrent.locks.ReentrantLock());
+    public BookService(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     public Book add(Book book, String sellerName) {
-        long id = idGen.incrementAndGet();
-        book.setId(id);
+        if (book == null) return null;
         book.setSellerName(sellerName);
         if (book.getConditionLevel() == null) book.setConditionLevel("九成新");
         if (book.getStock() == null) book.setStock(1);
         book.setStatus("under_review");
         book.setCreatedAt(System.currentTimeMillis());
-        store.put(id, book);
-        locks.put(id, new java.util.concurrent.locks.ReentrantLock());
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        String sql = "INSERT INTO books (book_name, author, original_price, sell_price, description, seller_name, cover_url, isbn, publisher, publish_date, condition_level, stock, status, created_at, seller_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        jdbcTemplate.update(connection -> {
+            var ps = connection.prepareStatement(sql, new String[]{"id"});
+            ps.setString(1, book.getBookName());
+            ps.setString(2, book.getAuthor());
+            ps.setObject(3, book.getOriginalPrice());
+            ps.setObject(4, book.getSellPrice());
+            ps.setString(5, book.getDescription());
+            ps.setString(6, book.getSellerName());
+            ps.setString(7, book.getCoverUrl());
+            ps.setString(8, book.getIsbn());
+            ps.setString(9, book.getPublisher());
+            ps.setString(10, book.getPublishDate());
+            ps.setString(11, book.getConditionLevel());
+            ps.setInt(12, book.getStock() == null ? 1 : book.getStock());
+            ps.setString(13, book.getStatus());
+            ps.setLong(14, book.getCreatedAt() == null ? System.currentTimeMillis() : book.getCreatedAt());
+            ps.setString(15, book.getSellerType());
+            return ps;
+        }, keyHolder);
+        Number key = keyHolder.getKey();
+        if (key != null) book.setId(key.longValue());
         return book;
     }
 
     public Book get(Long id) {
-        return store.get(id);
+        if (id == null) return null;
+        java.util.List<Book> list = jdbcTemplate.query(
+                "SELECT id, book_name, author, original_price, sell_price, description, seller_name, cover_url, isbn, publisher, publish_date, condition_level, stock, status, created_at, seller_type FROM books WHERE id = ?",
+                (rs, rowNum) -> {
+                    Book b = new Book();
+                    b.setId(rs.getLong("id"));
+                    b.setBookName(rs.getString("book_name"));
+                    b.setAuthor(rs.getString("author"));
+                    b.setOriginalPrice((Double) rs.getObject("original_price"));
+                    b.setSellPrice((Double) rs.getObject("sell_price"));
+                    b.setDescription(rs.getString("description"));
+                    b.setSellerName(rs.getString("seller_name"));
+                    b.setCoverUrl(rs.getString("cover_url"));
+                    b.setIsbn(rs.getString("isbn"));
+                    b.setPublisher(rs.getString("publisher"));
+                    b.setPublishDate(rs.getString("publish_date"));
+                    b.setConditionLevel(rs.getString("condition_level"));
+                    b.setStock((Integer) rs.getObject("stock"));
+                    b.setStatus(rs.getString("status"));
+                    b.setCreatedAt(rs.getLong("created_at"));
+                    b.setSellerType(rs.getString("seller_type"));
+                    return b;
+                },
+                id
+        );
+        return list.isEmpty() ? null : list.get(0);
     }
 
     public boolean tryReserveStock(Long id) {
-        Book b = store.get(id);
-        if (b == null) return false;
-        java.util.concurrent.locks.ReentrantLock lock = locks.computeIfAbsent(id, k -> new java.util.concurrent.locks.ReentrantLock());
-        lock.lock();
-        try {
-            Integer stock = b.getStock();
-            if (stock == null) stock = 0;
-            if (stock <= 0) return false;
-            b.setStock(stock - 1);
-            return true;
-        } finally {
-            lock.unlock();
-        }
+        if (id == null) return false;
+        int updated = jdbcTemplate.update("UPDATE books SET stock = stock - 1 WHERE id = ? AND stock > 0", id);
+        return updated > 0;
     }
 
     public void releaseStock(Long id) {
-        Book b = store.get(id);
-        if (b == null) return;
-        java.util.concurrent.locks.ReentrantLock lock = locks.computeIfAbsent(id, k -> new java.util.concurrent.locks.ReentrantLock());
-        lock.lock();
-        try {
-            Integer stock = b.getStock();
-            if (stock == null) stock = 0;
-            b.setStock(stock + 1);
-        } finally {
-            lock.unlock();
-        }
+        if (id == null) return;
+        jdbcTemplate.update("UPDATE books SET stock = stock + 1 WHERE id = ?", id);
     }
 
     public List<Book> page(String bookName, Double minPrice, Double maxPrice, String conditionLevel, int pageNum, int pageSize, String sortBy) {
-        List<Book> all = new ArrayList<>(store.values());
-        if ("price_asc".equals(sortBy)) {
-            all.sort(Comparator.comparingDouble(b -> b.getSellPrice() == null ? Double.MAX_VALUE : b.getSellPrice()));
-        } else if ("price_desc".equals(sortBy)) {
-            all.sort((a, b) -> Double.compare(b.getSellPrice() == null ? 0 : b.getSellPrice(), a.getSellPrice() == null ? 0 : a.getSellPrice()));
-        } else if ("created_desc".equals(sortBy)) {
-            all.sort((a, b) -> Long.compare(b.getCreatedAt() == null ? 0 : b.getCreatedAt(), a.getCreatedAt() == null ? 0 : a.getCreatedAt()));
-        } else {
-            all.sort(Comparator.comparingLong(Book::getId));
+        int safePageNum = Math.max(pageNum, 1);
+        int safePageSize = Math.min(Math.max(pageSize, 1), 200);
+        java.util.List<Object> params = new java.util.ArrayList<>();
+        StringBuilder sb = new StringBuilder();
+        sb.append("SELECT id, book_name, author, original_price, sell_price, description, seller_name, cover_url, isbn, publisher, publish_date, condition_level, stock, status, created_at, seller_type FROM books WHERE status = 'on_sale' AND stock > 0");
+        if (bookName != null && !bookName.isEmpty()) {
+            sb.append(" AND (LOWER(book_name) LIKE ? OR LOWER(author) LIKE ?)");
+            String like = "%" + bookName.toLowerCase() + "%";
+            params.add(like);
+            params.add(like);
         }
-        List<Book> filtered = new ArrayList<>();
-        for (Book b : all) {
-            boolean ok = true;
-            if (bookName != null && !bookName.isEmpty()) {
-                String key = bookName.toLowerCase();
-                String name = b.getBookName() == null ? "" : b.getBookName().toLowerCase();
-                String author = b.getAuthor() == null ? "" : b.getAuthor().toLowerCase();
-                ok = name.contains(key) || author.contains(key);
-            }
-            if (ok && minPrice != null) {
-                ok = b.getSellPrice() != null && b.getSellPrice() >= minPrice;
-            }
-            if (ok && maxPrice != null) {
-                ok = b.getSellPrice() != null && b.getSellPrice() <= maxPrice;
-            }
-            if (ok && conditionLevel != null && !conditionLevel.isEmpty()) {
-                ok = conditionLevel.equals(b.getConditionLevel());
-            }
-            if (ok) {
-                // 默认只展示在售的商品，待审核的不展示
-                // 且库存必须大于0
-                ok = "on_sale".equals(b.getStatus()) && (b.getStock() != null && b.getStock() > 0);
-            }
-            if (ok) filtered.add(b);
+        if (minPrice != null) {
+            sb.append(" AND sell_price IS NOT NULL AND sell_price >= ?");
+            params.add(minPrice);
         }
-        int from = Math.max(0, (pageNum - 1) * pageSize);
-        int to = Math.min(filtered.size(), from + pageSize);
-        if (from >= to) return new ArrayList<>();
-        return filtered.subList(from, to);
+        if (maxPrice != null) {
+            sb.append(" AND sell_price IS NOT NULL AND sell_price <= ?");
+            params.add(maxPrice);
+        }
+        if (conditionLevel != null && !conditionLevel.isEmpty()) {
+            sb.append(" AND condition_level = ?");
+            params.add(conditionLevel);
+        }
+        if ("price_asc".equals(sortBy)) sb.append(" ORDER BY sell_price ASC");
+        else if ("price_desc".equals(sortBy)) sb.append(" ORDER BY sell_price DESC");
+        else if ("created_desc".equals(sortBy)) sb.append(" ORDER BY created_at DESC");
+        else sb.append(" ORDER BY id ASC");
+        sb.append(" LIMIT ? OFFSET ?");
+        params.add(safePageSize);
+        params.add((safePageNum - 1) * safePageSize);
+        return jdbcTemplate.query(
+                sb.toString(),
+                (rs, rowNum) -> {
+                    Book b = new Book();
+                    b.setId(rs.getLong("id"));
+                    b.setBookName(rs.getString("book_name"));
+                    b.setAuthor(rs.getString("author"));
+                    b.setOriginalPrice((Double) rs.getObject("original_price"));
+                    b.setSellPrice((Double) rs.getObject("sell_price"));
+                    b.setDescription(rs.getString("description"));
+                    b.setSellerName(rs.getString("seller_name"));
+                    b.setCoverUrl(rs.getString("cover_url"));
+                    b.setIsbn(rs.getString("isbn"));
+                    b.setPublisher(rs.getString("publisher"));
+                    b.setPublishDate(rs.getString("publish_date"));
+                    b.setConditionLevel(rs.getString("condition_level"));
+                    b.setStock((Integer) rs.getObject("stock"));
+                    b.setStatus(rs.getString("status"));
+                    b.setCreatedAt(rs.getLong("created_at"));
+                    b.setSellerType(rs.getString("seller_type"));
+                    return b;
+                },
+                params.toArray()
+        );
     }
 
     public long count(String bookName, Double minPrice, Double maxPrice) {
-        long c = 0;
-        for (Book b : store.values()) {
-            boolean ok = true;
-            if (bookName != null && !bookName.isEmpty()) {
-                String key = bookName.toLowerCase();
-                String name = b.getBookName() == null ? "" : b.getBookName().toLowerCase();
-                String author = b.getAuthor() == null ? "" : b.getAuthor().toLowerCase();
-                ok = name.contains(key) || author.contains(key);
-            }
-            if (ok && minPrice != null) {
-                ok = b.getSellPrice() != null && b.getSellPrice() >= minPrice;
-            }
-            if (ok && maxPrice != null) {
-                ok = b.getSellPrice() != null && b.getSellPrice() <= maxPrice;
-            }
-            if (ok) {
-                ok = "on_sale".equals(b.getStatus()) && (b.getStock() != null && b.getStock() > 0);
-            }
-            if (ok) c++;
+        java.util.List<Object> params = new java.util.ArrayList<>();
+        StringBuilder sb = new StringBuilder();
+        sb.append("SELECT COUNT(1) FROM books WHERE status = 'on_sale' AND stock > 0");
+        if (bookName != null && !bookName.isEmpty()) {
+            sb.append(" AND (LOWER(book_name) LIKE ? OR LOWER(author) LIKE ?)");
+            String like = "%" + bookName.toLowerCase() + "%";
+            params.add(like);
+            params.add(like);
         }
-        return c;
+        if (minPrice != null) {
+            sb.append(" AND sell_price IS NOT NULL AND sell_price >= ?");
+            params.add(minPrice);
+        }
+        if (maxPrice != null) {
+            sb.append(" AND sell_price IS NOT NULL AND sell_price <= ?");
+            params.add(maxPrice);
+        }
+        Long c = jdbcTemplate.queryForObject(sb.toString(), Long.class, params.toArray());
+        return c == null ? 0 : c;
     }
 
     public List<Book> listHot(int limit) {
-        List<Book> all = new ArrayList<>(store.values());
-        List<Book> onSale = new ArrayList<>();
-        for (Book b : all) {
-            if ("on_sale".equals(b.getStatus())) onSale.add(b);
-        }
-        onSale.sort((a, b) -> Long.compare(b.getCreatedAt() == null ? 0 : b.getCreatedAt(), a.getCreatedAt() == null ? 0 : a.getCreatedAt()));
-        int n = Math.min(Math.max(limit, 1), onSale.size());
-        return onSale.subList(0, n);
+        int n = Math.min(Math.max(limit, 1), 50);
+        return jdbcTemplate.query(
+                "SELECT id, book_name, author, original_price, sell_price, description, seller_name, cover_url, isbn, publisher, publish_date, condition_level, stock, status, created_at, seller_type FROM books WHERE status = 'on_sale' ORDER BY created_at DESC LIMIT ?",
+                (rs, rowNum) -> {
+                    Book b = new Book();
+                    b.setId(rs.getLong("id"));
+                    b.setBookName(rs.getString("book_name"));
+                    b.setAuthor(rs.getString("author"));
+                    b.setOriginalPrice((Double) rs.getObject("original_price"));
+                    b.setSellPrice((Double) rs.getObject("sell_price"));
+                    b.setDescription(rs.getString("description"));
+                    b.setSellerName(rs.getString("seller_name"));
+                    b.setCoverUrl(rs.getString("cover_url"));
+                    b.setIsbn(rs.getString("isbn"));
+                    b.setPublisher(rs.getString("publisher"));
+                    b.setPublishDate(rs.getString("publish_date"));
+                    b.setConditionLevel(rs.getString("condition_level"));
+                    b.setStock((Integer) rs.getObject("stock"));
+                    b.setStatus(rs.getString("status"));
+                    b.setCreatedAt(rs.getLong("created_at"));
+                    b.setSellerType(rs.getString("seller_type"));
+                    return b;
+                },
+                n
+        );
     }
 
     public Book update(Book incoming, String operator) {
-        Book origin = store.get(incoming.getId());
+        if (incoming == null || incoming.getId() == null) return null;
+        Book origin = get(incoming.getId());
         if (origin == null) return null;
-        if (!operator.equals(origin.getSellerName())) return null;
+        if (operator == null || !operator.equals(origin.getSellerName())) return null;
         if (incoming.getBookName() != null) origin.setBookName(incoming.getBookName());
         if (incoming.getAuthor() != null) origin.setAuthor(incoming.getAuthor());
         if (incoming.getOriginalPrice() != null) origin.setOriginalPrice(incoming.getOriginalPrice());
@@ -181,55 +212,103 @@ public class BookService {
         if (incoming.getPublishDate() != null) origin.setPublishDate(incoming.getPublishDate());
         if (incoming.getConditionLevel() != null) origin.setConditionLevel(incoming.getConditionLevel());
         if (incoming.getStock() != null) origin.setStock(incoming.getStock());
-        origin.setStatus("under_review"); // 编辑后进入待审核
+        origin.setStatus("under_review");
+        jdbcTemplate.update(
+                "UPDATE books SET book_name=?, author=?, original_price=?, sell_price=?, description=?, cover_url=?, isbn=?, publisher=?, publish_date=?, condition_level=?, stock=?, status=?, seller_type=? WHERE id=? AND seller_name=?",
+                origin.getBookName(),
+                origin.getAuthor(),
+                origin.getOriginalPrice(),
+                origin.getSellPrice(),
+                origin.getDescription(),
+                origin.getCoverUrl(),
+                origin.getIsbn(),
+                origin.getPublisher(),
+                origin.getPublishDate(),
+                origin.getConditionLevel(),
+                origin.getStock(),
+                origin.getStatus(),
+                origin.getSellerType(),
+                origin.getId(),
+                operator
+        );
         return origin;
     }
 
     public boolean offline(Long id, String operator) {
-        Book b = store.get(id);
-        if (b == null) return false;
-        if (!operator.equals(b.getSellerName())) return false;
-        b.setStatus("offline");
-        return true;
+        if (id == null || operator == null) return false;
+        int updated = jdbcTemplate.update("UPDATE books SET status = 'offline' WHERE id = ? AND seller_name = ?", id, operator);
+        return updated > 0;
     }
 
     public boolean delete(Long id, String operator) {
-        Book b = store.get(id);
-        if (b == null) return false;
-        if (!operator.equals(b.getSellerName())) return false;
-        store.remove(id);
-        return true;
+        if (id == null || operator == null) return false;
+        int updated = jdbcTemplate.update("DELETE FROM books WHERE id = ? AND seller_name = ?", id, operator);
+        return updated > 0;
     }
 
     public java.util.List<Book> listBySeller(String sellerName) {
-        java.util.List<Book> res = new java.util.ArrayList<>();
-        for (Book b : store.values()) {
-            if (sellerName.equals(b.getSellerName())) res.add(b);
-        }
-        res.sort(Comparator.comparingLong(Book::getId));
-        return res;
+        if (sellerName == null) return new java.util.ArrayList<>();
+        return jdbcTemplate.query(
+                "SELECT id, book_name, author, original_price, sell_price, description, seller_name, cover_url, isbn, publisher, publish_date, condition_level, stock, status, created_at, seller_type FROM books WHERE seller_name = ? ORDER BY id",
+                (rs, rowNum) -> {
+                    Book b = new Book();
+                    b.setId(rs.getLong("id"));
+                    b.setBookName(rs.getString("book_name"));
+                    b.setAuthor(rs.getString("author"));
+                    b.setOriginalPrice((Double) rs.getObject("original_price"));
+                    b.setSellPrice((Double) rs.getObject("sell_price"));
+                    b.setDescription(rs.getString("description"));
+                    b.setSellerName(rs.getString("seller_name"));
+                    b.setCoverUrl(rs.getString("cover_url"));
+                    b.setIsbn(rs.getString("isbn"));
+                    b.setPublisher(rs.getString("publisher"));
+                    b.setPublishDate(rs.getString("publish_date"));
+                    b.setConditionLevel(rs.getString("condition_level"));
+                    b.setStock((Integer) rs.getObject("stock"));
+                    b.setStatus(rs.getString("status"));
+                    b.setCreatedAt(rs.getLong("created_at"));
+                    b.setSellerType(rs.getString("seller_type"));
+                    return b;
+                },
+                sellerName
+        );
     }
 
     public List<Book> listUnderReview() {
-        List<Book> res = new ArrayList<>();
-        for (Book b : store.values()) {
-            if ("under_review".equals(b.getStatus())) res.add(b);
-        }
-        res.sort(Comparator.comparingLong(Book::getId));
-        return res;
+        return jdbcTemplate.query(
+                "SELECT id, book_name, author, original_price, sell_price, description, seller_name, cover_url, isbn, publisher, publish_date, condition_level, stock, status, created_at, seller_type FROM books WHERE status = 'under_review' ORDER BY id",
+                (rs, rowNum) -> {
+                    Book b = new Book();
+                    b.setId(rs.getLong("id"));
+                    b.setBookName(rs.getString("book_name"));
+                    b.setAuthor(rs.getString("author"));
+                    b.setOriginalPrice((Double) rs.getObject("original_price"));
+                    b.setSellPrice((Double) rs.getObject("sell_price"));
+                    b.setDescription(rs.getString("description"));
+                    b.setSellerName(rs.getString("seller_name"));
+                    b.setCoverUrl(rs.getString("cover_url"));
+                    b.setIsbn(rs.getString("isbn"));
+                    b.setPublisher(rs.getString("publisher"));
+                    b.setPublishDate(rs.getString("publish_date"));
+                    b.setConditionLevel(rs.getString("condition_level"));
+                    b.setStock((Integer) rs.getObject("stock"));
+                    b.setStatus(rs.getString("status"));
+                    b.setCreatedAt(rs.getLong("created_at"));
+                    b.setSellerType(rs.getString("seller_type"));
+                    return b;
+                }
+        );
     }
 
     public boolean approve(Long id) {
-        Book b = store.get(id);
-        if (b == null) return false;
-        b.setStatus("on_sale");
-        return true;
+        if (id == null) return false;
+        int updated = jdbcTemplate.update("UPDATE books SET status = 'on_sale' WHERE id = ?", id);
+        return updated > 0;
     }
 
     public boolean reject(Long id) {
-        Book b = store.get(id);
-        if (b == null) return false;
-        b.setStatus("rejected");
-        return true;
+        if (id == null) return false;
+        int updated = jdbcTemplate.update("UPDATE books SET status = 'rejected' WHERE id = ?", id);
+        return updated > 0;
     }
 }
