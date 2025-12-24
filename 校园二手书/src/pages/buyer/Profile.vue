@@ -72,7 +72,7 @@
             <el-button type="primary" size="small" @click="addAddress" style="margin-bottom: 10px;">
               <i class="el-icon-plus"></i> 添加地址
             </el-button>
-            <el-table :data="addressList" border style="width: 100%;">
+            <el-table v-if="addressList.length" :data="addressList" border style="width: 100%;">
               <el-table-column prop="name" label="收货人" width="120"></el-table-column>
               <el-table-column prop="phone" label="手机号" width="150"></el-table-column>
               <el-table-column prop="address" label="地址"></el-table-column>
@@ -89,6 +89,7 @@
                 </template>
               </el-table-column>
             </el-table>
+            <el-empty v-else description="暂无地址" />
           </div>
 
           <!-- 账户安全 -->
@@ -106,22 +107,56 @@
             </el-form>
           </div>
 
-          <!-- 我的收藏（跳转已有页面） -->
-          <div v-if="activeTab === '4'" class="collect-redirect">
-            <el-empty description="点击下方按钮查看我的收藏">
-              <el-button type="primary" @click="toCollectPage">前往我的收藏</el-button>
-            </el-empty>
-          </div>
         </el-card>
       </el-col>
     </el-row>
+
+    <el-dialog v-model="addressDialogVisible" :title="addressDialogMode === 'edit' ? '编辑地址' : '添加地址'" width="520px">
+      <el-form ref="addressFormRef" :model="addressForm" :rules="addressRules" label-width="90px">
+        <el-form-item label="收货人" prop="name">
+          <el-input v-model="addressForm.name" placeholder="请输入收货人" />
+        </el-form-item>
+        <el-form-item label="手机号" prop="phone">
+          <el-input v-model="addressForm.phone" placeholder="请输入手机号" />
+        </el-form-item>
+        <el-form-item label="地址" prop="address">
+          <el-input v-model="addressForm.address" type="textarea" :rows="3" placeholder="请输入收货地址" />
+        </el-form-item>
+        <el-form-item label="默认地址">
+          <el-switch v-model="addressForm.isDefault" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="addressDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="addressSaving" @click="submitAddress">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="passwordDialogVisible" title="修改密码" width="460px">
+      <el-form ref="passwordFormRef" :model="passwordForm" :rules="passwordRules" label-width="100px">
+        <el-form-item label="旧密码" prop="oldPassword">
+          <el-input v-model="passwordForm.oldPassword" type="password" show-password placeholder="请输入旧密码" />
+        </el-form-item>
+        <el-form-item label="新密码" prop="newPassword">
+          <el-input v-model="passwordForm.newPassword" type="password" show-password placeholder="请输入新密码" />
+        </el-form-item>
+        <el-form-item label="确认新密码" prop="confirmPassword">
+          <el-input v-model="passwordForm.confirmPassword" type="password" show-password placeholder="请再次输入新密码" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="passwordDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="passwordSaving" @click="submitPassword">确认修改</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { getUserInfo, updateUserProfile, listAddresses, addAddress as apiAddAddress, updateAddress as apiUpdateAddress, deleteAddress as apiDeleteAddress, changePassword as apiChangePassword } from '@/api/userApi'
 
 const router = useRouter()
 // 当前激活的标签页
@@ -139,7 +174,8 @@ const roleName = computed(() => {
   return map[role.value] || '用户'
 })
 
-// 个人信息模拟数据
+const loadingUserInfo = ref(false)
+
 const userInfo = ref({
   username: username.value,
   phone: '',
@@ -147,19 +183,54 @@ const userInfo = ref({
   gender: 'secret'
 })
 
-// 地址列表模拟数据
-const addressList = ref([
-  {
-    id: 1,
-    name: '张三',
-    phone: '13800138000',
-    address: '北京市朝阳区XX街道XX小区1号楼1单元101',
-    isDefault: true
-  }
-])
+const addressList = ref([])
+const addressLoading = ref(false)
+
+const addressDialogVisible = ref(false)
+const addressDialogMode = ref('add')
+const addressSaving = ref(false)
+const addressFormRef = ref()
+const addressForm = ref({
+  id: null,
+  name: '',
+  phone: '',
+  address: '',
+  isDefault: false
+})
+const addressRules = {
+  name: [{ required: true, message: '请输入收货人', trigger: 'blur' }],
+  address: [{ required: true, message: '请输入收货地址', trigger: 'blur' }]
+}
+
+const passwordDialogVisible = ref(false)
+const passwordSaving = ref(false)
+const passwordFormRef = ref()
+const passwordForm = ref({
+  oldPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+})
+const passwordRules = {
+  oldPassword: [{ required: true, message: '请输入旧密码', trigger: 'blur' }],
+  newPassword: [{ required: true, message: '请输入新密码', trigger: 'blur' }],
+  confirmPassword: [
+    { required: true, message: '请确认新密码', trigger: 'blur' },
+    {
+      validator: (rule, value, callback) => {
+        if (value !== passwordForm.value.newPassword) callback(new Error('两次输入的新密码不一致'))
+        else callback()
+      },
+      trigger: 'blur'
+    }
+  ]
+}
 
 // 侧边栏菜单切换
 const handleMenuSelect = (key) => {
+  if (key === '4') {
+    router.push('/buyer/collect')
+    return
+  }
   activeTab.value = key
 }
 
@@ -168,30 +239,152 @@ const goBack = () => {
   router.back()
 }
 
+const loadUser = async () => {
+  loadingUserInfo.value = true
+  try {
+    const res = await getUserInfo()
+    if (res && res.username) {
+      username.value = res.username
+      userInfo.value.username = res.username
+      localStorage.setItem('username', res.username)
+    }
+    if (res && res.role) {
+      role.value = res.role
+      localStorage.setItem('role', res.role)
+    }
+    userInfo.value.phone = res && res.phone ? res.phone : ''
+    userInfo.value.email = res && res.email ? res.email : ''
+    userInfo.value.gender = res && res.gender ? res.gender : 'secret'
+  } catch (e) {
+    ElMessage.error('加载个人信息失败')
+  } finally {
+    loadingUserInfo.value = false
+  }
+}
+
+const loadAddresses = async () => {
+  addressLoading.value = true
+  try {
+    const res = await listAddresses()
+    addressList.value = Array.isArray(res) ? res : []
+  } catch (e) {
+    addressList.value = []
+    ElMessage.error('加载地址失败')
+  } finally {
+    addressLoading.value = false
+  }
+}
+
 // 保存个人信息
-const saveInfo = () => {
-  ElMessage.success('个人信息保存成功！')
+const saveInfo = async () => {
+  try {
+    await updateUserProfile({
+      phone: userInfo.value.phone,
+      email: userInfo.value.email,
+      gender: userInfo.value.gender
+    })
+    ElMessage.success('个人信息保存成功！')
+    await loadUser()
+  } catch (e) {
+    ElMessage.error('个人信息保存失败')
+  }
 }
 
 // 添加地址
 const addAddress = () => {
-  ElMessage.info('打开添加地址弹窗')
+  addressDialogMode.value = 'add'
+  addressForm.value = { id: null, name: '', phone: '', address: '', isDefault: false }
+  addressDialogVisible.value = true
+  nextTick(() => addressFormRef.value && addressFormRef.value.clearValidate())
 }
 
 // 编辑地址
 const editAddress = (row) => {
-  ElMessage.info(`编辑地址：${row.name}`)
+  addressDialogMode.value = 'edit'
+  addressForm.value = {
+    id: row.id,
+    name: row.name || '',
+    phone: row.phone || '',
+    address: row.address || '',
+    isDefault: !!row.isDefault
+  }
+  addressDialogVisible.value = true
+  nextTick(() => addressFormRef.value && addressFormRef.value.clearValidate())
 }
 
 // 删除地址
 const deleteAddress = (row) => {
-  addressList.value = addressList.value.filter(item => item.id !== row.id)
-  ElMessage.success('地址删除成功！')
+  ElMessageBox.confirm('确认删除该地址吗？', '提示', { type: 'warning' })
+    .then(async () => {
+      try {
+        await apiDeleteAddress(row.id)
+        ElMessage.success('地址删除成功！')
+        await loadAddresses()
+      } catch (e) {
+        ElMessage.error('地址删除失败')
+      }
+    })
+    .catch(() => {})
+}
+
+const submitAddress = async () => {
+  if (!addressFormRef.value) return
+  try {
+    await addressFormRef.value.validate()
+  } catch (e) {
+    return
+  }
+  addressSaving.value = true
+  try {
+    const payload = {
+      name: addressForm.value.name,
+      phone: addressForm.value.phone,
+      address: addressForm.value.address,
+      isDefault: addressForm.value.isDefault
+    }
+    if (addressDialogMode.value === 'edit') {
+      await apiUpdateAddress(addressForm.value.id, payload)
+      ElMessage.success('地址修改成功！')
+    } else {
+      await apiAddAddress(payload)
+      ElMessage.success('地址添加成功！')
+    }
+    addressDialogVisible.value = false
+    await loadAddresses()
+  } catch (e) {
+    ElMessage.error(addressDialogMode.value === 'edit' ? '地址修改失败' : '地址添加失败')
+  } finally {
+    addressSaving.value = false
+  }
 }
 
 // 修改密码
 const changePassword = () => {
-  ElMessage.info('打开修改密码弹窗')
+  passwordForm.value = { oldPassword: '', newPassword: '', confirmPassword: '' }
+  passwordDialogVisible.value = true
+  nextTick(() => passwordFormRef.value && passwordFormRef.value.clearValidate())
+}
+
+const submitPassword = async () => {
+  if (!passwordFormRef.value) return
+  try {
+    await passwordFormRef.value.validate()
+  } catch (e) {
+    return
+  }
+  passwordSaving.value = true
+  try {
+    await apiChangePassword({
+      oldPassword: passwordForm.value.oldPassword,
+      newPassword: passwordForm.value.newPassword
+    })
+    ElMessage.success('密码修改成功！')
+    passwordDialogVisible.value = false
+  } catch (e) {
+    ElMessage.error('密码修改失败')
+  } finally {
+    passwordSaving.value = false
+  }
 }
 
 // 绑定微信
@@ -204,10 +397,14 @@ const bindQQ = () => {
   ElMessage.success('QQ绑定成功！')
 }
 
-// 前往我的收藏
-const toCollectPage = () => {
-  router.push('/buyer/collect')
-}
+watch(activeTab, (tab) => {
+  if (tab === '2') loadAddresses()
+})
+
+onMounted(async () => {
+  await loadUser()
+  if (activeTab.value === '2') await loadAddresses()
+})
 </script>
 
 <style scoped>

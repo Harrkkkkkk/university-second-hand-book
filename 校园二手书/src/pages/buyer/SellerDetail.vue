@@ -64,7 +64,7 @@ const loadReviews = async () => {
     const res = await listSellerReviews(sellerName.value)
     reviewList.value = res || []
   } catch (e) {
-    ElMessage.error('加载卖家评价失败')
+    ElMessage.error('加载卖家评论失败')
   }
 }
 

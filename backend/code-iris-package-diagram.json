@@ -1,0 +1,155 @@
+{
+  "graph": {
+    "id": "wisebookpal-package-diagram",
+    "type": "package-diagram",
+    "label": "WiseBookPal 包图（前后端三层分区）",
+    "directed": true,
+    "metadata": {
+      "architectureStyle": "Layered Architecture",
+      "layers": [
+        "用户界面层（Frontend + REST API）",
+        "业务逻辑层（Service/Schedule + Domain）",
+        "基础服务层（Framework + DB + FileSystem）"
+      ],
+      "frontendRoot": "校园二手书/src",
+      "backendRoot": "backend/src/main/java/com/whu/bookapi",
+      "generatedFrom": {
+        "javaImportEdges": "backend/src/main/java/**/*.java",
+        "frontendImportEdges": "校园二手书/src/**/*.{js,vue}"
+      }
+    },
+    "nodes": {
+      "layer.ui": {
+        "label": "用户界面层",
+        "metadata": { "kind": "layer" }
+      },
+      "layer.business": {
+        "label": "业务逻辑层",
+        "metadata": { "kind": "layer" }
+      },
+      "layer.base": {
+        "label": "基础服务层",
+        "metadata": { "kind": "layer" }
+      },
+      "fe.pages": {
+        "label": "前端页面 pages",
+        "metadata": { "kind": "package", "path": "校园二手书/src/pages" }
+      },
+      "fe.components": {
+        "label": "前端组件 components",
+        "metadata": { "kind": "package", "path": "校园二手书/src/components" }
+      },
+      "fe.api": {
+        "label": "前端接口封装 api",
+        "metadata": { "kind": "package", "path": "校园二手书/src/api", "fileCount": 12 }
+      },
+      "fe.router": {
+        "label": "前端路由 router",
+        "metadata": { "kind": "package", "path": "校园二手书/src/router" }
+      },
+      "fe.store": {
+        "label": "前端状态 store",
+        "metadata": { "kind": "package", "path": "校园二手书/src/store" }
+      },
+      "fe.utils": {
+        "label": "前端工具 utils",
+        "metadata": { "kind": "package", "path": "校园二手书/src/utils" }
+      },
+      "be.root": {
+        "label": "后端根包 com.whu.bookapi",
+        "metadata": { "kind": "package", "path": "backend/src/main/java/com/whu/bookapi" }
+      },
+      "be.controller": {
+        "label": "后端控制器 controller",
+        "metadata": { "kind": "package", "path": "backend/src/main/java/com/whu/bookapi/controller", "fileCount": 11 }
+      },
+      "be.service": {
+        "label": "后端服务 service",
+        "metadata": { "kind": "package", "path": "backend/src/main/java/com/whu/bookapi/service", "fileCount": 10 }
+      },
+      "be.schedule": {
+        "label": "后端定时任务 schedule",
+        "metadata": { "kind": "package", "path": "backend/src/main/java/com/whu/bookapi/schedule", "fileCount": 1 }
+      },
+      "be.model": {
+        "label": "后端模型 model",
+        "metadata": { "kind": "package", "path": "backend/src/main/java/com/whu/bookapi/model", "fileCount": 9 }
+      },
+      "be.dto": {
+        "label": "后端 DTO dto",
+        "metadata": { "kind": "package", "path": "backend/src/main/java/com/whu/bookapi/dto", "fileCount": 3 }
+      },
+      "ext.spring.boot": {
+        "label": "Spring Boot",
+        "metadata": { "kind": "external", "role": "framework" }
+      },
+      "ext.spring.web": {
+        "label": "Spring Web (REST)",
+        "metadata": { "kind": "external", "role": "framework" }
+      },
+      "ext.spring.jdbc": {
+        "label": "Spring JDBC (JdbcTemplate)",
+        "metadata": { "kind": "external", "role": "framework" }
+      },
+      "ext.spring.scheduling": {
+        "label": "Spring Scheduling",
+        "metadata": { "kind": "external", "role": "framework" }
+      },
+      "ext.mysql": {
+        "label": "MySQL",
+        "metadata": { "kind": "external", "role": "database" }
+      },
+      "ext.filesystem": {
+        "label": "File System (uploads/)",
+        "metadata": { "kind": "external", "role": "storage" }
+      }
+    },
+    "edges": [
+      { "source": "layer.ui", "relation": "contains", "target": "fe.pages", "directed": false },
+      { "source": "layer.ui", "relation": "contains", "target": "fe.components", "directed": false },
+      { "source": "layer.ui", "relation": "contains", "target": "fe.api", "directed": false },
+      { "source": "layer.ui", "relation": "contains", "target": "fe.router", "directed": false },
+      { "source": "layer.ui", "relation": "contains", "target": "fe.store", "directed": false },
+      { "source": "layer.ui", "relation": "contains", "target": "fe.utils", "directed": false },
+      { "source": "layer.ui", "relation": "contains", "target": "be.controller", "directed": false },
+
+      { "source": "layer.business", "relation": "contains", "target": "be.service", "directed": false },
+      { "source": "layer.business", "relation": "contains", "target": "be.schedule", "directed": false },
+      { "source": "layer.business", "relation": "contains", "target": "be.model", "directed": false },
+      { "source": "layer.business", "relation": "contains", "target": "be.dto", "directed": false },
+      { "source": "layer.business", "relation": "contains", "target": "be.root", "directed": false },
+
+      { "source": "layer.base", "relation": "contains", "target": "ext.spring.boot", "directed": false },
+      { "source": "layer.base", "relation": "contains", "target": "ext.spring.web", "directed": false },
+      { "source": "layer.base", "relation": "contains", "target": "ext.spring.jdbc", "directed": false },
+      { "source": "layer.base", "relation": "contains", "target": "ext.spring.scheduling", "directed": false },
+      { "source": "layer.base", "relation": "contains", "target": "ext.mysql", "directed": false },
+      { "source": "layer.base", "relation": "contains", "target": "ext.filesystem", "directed": false },
+
+      { "source": "fe.router", "relation": "dependsOn", "target": "fe.pages", "metadata": { "count": 17 } },
+      { "source": "fe.pages", "relation": "dependsOn", "target": "fe.api", "metadata": { "count": 31 } },
+      { "source": "fe.pages", "relation": "dependsOn", "target": "fe.components", "metadata": { "count": 17 } },
+      { "source": "fe.pages", "relation": "dependsOn", "target": "fe.utils", "metadata": { "count": 12 } },
+      { "source": "fe.utils", "relation": "dependsOn", "target": "fe.router", "metadata": { "count": 1 } },
+
+      { "source": "fe.api", "relation": "requestResponse", "target": "be.controller", "metadata": { "protocol": "HTTP/REST" } },
+
+      { "source": "be.controller", "relation": "dependsOn", "target": "be.service", "metadata": { "count": 27 } },
+      { "source": "be.controller", "relation": "uses", "target": "be.model", "metadata": { "count": 24 } },
+      { "source": "be.controller", "relation": "uses", "target": "be.dto", "metadata": { "count": 3 } },
+      { "source": "be.schedule", "relation": "dependsOn", "target": "be.service", "metadata": { "count": 2 } },
+      { "source": "be.schedule", "relation": "uses", "target": "be.model", "metadata": { "count": 1 } },
+      { "source": "be.service", "relation": "uses", "target": "be.model", "metadata": { "count": 11 } },
+      { "source": "be.service", "relation": "uses", "target": "be.dto", "metadata": { "count": 2 } },
+
+      { "source": "be.root", "relation": "runsOn", "target": "ext.spring.boot", "metadata": { "count": 3 } },
+      { "source": "be.controller", "relation": "runsOn", "target": "ext.spring.web", "metadata": { "count": 47 } },
+      { "source": "be.service", "relation": "runsOn", "target": "ext.spring.jdbc", "metadata": { "count": 40 } },
+      { "source": "be.schedule", "relation": "runsOn", "target": "ext.spring.scheduling", "metadata": { "count": 2 } },
+
+      { "source": "ext.spring.jdbc", "relation": "connectsTo", "target": "ext.mysql" },
+      { "source": "be.service", "relation": "persistsTo", "target": "ext.mysql" },
+      { "source": "be.service", "relation": "storesTo", "target": "ext.filesystem" }
+    ]
+  }
+}

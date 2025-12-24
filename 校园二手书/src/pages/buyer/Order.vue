@@ -12,6 +12,7 @@
         <el-radio label="paid">已付款</el-radio>
         <el-radio label="received">已收货</el-radio>
         <el-radio label="cancelled">已取消</el-radio>
+        <el-radio label="expired">已超时</el-radio>
       </el-radio-group>
     </el-card>
 
@@ -24,6 +25,12 @@
         <template #default="scope">¥{{ scope.row.price }}</template>
       </el-table-column>
       <el-table-column prop="createTime" label="下单时间" width="180"></el-table-column>
+      <el-table-column label="支付倒计时" width="130">
+        <template #default="scope">
+          <span v-if="scope.row.status === 'pending'">{{ getRemainingText(scope.row) }}</span>
+          <span v-else>-</span>
+        </template>
+      </el-table-column>
       <el-table-column prop="status" label="状态" width="100">
         <template #default="scope">
           <el-tag type="warning" v-if="scope.row.status === 'pending'">待付款</el-tag>
@@ -48,7 +55,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
@@ -65,6 +72,9 @@ const logout = () => {
 const orderStatus = ref('all')
 
 const allOrders = ref([])
+const nowMs = ref(Date.now())
+let tickTimer = null
+let lastReloadAt = 0
 
 const orderList = computed(() => {
   if (orderStatus.value === 'all') {
@@ -80,6 +90,21 @@ const loadOrders = async () => {
   } catch (e) {
     ElMessage.error('加载订单失败')
   }
+}
+
+const pad2 = (n) => (n < 10 ? `0${n}` : `${n}`)
+const formatMs = (ms) => {
+  const safe = Math.max(0, Math.floor(ms / 1000))
+  const m = Math.floor(safe / 60)
+  const s = safe % 60
+  return `${pad2(m)}:${pad2(s)}`
+}
+
+const getRemainingText = (order) => {
+  const expireAt = Number(order?.expireAt || 0)
+  if (!expireAt) return '--:--'
+  const left = expireAt - nowMs.value
+  return formatMs(left)
 }
 
 // 付款
@@ -138,9 +163,21 @@ const viewOrderDetail = (id) => {
 const toEvaluate = (id) => router.push({ path: '/buyer/evaluate', query: { orderId: id } })
 const toComplaint = (id) => router.push({ path: '/buyer/complaint', query: { orderId: id } })
 
-import { onMounted } from 'vue'
 onMounted(() => {
   loadOrders()
+  tickTimer = setInterval(() => {
+    nowMs.value = Date.now()
+    const shouldReload = allOrders.value.some(o => o && o.status === 'pending' && Number(o.expireAt || 0) > 0 && nowMs.value > Number(o.expireAt))
+    if (shouldReload && nowMs.value - lastReloadAt > 10000) {
+      lastReloadAt = nowMs.value
+      loadOrders()
+    }
+  }, 1000)
+})
+
+onBeforeUnmount(() => {
+  if (tickTimer) clearInterval(tickTimer)
+  tickTimer = null
 })
 </script>
 

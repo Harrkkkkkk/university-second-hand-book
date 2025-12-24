@@ -16,10 +16,11 @@ export const addToCart = (bookId) => {
   })
 }
 
-export const removeFromCart = (bookId) => {
+export const removeFromCart = (bookId, count) => {
   return request({
     url: `/cart/remove/${bookId}`,
     method: 'delete',
+    params: count ? { count } : undefined,
     headers: { token: localStorage.getItem('token') }
   })
 }

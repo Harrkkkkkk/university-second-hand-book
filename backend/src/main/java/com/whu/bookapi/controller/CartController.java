@@ -62,10 +62,11 @@ public class CartController {
 
     @DeleteMapping("/remove/{bookId}")
     public ResponseEntity<?> remove(@RequestHeader(value = "token", required = false) String token,
-                                    @PathVariable("bookId") Long bookId) {
+                                    @PathVariable("bookId") Long bookId,
+                                    @RequestParam(value = "count", required = false) Integer count) {
         User user = token == null ? null : userService.getByToken(token);
         if (user == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        cartService.remove(user.getUsername(), bookId);
+        cartService.remove(user.getUsername(), bookId, count);
         return ResponseEntity.ok().build();
     }
 

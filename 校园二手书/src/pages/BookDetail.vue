@@ -21,9 +21,8 @@
           <p class="book-stock">库存：{{ book.stock }}</p>
           <p class="book-seller">
             卖家：
-            <el-button type="text" @click="toSellerDetail(book.sellerName)">
-              {{ book.sellerName }}
-            </el-button>
+            <span>{{ book.sellerName }}</span>
+            <el-button type="text" @click="toSellerDetail(book.sellerName)">查看卖家评论</el-button>
           </p>
           <p class="book-desc">描述：{{ book.description || '暂无描述' }}</p>
           <div class="book-actions" style="margin-top: 20px;">

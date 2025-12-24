@@ -9,6 +9,7 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -29,8 +30,9 @@ public class OrderService {
         o.setBuyerName(buyerName);
         o.setStatus("pending");
         o.setCreateTime(LocalDateTime.now());
+        o.setExpireAt(o.getCreateTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() + 15L * 60 * 1000);
         KeyHolder keyHolder = new GeneratedKeyHolder();
-        String sql = "INSERT INTO orders (book_id, book_name, seller_name, price, buyer_name, status, create_time) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO orders (book_id, book_name, seller_name, price, buyer_name, status, expire_at, create_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         jdbcTemplate.update(connection -> {
             var ps = connection.prepareStatement(sql, new String[]{"id"});
             ps.setLong(1, book.getId());
@@ -39,7 +41,8 @@ public class OrderService {
             ps.setObject(4, book.getSellPrice());
             ps.setString(5, buyerName);
             ps.setString(6, o.getStatus());
-            ps.setTimestamp(7, java.sql.Timestamp.valueOf(o.getCreateTime()));
+            ps.setLong(7, o.getExpireAt() == null ? 0 : o.getExpireAt());
+            ps.setTimestamp(8, java.sql.Timestamp.valueOf(o.getCreateTime()));
             return ps;
         }, keyHolder);
         Number key = keyHolder.getKey();
@@ -50,7 +53,7 @@ public class OrderService {
     public List<Order> listByBuyer(String buyerName) {
         if (buyerName == null) return java.util.Collections.emptyList();
         return jdbcTemplate.query(
-                "SELECT id, book_id, book_name, seller_name, price, buyer_name, status, create_time FROM orders WHERE buyer_name = ? ORDER BY create_time DESC",
+                "SELECT id, book_id, book_name, seller_name, price, buyer_name, status, expire_at, create_time FROM orders WHERE buyer_name = ? ORDER BY create_time DESC",
                 (rs, rowNum) -> {
                     Order o = new Order();
                     o.setId(rs.getLong("id"));
@@ -60,11 +63,42 @@ public class OrderService {
                     o.setPrice((Double) rs.getObject("price"));
                     o.setBuyerName(rs.getString("buyer_name"));
                     o.setStatus(rs.getString("status"));
+                    long expireAt = rs.getLong("expire_at");
+                    if (!rs.wasNull() && expireAt > 0) o.setExpireAt(expireAt);
                     java.sql.Timestamp ts = rs.getTimestamp("create_time");
                     o.setCreateTime(ts == null ? null : ts.toLocalDateTime());
+                    if (o.getExpireAt() == null && o.getCreateTime() != null) {
+                        o.setExpireAt(o.getCreateTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() + 15L * 60 * 1000);
+                    }
                     return o;
                 },
                 buyerName
+        );
+    }
+
+    public List<Order> listBySeller(String sellerName) {
+        if (sellerName == null) return java.util.Collections.emptyList();
+        return jdbcTemplate.query(
+                "SELECT id, book_id, book_name, seller_name, price, buyer_name, status, expire_at, create_time FROM orders WHERE seller_name = ? ORDER BY create_time DESC",
+                (rs, rowNum) -> {
+                    Order o = new Order();
+                    o.setId(rs.getLong("id"));
+                    o.setBookId(rs.getLong("book_id"));
+                    o.setBookName(rs.getString("book_name"));
+                    o.setSellerName(rs.getString("seller_name"));
+                    o.setPrice((Double) rs.getObject("price"));
+                    o.setBuyerName(rs.getString("buyer_name"));
+                    o.setStatus(rs.getString("status"));
+                    long expireAt = rs.getLong("expire_at");
+                    if (!rs.wasNull() && expireAt > 0) o.setExpireAt(expireAt);
+                    java.sql.Timestamp ts = rs.getTimestamp("create_time");
+                    o.setCreateTime(ts == null ? null : ts.toLocalDateTime());
+                    if (o.getExpireAt() == null && o.getCreateTime() != null) {
+                        o.setExpireAt(o.getCreateTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() + 15L * 60 * 1000);
+                    }
+                    return o;
+                },
+                sellerName
         );
     }
 
@@ -72,7 +106,7 @@ public class OrderService {
         if (id == null) return null;
         try {
             return jdbcTemplate.queryForObject(
-                    "SELECT id, book_id, book_name, seller_name, price, buyer_name, status, create_time FROM orders WHERE id = ?",
+                "SELECT id, book_id, book_name, seller_name, price, buyer_name, status, expire_at, create_time FROM orders WHERE id = ?",
                     (rs, rowNum) -> {
                         Order o = new Order();
                         o.setId(rs.getLong("id"));
@@ -82,8 +116,13 @@ public class OrderService {
                         o.setPrice((Double) rs.getObject("price"));
                         o.setBuyerName(rs.getString("buyer_name"));
                         o.setStatus(rs.getString("status"));
+                        long expireAt = rs.getLong("expire_at");
+                        if (!rs.wasNull() && expireAt > 0) o.setExpireAt(expireAt);
                         java.sql.Timestamp ts = rs.getTimestamp("create_time");
                         o.setCreateTime(ts == null ? null : ts.toLocalDateTime());
+                        if (o.getExpireAt() == null && o.getCreateTime() != null) {
+                            o.setExpireAt(o.getCreateTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() + 15L * 60 * 1000);
+                        }
                         return o;
                     },
                     id
@@ -101,7 +140,7 @@ public class OrderService {
 
     public List<Order> listAll() {
         return jdbcTemplate.query(
-                "SELECT id, book_id, book_name, seller_name, price, buyer_name, status, create_time FROM orders ORDER BY create_time DESC",
+                "SELECT id, book_id, book_name, seller_name, price, buyer_name, status, expire_at, create_time FROM orders ORDER BY create_time DESC",
                 (rs, rowNum) -> {
                     Order o = new Order();
                     o.setId(rs.getLong("id"));
@@ -111,8 +150,13 @@ public class OrderService {
                     o.setPrice((Double) rs.getObject("price"));
                     o.setBuyerName(rs.getString("buyer_name"));
                     o.setStatus(rs.getString("status"));
+                    long expireAt = rs.getLong("expire_at");
+                    if (!rs.wasNull() && expireAt > 0) o.setExpireAt(expireAt);
                     java.sql.Timestamp ts = rs.getTimestamp("create_time");
                     o.setCreateTime(ts == null ? null : ts.toLocalDateTime());
+                    if (o.getExpireAt() == null && o.getCreateTime() != null) {
+                        o.setExpireAt(o.getCreateTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() + 15L * 60 * 1000);
+                    }
                     return o;
                 }
         );

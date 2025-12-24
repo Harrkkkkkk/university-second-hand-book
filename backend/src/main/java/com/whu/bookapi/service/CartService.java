@@ -51,7 +51,36 @@ public class CartService {
     }
 
     public void remove(String username, Long bookId) {
-        jdbcTemplate.update("DELETE FROM cart_item WHERE username = ? AND book_id = ?", username, bookId);
+        remove(username, bookId, null);
+    }
+
+    public void remove(String username, Long bookId, Integer count) {
+        if (username == null || bookId == null) return;
+        if (count == null || count <= 0) {
+            jdbcTemplate.update("DELETE FROM cart_item WHERE username = ? AND book_id = ?", username, bookId);
+            return;
+        }
+        Integer existingQty = null;
+        try {
+            existingQty = jdbcTemplate.queryForObject(
+                    "SELECT quantity FROM cart_item WHERE username = ? AND book_id = ?",
+                    Integer.class,
+                    username,
+                    bookId
+            );
+        } catch (org.springframework.dao.EmptyResultDataAccessException ignored) {
+        }
+        if (existingQty == null) return;
+        if (count >= existingQty) {
+            jdbcTemplate.update("DELETE FROM cart_item WHERE username = ? AND book_id = ?", username, bookId);
+        } else {
+            jdbcTemplate.update(
+                    "UPDATE cart_item SET quantity = quantity - ? WHERE username = ? AND book_id = ?",
+                    count,
+                    username,
+                    bookId
+            );
+        }
     }
 
     public void clear(String username) {

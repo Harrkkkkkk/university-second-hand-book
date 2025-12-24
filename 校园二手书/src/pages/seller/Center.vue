@@ -20,6 +20,7 @@
               <template #default="scope">
                 <el-tag type="success" v-if="scope.row.status === 'on_sale'">上架中</el-tag>
                 <el-tag type="warning" v-else-if="scope.row.status === 'under_review'">待审核</el-tag>
+                <el-tag type="info" v-else-if="scope.row.status === 'offline' && (scope.row.stock || 0) <= 0">已售罄</el-tag>
                 <el-tag type="info" v-else-if="scope.row.status === 'offline'">已下架</el-tag>
                 <el-tag type="danger" v-else>已驳回</el-tag>
               </template>
@@ -35,6 +36,25 @@
 
           <el-dialog v-model="editVisible" title="编辑教材" width="500px">
             <el-form :model="editForm" label-width="100px">
+              <el-form-item label="教材封面">
+                <div style="display:flex; align-items:center; gap:12px; flex-wrap: wrap;">
+                  <img
+                    v-if="editForm.coverUrl"
+                    :src="resolveCoverUrl(editForm.coverUrl)"
+                    style="width: 88px; height: 120px; object-fit: cover; border-radius: 4px; border: 1px solid #eee;"
+                    alt="封面"
+                  />
+                  <el-upload
+                    action="#"
+                    list-type="picture-card"
+                    :auto-upload="false"
+                    :on-change="handleEditCoverChange"
+                    :disabled="uploadingCover"
+                  >
+                    <i class="el-icon-plus"></i>
+                  </el-upload>
+                </div>
+              </el-form-item>
               <el-form-item label="教材名称">
                 <el-input v-model="editForm.bookName" />
               </el-form-item>
@@ -64,7 +84,11 @@
             <el-table-column prop="bookName" label="教材名称"></el-table-column>
             <el-table-column prop="buyerName" label="买家"></el-table-column>
             <el-table-column prop="price" label="订单金额" width="100"></el-table-column>
-            <el-table-column prop="status" label="状态" width="100"></el-table-column>
+            <el-table-column prop="status" label="状态" width="120">
+              <template #default="scope">
+                <el-tag :type="orderStatusTagType(scope.row.status)">{{ orderStatusText(scope.row.status) }}</el-tag>
+              </template>
+            </el-table-column>
             
           </el-table>
         </el-tab-pane>
@@ -98,7 +122,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import PageHeader from '@/components/PageHeader.vue'
 import { logoutAndBackToLogin } from '@/utils/auth.js'
@@ -106,6 +130,8 @@ import { listMyBooks, updateBook, offlineBook, deleteBook } from '@/api/sellerAp
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { listReceivedReviews, getGoodRate } from '@/api/reviewApi'
 import { listReceivedComplaints } from '@/api/complaintApi'
+import { listSellerOrders } from '@/api/orderApi'
+import { uploadFile } from '@/api/bookApi'
 
 const router = useRouter()
 // 退出登录
@@ -120,6 +146,8 @@ const bookList = ref([])
 const receivedReviews = ref([])
 const receivedComplaints = ref([])
 const goodRate = ref({})
+const orderList = ref([])
+const uploadingCover = ref(false)
 
 const loadMyBooks = async () => {
   try {
@@ -130,9 +158,63 @@ const loadMyBooks = async () => {
   }
 }
 
+const loadMyOrders = async () => {
+  try {
+    const res = await listSellerOrders()
+    orderList.value = res || []
+  } catch (e) {
+    ElMessage.error('加载我的订单失败')
+  }
+}
+
+const resolveCoverUrl = (url) => {
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://')) return url
+  if (url.startsWith('/book-api/')) return url
+  if (url.startsWith('/files/')) return `/book-api${url}`
+  return url
+}
+
+const handleEditCoverChange = async (file) => {
+  const raw = file?.raw
+  if (!raw) return
+  uploadingCover.value = true
+  try {
+    const res = await uploadFile(raw)
+    if (res && res.url) {
+      editForm.value.coverUrl = res.url
+      ElMessage.success('封面上传成功')
+    } else {
+      ElMessage.error('封面上传失败')
+    }
+  } catch (e) {
+    ElMessage.error('封面上传失败')
+  } finally {
+    uploadingCover.value = false
+  }
+}
+
+const orderStatusText = (status) => {
+  if (status === 'pending') return '待付款'
+  if (status === 'paid') return '已付款'
+  if (status === 'received') return '已收货'
+  if (status === 'cancelled') return '已取消'
+  if (status === 'expired') return '已超时'
+  return status || '-'
+}
+
+const orderStatusTagType = (status) => {
+  if (status === 'paid') return 'success'
+  if (status === 'received') return 'success'
+  if (status === 'pending') return 'warning'
+  if (status === 'cancelled') return 'info'
+  if (status === 'expired') return 'danger'
+  return 'info'
+}
+
 // 模拟我的教材数据
 const openEdit = (row) => {
-  editForm.value = { id: row.id, bookName: row.bookName, sellPrice: row.sellPrice, conditionLevel: row.conditionLevel, stock: row.stock }
+  editForm.value = { id: row.id, bookName: row.bookName, sellPrice: row.sellPrice, conditionLevel: row.conditionLevel, stock: row.stock, coverUrl: row.coverUrl }
   editVisible.value = true
 }
 
@@ -160,12 +242,6 @@ const remove = (id) => {
   })
 }
 
-// 模拟我的订单数据
-const orderList = ref([
-  { id: 101, bookName: 'Java编程思想', buyerName: '买家1', price: 30, status: '已付款' },
-  { id: 102, bookName: 'Python入门到精通', buyerName: '买家2', price: 25, status: '已发货' }
-])
-
 // 跳转到发布教材页
 const toPublish = () => {
   router.push('/publish')
@@ -178,6 +254,11 @@ onMounted(() => {
   listReceivedReviews().then(res => { receivedReviews.value = res || [] }).catch(() => {})
   listReceivedComplaints().then(res => { receivedComplaints.value = res || [] }).catch(() => {})
   getGoodRate().then(res => { goodRate.value = res || {} }).catch(() => {})
+})
+
+watch(activeTab, (v) => {
+  if (v === 'myBooks') loadMyBooks()
+  if (v === 'myOrders') loadMyOrders()
 })
 </script>
 

@@ -10,6 +10,17 @@
       </template>
       <el-table :data="underReview" border>
         <el-table-column prop="id" label="ID" width="80" />
+        <el-table-column label="封面" width="100">
+          <template #default="scope">
+            <img
+              v-if="scope.row.coverUrl"
+              :src="resolveCoverUrl(scope.row.coverUrl)"
+              style="width: 64px; height: 86px; object-fit: cover; border-radius: 4px; border: 1px solid #eee;"
+              alt="封面"
+            />
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="bookName" label="教材名称" />
         <el-table-column prop="sellerName" label="卖家" width="120" />
         <el-table-column prop="sellPrice" label="售价" width="100" />
@@ -36,6 +47,14 @@ const router = useRouter()
 const goBack = () => router.back()
 const logout = () => logoutAndBackToLogin()
 const underReview = ref([])
+
+const resolveCoverUrl = (url) => {
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://')) return url
+  if (url.startsWith('/book-api/')) return url
+  if (url.startsWith('/files/')) return `/book-api${url}`
+  return url
+}
 
 const load = async () => {
   try { underReview.value = await listUnderReviewBooks() || [] } catch { ElMessage.error('加载待审核商品失败') }

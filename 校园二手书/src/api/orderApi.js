@@ -8,6 +8,14 @@ export const listOrders = () => {
   })
 }
 
+export const listSellerOrders = () => {
+  return request({
+    url: '/orders/seller/list',
+    method: 'get',
+    headers: { token: localStorage.getItem('token') }
+  })
+}
+
 export const createOrder = (bookId) => {
   return request({
     url: '/orders/create',

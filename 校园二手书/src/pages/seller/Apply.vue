@@ -13,7 +13,7 @@
           <li><i class="el-icon-check"></i> 管理自己的商品和订单</li>
           <li><i class="el-icon-check"></i> 查看买家评价和反馈</li>
         </ul>
-        
+
         <el-alert
           title="申请须知"
           type="info"
@@ -126,4 +126,5 @@ const handleApply = async () => {
   justify-content: center;
   gap: 20px;
 }
+
 </style>

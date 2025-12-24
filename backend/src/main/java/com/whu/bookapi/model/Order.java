@@ -11,6 +11,7 @@ public class Order {
     private String buyerName;
     private String status; // pending, paid, received, cancelled
     private LocalDateTime createTime;
+    private Long expireAt;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -28,4 +29,6 @@ public class Order {
     public void setStatus(String status) { this.status = status; }
     public LocalDateTime getCreateTime() { return createTime; }
     public void setCreateTime(LocalDateTime createTime) { this.createTime = createTime; }
+    public Long getExpireAt() { return expireAt; }
+    public void setExpireAt(Long expireAt) { this.expireAt = expireAt; }
 }

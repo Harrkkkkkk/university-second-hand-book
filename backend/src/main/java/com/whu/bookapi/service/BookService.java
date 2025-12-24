@@ -80,13 +80,25 @@ public class BookService {
 
     public boolean tryReserveStock(Long id) {
         if (id == null) return false;
-        int updated = jdbcTemplate.update("UPDATE books SET stock = stock - 1 WHERE id = ? AND stock > 0", id);
+        int updated = jdbcTemplate.update(
+                "UPDATE books " +
+                        "SET stock = stock - 1, " +
+                        "    status = CASE WHEN status = 'on_sale' AND stock - 1 <= 0 THEN 'offline' ELSE status END " +
+                        "WHERE id = ? AND stock > 0",
+                id
+        );
         return updated > 0;
     }
 
     public void releaseStock(Long id) {
         if (id == null) return;
-        jdbcTemplate.update("UPDATE books SET stock = stock + 1 WHERE id = ?", id);
+        jdbcTemplate.update(
+                "UPDATE books " +
+                        "SET stock = stock + 1, " +
+                        "    status = CASE WHEN status = 'offline' AND stock = 0 THEN 'on_sale' ELSE status END " +
+                        "WHERE id = ?",
+                id
+        );
     }
 
     public List<Book> page(String bookName, Double minPrice, Double maxPrice, String conditionLevel, int pageNum, int pageSize, String sortBy) {

@@ -31,9 +31,32 @@
         </el-tab-pane>
         <el-tab-pane label="教材审核" name="bookAudit">
           <el-table :data="bookAuditList" border>
+            <el-table-column type="expand">
+              <template #default="scope">
+                <div class="book-audit-expand">
+                  <img v-if="scope.row.coverUrl" :src="resolveCoverUrl(scope.row.coverUrl)" class="book-audit-cover" alt="封面" />
+                  <div class="book-audit-meta">
+                    <div>作者：{{ scope.row.author || '-' }}</div>
+                    <div>ISBN：{{ scope.row.isbn || '-' }}</div>
+                    <div>出版社：{{ scope.row.publisher || '-' }}</div>
+                    <div>出版时间：{{ scope.row.publishDate || '-' }}</div>
+                    <div>成色：{{ scope.row.conditionLevel || '-' }}</div>
+                    <div>库存：{{ scope.row.stock ?? '-' }}</div>
+                    <div>原价：¥{{ scope.row.originalPrice ?? '-' }}</div>
+                    <div>售价：¥{{ scope.row.sellPrice ?? '-' }}</div>
+                    <div>卖家类型：{{ scope.row.sellerType || '-' }}</div>
+                    <div style="margin-top:8px; white-space: pre-wrap;">描述：{{ scope.row.description || '暂无描述' }}</div>
+                  </div>
+                </div>
+              </template>
+            </el-table-column>
             <el-table-column prop="id" label="ID" width="80"></el-table-column>
             <el-table-column prop="bookName" label="教材名称"></el-table-column>
             <el-table-column prop="sellerName" label="卖家"></el-table-column>
+            <el-table-column prop="conditionLevel" label="成色" width="100"></el-table-column>
+            <el-table-column prop="sellPrice" label="售价" width="100">
+              <template #default="scope">¥{{ scope.row.sellPrice }}</template>
+            </el-table-column>
             <el-table-column label="操作" width="150">
               <template #default="scope">
                 <el-button type="success" size="small" @click="approveBook(scope.row.id)">通过</el-button>
@@ -66,6 +89,17 @@
                 <el-tag type="warning">{{ scope.row.sellerStatus }}</el-tag>
               </template>
             </el-table-column>
+            <el-table-column label="收款码" width="120">
+              <template #default="scope">
+                <el-button
+                  v-if="scope.row.paymentCodeUrl"
+                  type="primary"
+                  size="small"
+                  @click="openPaymentCode(scope.row.paymentCodeUrl)"
+                >查看</el-button>
+                <span v-else>-</span>
+              </template>
+            </el-table-column>
             <el-table-column label="操作" width="200">
               <template #default="scope">
                 <el-button type="success" size="small" @click="handleApproveSeller(scope.row.username)">通过</el-button>
@@ -89,6 +123,10 @@
         </el-tab-pane>
       </el-tabs>
     </el-card>
+
+    <el-dialog v-model="paymentCodeVisible" title="收款码" width="420px">
+      <img v-if="paymentCodeUrl" :src="paymentCodeUrl" style="width: 100%; max-height: 520px; object-fit: contain;" />
+    </el-dialog>
   </div>
 </template>
 
@@ -110,6 +148,16 @@ const userList = ref([])
 const bookAuditList = ref([])
 const complaints = ref([])
 const sellerApplications = ref([])
+const paymentCodeVisible = ref(false)
+const paymentCodeUrl = ref('')
+
+const resolveCoverUrl = (url) => {
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://')) return url
+  if (url.startsWith('/book-api/')) return url
+  if (url.startsWith('/files/')) return `/book-api${url}`
+  return url
+}
 
 // 公告相关
 const announceTitle = ref('')
@@ -169,6 +217,11 @@ const handleRejectSeller = async (username) => {
   try { await rejectSeller(username); ElMessage.success('已驳回卖家资格'); loadSellerApps() } catch { ElMessage.error('操作失败') }
 }
 
+const openPaymentCode = (url) => {
+  paymentCodeUrl.value = url
+  paymentCodeVisible.value = true
+}
+
 import { watch } from 'vue'
 watch(activeTab, (val) => {
   if (val === 'userManage') loadUsers()
@@ -190,5 +243,23 @@ onMounted(() => {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+}
+
+.book-audit-expand {
+  display: flex;
+  gap: 16px;
+  padding: 10px 0;
+}
+.book-audit-cover {
+  width: 120px;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #eee;
+}
+.book-audit-meta {
+  flex: 1;
+  line-height: 1.9;
+  color: #303133;
 }
 </style>

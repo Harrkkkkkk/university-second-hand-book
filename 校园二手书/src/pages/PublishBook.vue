@@ -24,6 +24,9 @@
             <el-option label="八成新" value="八成新" />
           </el-select>
         </el-form-item>
+        <div class="condition-tip">
+          <el-link type="primary" :underline="false" @click="showConditionStandard">点击查看成色评定标准</el-link>
+        </div>
         <el-form-item label="库存" prop="stock">
           <el-input-number v-model="publishForm.stock" :min="1" :max="999" :step="1" style="width: 100%" />
         </el-form-item>
@@ -53,7 +56,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
 import { addBook, uploadFile } from '@/api/bookApi'
 
@@ -104,6 +107,14 @@ const handleFileChange = async (file) => {
   }
 }
 
+const showConditionStandard = async () => {
+  await ElMessageBox.alert(
+    '全新：几乎未使用，无明显折痕/污渍/笔记。\n九成新：轻微使用痕迹，少量折角或轻微划痕，可有少量笔记但不影响阅读。\n八成新：使用痕迹较明显，可能有较多折痕/划痕/少量污渍或较多笔记，但不缺页不影响正常使用。\n\n请如实选择成色，避免交易纠纷。',
+    '成色评定标准',
+    { confirmButtonText: '知道了' }
+  )
+}
+
 const submitPublish = async () => {
   try {
     await publishFormRef.value.validate()
@@ -130,5 +141,10 @@ const resetForm = () => {
   max-width: 800px;
   margin: 0 auto;
   padding: 20px;
+}
+.condition-tip {
+  margin-top: -12px;
+  margin-bottom: 12px;
+  padding-left: 100px;
 }
 </style>

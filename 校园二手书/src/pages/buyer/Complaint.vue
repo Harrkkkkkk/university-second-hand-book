@@ -4,7 +4,7 @@
     </page-header>
     <el-card>
       <el-form :model="form" label-width="120px">
-        <el-form-item label="订单ID"><el-input v-model="form.orderId" /></el-form-item>
+        <el-form-item label="订单ID"><span>{{ form.orderId || '-' }}</span></el-form-item>
         <el-form-item label="投诉类型">
           <el-select v-model="form.type" placeholder="选择类型">
             <el-option label="虚假描述" value="虚假描述" />
@@ -26,25 +26,37 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import PageHeader from '@/components/PageHeader.vue'
 import { logoutAndBackToLogin } from '@/utils/auth.js'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
+const route = useRoute()
 const goBack = () => router.back()
 const logout = () => logoutAndBackToLogin()
 const form = ref({ orderId: '', type: '', detail: '' })
 
 import request from '@/api/request'
 const submit = async () => {
+  if (!form.value.orderId) {
+    ElMessage.error('订单ID缺失')
+    return
+  }
   try {
     const res = await request({ url: '/complaints/add', method: 'post', data: form.value, headers: { token: localStorage.getItem('token') } })
     if (!res || !res.id) throw new Error('失败')
     ElMessage.success('投诉提交成功')
   } catch { ElMessage.error('提交失败') }
 }
+
+onMounted(() => {
+  const orderId = route.query.orderId
+  if (orderId !== undefined && orderId !== null && `${orderId}`.trim() !== '') {
+    form.value.orderId = Number(orderId)
+  }
+})
 </script>
 
 <style scoped>

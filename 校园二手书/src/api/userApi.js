@@ -49,3 +49,67 @@ export const applySeller = () => {
         }
     })
 }
+
+export const updateUserProfile = (data) => {
+    return request({
+        url: '/user/profile',
+        method: 'put',
+        data,
+        headers: {
+            token: localStorage.getItem('token')
+        }
+    })
+}
+
+export const changePassword = (data) => {
+    return request({
+        url: '/user/change-password',
+        method: 'post',
+        data,
+        headers: {
+            token: localStorage.getItem('token')
+        }
+    })
+}
+
+export const listAddresses = () => {
+    return request({
+        url: '/user/addresses',
+        method: 'get',
+        headers: {
+            token: localStorage.getItem('token')
+        }
+    })
+}
+
+export const addAddress = (data) => {
+    return request({
+        url: '/user/addresses',
+        method: 'post',
+        data,
+        headers: {
+            token: localStorage.getItem('token')
+        }
+    })
+}
+
+export const updateAddress = (id, data) => {
+    return request({
+        url: `/user/addresses/${id}`,
+        method: 'put',
+        data,
+        headers: {
+            token: localStorage.getItem('token')
+        }
+    })
+}
+
+export const deleteAddress = (id) => {
+    return request({
+        url: `/user/addresses/${id}`,
+        method: 'delete',
+        headers: {
+            token: localStorage.getItem('token')
+        }
+    })
+}

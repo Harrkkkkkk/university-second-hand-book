@@ -19,16 +19,100 @@ CREATE TABLE IF NOT EXISTS users (
   password VARCHAR(128) NOT NULL,
   current_role VARCHAR(32),
   seller_status VARCHAR(16) NOT NULL DEFAULT 'NONE',
+  payment_code_file_id BIGINT,
+  phone VARCHAR(32),
+  email VARCHAR(128),
+  gender VARCHAR(16) NOT NULL DEFAULT 'secret',
   created_at BIGINT NOT NULL,
   INDEX idx_users_role (current_role),
-  INDEX idx_users_seller_status (seller_status)
+  INDEX idx_users_seller_status (seller_status),
+  INDEX idx_users_payment_code (payment_code_file_id),
+  CONSTRAINT fk_users_payment_code FOREIGN KEY (payment_code_file_id) REFERENCES stored_file(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+SET @users_has_payment_code := (
+  SELECT COUNT(1)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'users'
+    AND COLUMN_NAME = 'payment_code_file_id'
+);
+SET @users_payment_code_sql := IF(
+  @users_has_payment_code = 0,
+  'ALTER TABLE users ADD COLUMN payment_code_file_id BIGINT NULL, ADD INDEX idx_users_payment_code (payment_code_file_id), ADD CONSTRAINT fk_users_payment_code FOREIGN KEY (payment_code_file_id) REFERENCES stored_file(id)',
+  'SELECT 1'
+);
+PREPARE stmt_users_payment_code FROM @users_payment_code_sql;
+EXECUTE stmt_users_payment_code;
+DEALLOCATE PREPARE stmt_users_payment_code;
+
+SET @users_has_phone := (
+  SELECT COUNT(1)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'users'
+    AND COLUMN_NAME = 'phone'
+);
+SET @users_phone_sql := IF(
+  @users_has_phone = 0,
+  'ALTER TABLE users ADD COLUMN phone VARCHAR(32) NULL',
+  'SELECT 1'
+);
+PREPARE stmt_users_phone FROM @users_phone_sql;
+EXECUTE stmt_users_phone;
+DEALLOCATE PREPARE stmt_users_phone;
+
+SET @users_has_email := (
+  SELECT COUNT(1)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'users'
+    AND COLUMN_NAME = 'email'
+);
+SET @users_email_sql := IF(
+  @users_has_email = 0,
+  'ALTER TABLE users ADD COLUMN email VARCHAR(128) NULL',
+  'SELECT 1'
+);
+PREPARE stmt_users_email FROM @users_email_sql;
+EXECUTE stmt_users_email;
+DEALLOCATE PREPARE stmt_users_email;
+
+SET @users_has_gender := (
+  SELECT COUNT(1)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'users'
+    AND COLUMN_NAME = 'gender'
+);
+SET @users_gender_sql := IF(
+  @users_has_gender = 0,
+  'ALTER TABLE users ADD COLUMN gender VARCHAR(16) NOT NULL DEFAULT ''secret''',
+  'SELECT 1'
+);
+PREPARE stmt_users_gender FROM @users_gender_sql;
+EXECUTE stmt_users_gender;
+DEALLOCATE PREPARE stmt_users_gender;
 
 CREATE TABLE IF NOT EXISTS user_roles (
   username VARCHAR(64) NOT NULL,
   role VARCHAR(32) NOT NULL,
   PRIMARY KEY (username, role),
   CONSTRAINT fk_user_roles_user FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS user_address (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  username VARCHAR(64) NOT NULL,
+  receiver_name VARCHAR(64) NOT NULL,
+  phone VARCHAR(32),
+  address VARCHAR(512) NOT NULL,
+  is_default TINYINT(1) NOT NULL DEFAULT 0,
+  created_at BIGINT NOT NULL,
+  updated_at BIGINT NOT NULL,
+  INDEX idx_user_address_user (username, created_at),
+  INDEX idx_user_address_default (username, is_default),
+  CONSTRAINT fk_user_address_user FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS user_token (
@@ -89,11 +173,28 @@ CREATE TABLE IF NOT EXISTS orders (
   price DOUBLE NOT NULL,
   buyer_name VARCHAR(64) NOT NULL,
   status VARCHAR(32) NOT NULL,
+  expire_at BIGINT NOT NULL,
   create_time TIMESTAMP NOT NULL,
   INDEX idx_orders_buyer (buyer_name, create_time),
   INDEX idx_orders_seller (seller_name, create_time),
   CONSTRAINT fk_orders_book FOREIGN KEY (book_id) REFERENCES books(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 AUTO_INCREMENT=100;
+
+SET @orders_has_expire_at := (
+  SELECT COUNT(1)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'orders'
+    AND COLUMN_NAME = 'expire_at'
+);
+SET @orders_expire_at_sql := IF(
+  @orders_has_expire_at = 0,
+  'ALTER TABLE orders ADD COLUMN expire_at BIGINT NOT NULL DEFAULT 0',
+  'SELECT 1'
+);
+PREPARE stmt_orders_expire_at FROM @orders_expire_at_sql;
+EXECUTE stmt_orders_expire_at;
+DEALLOCATE PREPARE stmt_orders_expire_at;
 
 CREATE TABLE IF NOT EXISTS reviews (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,

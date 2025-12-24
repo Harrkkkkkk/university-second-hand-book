@@ -7,8 +7,11 @@ import com.whu.bookapi.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -61,14 +64,151 @@ public class UserController {
         m.put("username", user.getUsername());
         m.put("role", user.getRole());
         m.put("sellerStatus", user.getSellerStatus());
+        m.put("phone", user.getPhone());
+        m.put("email", user.getEmail());
+        m.put("gender", user.getGender());
         return ResponseEntity.ok(m);
     }
 
-    @PostMapping("/apply-seller")
-    public ResponseEntity<?> applySeller(@RequestHeader(value = "token", required = false) String token) {
+    @GetMapping("/profile")
+    public ResponseEntity<?> profile(@RequestHeader(value = "token", required = false) String token) {
         User user = token == null ? null : userService.getByToken(token);
         if (user == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        userService.applySeller(user.getUsername());
+        Map<String, Object> m = new HashMap<>();
+        m.put("username", user.getUsername());
+        m.put("phone", user.getPhone());
+        m.put("email", user.getEmail());
+        m.put("gender", user.getGender());
+        return ResponseEntity.ok(m);
+    }
+
+    @PutMapping("/profile")
+    public ResponseEntity<?> updateProfile(@RequestHeader(value = "token", required = false) String token,
+                                          @RequestBody(required = false) Map<String, Object> body) {
+        User user = token == null ? null : userService.getByToken(token);
+        if (user == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        String phone = body == null || body.get("phone") == null ? null : body.get("phone").toString();
+        String email = body == null || body.get("email") == null ? null : body.get("email").toString();
+        String gender = body == null || body.get("gender") == null ? null : body.get("gender").toString();
+        boolean ok = userService.updateProfile(user.getUsername(), phone, email, gender);
+        if (!ok) return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<?> changePassword(@RequestHeader(value = "token", required = false) String token,
+                                           @RequestBody(required = false) Map<String, Object> body) {
+        User user = token == null ? null : userService.getByToken(token);
+        if (user == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        String oldPassword = body == null || body.get("oldPassword") == null ? null : body.get("oldPassword").toString();
+        String newPassword = body == null || body.get("newPassword") == null ? null : body.get("newPassword").toString();
+        boolean ok = userService.changePassword(user.getUsername(), oldPassword, newPassword);
+        if (!ok) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("message", "旧密码错误或新密码无效");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(m);
+        }
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/addresses")
+    public ResponseEntity<?> listAddresses(@RequestHeader(value = "token", required = false) String token) {
+        User user = token == null ? null : userService.getByToken(token);
+        if (user == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        return ResponseEntity.ok(userService.listAddresses(user.getUsername()));
+    }
+
+    @PostMapping("/addresses")
+    public ResponseEntity<?> addAddress(@RequestHeader(value = "token", required = false) String token,
+                                        @RequestBody(required = false) Map<String, Object> body) {
+        User user = token == null ? null : userService.getByToken(token);
+        if (user == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        String name = body == null || body.get("name") == null ? null : body.get("name").toString();
+        String phone = body == null || body.get("phone") == null ? null : body.get("phone").toString();
+        String address = body == null || body.get("address") == null ? null : body.get("address").toString();
+        Boolean isDefault = null;
+        Object defObj = body == null ? null : body.get("isDefault");
+        if (defObj instanceof Boolean) {
+            isDefault = (Boolean) defObj;
+        } else if (defObj instanceof Number) {
+            isDefault = ((Number) defObj).intValue() != 0;
+        } else if (defObj instanceof String) {
+            String s = ((String) defObj).trim();
+            if ("true".equalsIgnoreCase(s) || "1".equals(s)) isDefault = true;
+            else if ("false".equalsIgnoreCase(s) || "0".equals(s)) isDefault = false;
+        }
+        Long id = userService.addAddress(user.getUsername(), name, phone, address, isDefault);
+        if (id == null) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("message", "地址信息不完整");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(m);
+        }
+        Map<String, Object> m = new HashMap<>();
+        m.put("id", id);
+        return ResponseEntity.ok(m);
+    }
+
+    @PutMapping("/addresses/{id}")
+    public ResponseEntity<?> updateAddress(@RequestHeader(value = "token", required = false) String token,
+                                           @PathVariable("id") Long id,
+                                           @RequestBody(required = false) Map<String, Object> body) {
+        User user = token == null ? null : userService.getByToken(token);
+        if (user == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        String name = body == null || body.get("name") == null ? null : body.get("name").toString();
+        String phone = body == null || body.get("phone") == null ? null : body.get("phone").toString();
+        String address = body == null || body.get("address") == null ? null : body.get("address").toString();
+        Boolean isDefault = null;
+        Object defObj = body == null ? null : body.get("isDefault");
+        if (defObj instanceof Boolean) {
+            isDefault = (Boolean) defObj;
+        } else if (defObj instanceof Number) {
+            isDefault = ((Number) defObj).intValue() != 0;
+        } else if (defObj instanceof String) {
+            String s = ((String) defObj).trim();
+            if ("true".equalsIgnoreCase(s) || "1".equals(s)) isDefault = true;
+            else if ("false".equalsIgnoreCase(s) || "0".equals(s)) isDefault = false;
+        }
+        boolean ok = userService.updateAddress(user.getUsername(), id, name, phone, address, isDefault);
+        if (!ok) return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/addresses/{id}")
+    public ResponseEntity<?> deleteAddress(@RequestHeader(value = "token", required = false) String token,
+                                           @PathVariable("id") Long id) {
+        User user = token == null ? null : userService.getByToken(token);
+        if (user == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        boolean ok = userService.deleteAddress(user.getUsername(), id);
+        if (!ok) return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/apply-seller")
+    public ResponseEntity<?> applySeller(@RequestHeader(value = "token", required = false) String token,
+                                         @RequestBody(required = false) Map<String, Object> body) {
+        User user = token == null ? null : userService.getByToken(token);
+        if (user == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        Object fileIdObj = body == null ? null : body.get("paymentCodeFileId");
+        Long paymentCodeFileId = null;
+        if (fileIdObj instanceof Number) {
+            paymentCodeFileId = ((Number) fileIdObj).longValue();
+        } else if (fileIdObj instanceof String) {
+            try {
+                paymentCodeFileId = Long.parseLong((String) fileIdObj);
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        if (paymentCodeFileId == null) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("message", "缺少收款码图片");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(m);
+        }
+        boolean ok = userService.applySeller(user.getUsername(), paymentCodeFileId);
+        if (!ok) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("message", "收款码图片无效");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(m);
+        }
         return ResponseEntity.ok().build();
     }
 

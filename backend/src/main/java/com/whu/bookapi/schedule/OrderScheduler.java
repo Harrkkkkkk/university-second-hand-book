@@ -6,7 +6,6 @@ import com.whu.bookapi.service.BookService;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Component
@@ -22,10 +21,11 @@ public class OrderScheduler {
     @Scheduled(fixedDelay = 60000)
     public void autoCancelPending() {
         List<Order> all = orderService.listAll();
-        LocalDateTime now = LocalDateTime.now();
+        long now = System.currentTimeMillis();
         for (Order o : all) {
             if ("pending".equals(o.getStatus())) {
-                if (o.getCreateTime() != null && o.getCreateTime().isBefore(now.minusMinutes(15))) {
+                Long expireAt = o.getExpireAt();
+                if (expireAt != null && expireAt > 0 && now > expireAt) {
                     orderService.setStatus(o.getId(), "expired");
                     bookService.releaseStock(o.getBookId());
                 }
