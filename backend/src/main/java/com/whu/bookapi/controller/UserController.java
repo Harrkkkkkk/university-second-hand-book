@@ -227,4 +227,11 @@ public class UserController {
         if (!ok) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(m);
         return ResponseEntity.ok(m);
     }
+
+    @GetMapping("/{username}/stats")
+    public ResponseEntity<?> getSellerStats(@PathVariable("username") String username) {
+        java.util.Map<String, Object> stats = userService.getSellerStats(username);
+        if (stats == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        return ResponseEntity.ok(stats);
+    }
 }

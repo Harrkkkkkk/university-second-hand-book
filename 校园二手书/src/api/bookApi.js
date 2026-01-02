@@ -34,6 +34,14 @@ export const getHotBooks = (limit = 6) => {
     })
 }
 
+export const getSearchSuggestions = (keyword) => {
+    return request({
+        url: '/books/suggestions',
+        method: 'get',
+        params: { keyword }
+    })
+}
+
 export const uploadFile = (file) => {
     const formData = new FormData()
     formData.append('file', file)

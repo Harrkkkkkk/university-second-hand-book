@@ -61,6 +61,7 @@ public class ReviewController {
         List<Review> all = reviewService.listAll();
         List<Map<String, Object>> res = new ArrayList<>();
         for (Review r : all) {
+            if (!"approved".equals(r.getStatus())) continue;
             if (r.getOrderId() == null) continue;
             Order o = orderService.get(r.getOrderId());
             if (o != null && u.getUsername().equals(o.getSellerName())) {
@@ -84,6 +85,7 @@ public class ReviewController {
         List<Review> all = reviewService.listAll();
         List<Map<String, Object>> res = new ArrayList<>();
         for (Review r : all) {
+            if (!"approved".equals(r.getStatus())) continue;
             if (r.getOrderId() == null) continue;
             Order o = orderService.get(r.getOrderId());
             if (o != null && sellerName.equals(o.getSellerName())) {

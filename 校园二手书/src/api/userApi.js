@@ -104,6 +104,13 @@ export const updateAddress = (id, data) => {
     })
 }
 
+export const getSellerStats = (username) => {
+    return request({
+        url: `/user/${username}/stats`,
+        method: 'get'
+    })
+}
+
 export const deleteAddress = (id) => {
     return request({
         url: `/user/addresses/${id}`,

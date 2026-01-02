@@ -9,6 +9,9 @@ public class Review {
     private String comment;
     private long createTime;
     private java.util.List<String> tags;
+    private String status; // pending, approved, rejected
+    private String auditReason;
+    private Long auditTime;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -26,4 +29,10 @@ public class Review {
     public void setCreateTime(long createTime) { this.createTime = createTime; }
     public java.util.List<String> getTags() { return tags; }
     public void setTags(java.util.List<String> tags) { this.tags = tags; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+    public String getAuditReason() { return auditReason; }
+    public void setAuditReason(String auditReason) { this.auditReason = auditReason; }
+    public Long getAuditTime() { return auditTime; }
+    public void setAuditTime(Long auditTime) { this.auditTime = auditTime; }
 }

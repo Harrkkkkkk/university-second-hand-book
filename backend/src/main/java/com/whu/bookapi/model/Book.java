@@ -16,7 +16,9 @@ public class Book {
     private Integer stock;
     private String status;
     private Long createdAt;
-    private String sellerType;
+    private String sellerType; // student, teacher
+    private String auditReason;
+    private Long auditTime;
 
     public Long getId() {
         return id;
@@ -144,5 +146,21 @@ public class Book {
 
     public void setSellerType(String sellerType) {
         this.sellerType = sellerType;
+    }
+
+    public String getAuditReason() {
+        return auditReason;
+    }
+
+    public void setAuditReason(String auditReason) {
+        this.auditReason = auditReason;
+    }
+
+    public Long getAuditTime() {
+        return auditTime;
+    }
+
+    public void setAuditTime(Long auditTime) {
+        this.auditTime = auditTime;
     }
 }

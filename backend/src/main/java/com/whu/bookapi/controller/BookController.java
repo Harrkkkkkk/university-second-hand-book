@@ -65,12 +65,6 @@ public class BookController {
         return ResponseEntity.ok(list);
     }
 
-    @GetMapping("/hot")
-    public ResponseEntity<?> hot(@RequestParam(value = "limit", defaultValue = "6") int limit) {
-        java.util.List<Book> list = bookService.listHot(limit);
-        return ResponseEntity.ok(list);
-    }
-
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@RequestHeader(value = "token", required = false) String token,
                                     @PathVariable("id") Long id,
@@ -104,5 +98,15 @@ public class BookController {
         boolean ok = bookService.delete(id, user.getUsername());
         if (!ok) return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/hot")
+    public ResponseEntity<?> hot(@RequestParam(value = "limit", defaultValue = "6") int limit) {
+        return ResponseEntity.ok(bookService.getHotBooks(limit));
+    }
+
+    @GetMapping("/suggestions")
+    public ResponseEntity<?> suggestions(@RequestParam("keyword") String keyword) {
+        return ResponseEntity.ok(bookService.getSuggestions(keyword));
     }
 }

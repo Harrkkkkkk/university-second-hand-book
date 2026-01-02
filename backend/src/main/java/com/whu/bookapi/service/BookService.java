@@ -108,8 +108,11 @@ public class BookService {
         StringBuilder sb = new StringBuilder();
         sb.append("SELECT id, book_name, author, original_price, sell_price, description, seller_name, cover_url, isbn, publisher, publish_date, condition_level, stock, status, created_at, seller_type FROM books WHERE status = 'on_sale' AND stock > 0");
         if (bookName != null && !bookName.isEmpty()) {
-            sb.append(" AND (LOWER(book_name) LIKE ? OR LOWER(author) LIKE ?)");
+            // Enhanced search: Title, Author, ISBN, Description (Course Name)
+            sb.append(" AND (LOWER(book_name) LIKE ? OR LOWER(author) LIKE ? OR LOWER(isbn) LIKE ? OR LOWER(description) LIKE ?)");
             String like = "%" + bookName.toLowerCase() + "%";
+            params.add(like);
+            params.add(like);
             params.add(like);
             params.add(like);
         }
@@ -158,13 +161,46 @@ public class BookService {
         );
     }
 
+    public List<Book> getHotBooks(int limit) {
+        // Simulate hot books by random selection for now
+        String sql = "SELECT id, book_name, author, original_price, sell_price, description, seller_name, cover_url, isbn, publisher, publish_date, condition_level, stock, status, created_at, seller_type FROM books WHERE status = 'on_sale' AND stock > 0 ORDER BY RAND() LIMIT ?";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            Book b = new Book();
+            b.setId(rs.getLong("id"));
+            b.setBookName(rs.getString("book_name"));
+            b.setAuthor(rs.getString("author"));
+            b.setOriginalPrice((Double) rs.getObject("original_price"));
+            b.setSellPrice((Double) rs.getObject("sell_price"));
+            b.setDescription(rs.getString("description"));
+            b.setSellerName(rs.getString("seller_name"));
+            b.setCoverUrl(rs.getString("cover_url"));
+            b.setIsbn(rs.getString("isbn"));
+            b.setPublisher(rs.getString("publisher"));
+            b.setPublishDate(rs.getString("publish_date"));
+            b.setConditionLevel(rs.getString("condition_level"));
+            b.setStock((Integer) rs.getObject("stock"));
+            b.setStatus(rs.getString("status"));
+            b.setCreatedAt(rs.getLong("created_at"));
+            b.setSellerType(rs.getString("seller_type"));
+            return b;
+        }, limit);
+    }
+
+    public List<String> getSuggestions(String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) return new java.util.ArrayList<>();
+        String sql = "SELECT DISTINCT book_name FROM books WHERE LOWER(book_name) LIKE ? AND status = 'on_sale' LIMIT 10";
+        return jdbcTemplate.queryForList(sql, String.class, "%" + keyword.toLowerCase() + "%");
+    }
+
     public long count(String bookName, Double minPrice, Double maxPrice) {
         java.util.List<Object> params = new java.util.ArrayList<>();
         StringBuilder sb = new StringBuilder();
         sb.append("SELECT COUNT(1) FROM books WHERE status = 'on_sale' AND stock > 0");
         if (bookName != null && !bookName.isEmpty()) {
-            sb.append(" AND (LOWER(book_name) LIKE ? OR LOWER(author) LIKE ?)");
+            sb.append(" AND (LOWER(book_name) LIKE ? OR LOWER(author) LIKE ? OR LOWER(isbn) LIKE ? OR LOWER(description) LIKE ?)");
             String like = "%" + bookName.toLowerCase() + "%";
+            params.add(like);
+            params.add(like);
             params.add(like);
             params.add(like);
         }

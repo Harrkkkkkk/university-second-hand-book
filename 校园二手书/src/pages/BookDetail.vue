@@ -1,49 +1,122 @@
 <template>
   <div class="book-detail">
-    <page-header title="教材详情" :goBack="goBack">
-    </page-header>
+    <page-header title="商品详情" :goBack="goBack"></page-header>
+    
+    <!-- Status Alert -->
+    <el-alert
+      v-if="book.status && book.status !== 'on_sale'"
+      :title="book.status === 'sold' ? '该商品已售出' : '该商品已下架'"
+      type="warning"
+      show-icon
+      :closable="false"
+      style="margin-bottom: 20px;"
+    />
 
-    <el-row :gutter="20">
+    <div v-if="loading" class="loading-container" style="padding: 40px;">
+       <el-skeleton :rows="10" animated />
+    </div>
+    
+    <div v-else-if="error" class="error-container">
+       <el-empty description="数据加载失败">
+          <el-button type="primary" @click="loadData">刷新页面</el-button>
+       </el-empty>
+    </div>
+
+    <el-row v-else :gutter="24">
+      <!-- Left: Cover -->
       <el-col :span="8">
-        <el-card>
-          <img :src="book.coverUrl || 'https://picsum.photos/300/420'" class="book-cover" alt="教材封面">
-        </el-card>
+         <el-card shadow="hover">
+            <el-image 
+               :src="book.coverUrl || 'https://picsum.photos/300/420'" 
+               class="book-cover" 
+               :preview-src-list="[book.coverUrl || 'https://picsum.photos/300/420']"
+               fit="cover">
+               <template #placeholder>
+                 <div class="image-slot" style="display: flex; justify-content: center; align-items: center; height: 100%; background: #f5f7fa; color: #909399;">
+                    Loading...
+                 </div>
+               </template>
+            </el-image>
+         </el-card>
       </el-col>
+      
+      <!-- Right: Info -->
       <el-col :span="16">
-        <el-card>
-          <h2 class="book-name">{{ book.bookName }}</h2>
-          <p class="book-author">作者：{{ book.author }}</p>
-          <p class="book-publisher">出版社：{{ book.publisher || '未知出版社' }}</p>
-          <p class="book-price">
-            售价：¥{{ book.sellPrice }}
-            <span class="original-price">原价：¥{{ book.originalPrice }}</span>
-          </p>
-          <p class="book-stock">库存：{{ book.stock }}</p>
-          <p class="book-seller">
-            卖家：
-            <span>{{ book.sellerName }}</span>
-            <el-button type="text" @click="toSellerDetail(book.sellerName)">查看卖家评论</el-button>
-          </p>
-          <p class="book-desc">描述：{{ book.description || '暂无描述' }}</p>
-          <div class="book-actions" style="margin-top: 20px;">
-            <el-button type="primary" @click="addToCart" :disabled="book.stock <= 0 || isOwnBook">
-              {{ isOwnBook ? '本人发布' : (book.stock <= 0 ? '已售罄' : '加入购物车') }}
+         <!-- Basic Info -->
+         <el-card shadow="hover" class="info-card">
+            <template #header>
+               <div class="card-header">
+                 <span style="font-weight: bold; font-size: 16px;">教材基础信息</span>
+               </div>
+            </template>
+            <h1 class="book-title">{{ book.bookName }}</h1>
+            <el-descriptions :column="2" border>
+               <el-descriptions-item label="作者">{{ book.author }}</el-descriptions-item>
+               <el-descriptions-item label="出版社">{{ book.publisher || '-' }}</el-descriptions-item>
+               <el-descriptions-item label="出版日期">{{ book.publishDate || '-' }}</el-descriptions-item>
+               <el-descriptions-item label="ISBN">{{ book.isbn || '-' }}</el-descriptions-item>
+            </el-descriptions>
+         </el-card>
+
+         <!-- Transaction Info -->
+         <el-card shadow="hover" class="info-card" style="margin-top: 20px;">
+            <template #header>
+               <div class="card-header">
+                 <span style="font-weight: bold; font-size: 16px;">交易信息</span>
+               </div>
+            </template>
+            <div class="price-section" style="margin-bottom: 15px;">
+               <span class="sell-price">¥{{ book.sellPrice }}</span>
+               <span class="original-price">原价 ¥{{ book.originalPrice }}</span>
+            </div>
+            <el-descriptions :column="2" border>
+               <el-descriptions-item label="成色等级">{{ book.conditionLevel || '无' }}</el-descriptions-item>
+               <el-descriptions-item label="库存数量">{{ book.stock }}</el-descriptions-item>
+               <el-descriptions-item label="成色描述" :span="2">{{ book.description || '暂无描述' }}</el-descriptions-item>
+            </el-descriptions>
+         </el-card>
+
+         <!-- Seller Info -->
+         <el-card shadow="hover" class="info-card" style="margin-top: 20px;">
+            <template #header>
+               <div class="card-header">
+                 <span style="font-weight: bold; font-size: 16px;">卖家信息</span>
+               </div>
+            </template>
+            <div class="seller-info" style="display: flex; align-items: center;">
+               <el-avatar :size="50" icon="el-icon-user-solid" style="background: #409EFF;">{{ book.sellerName ? book.sellerName.charAt(0).toUpperCase() : 'U' }}</el-avatar>
+               <div class="seller-details" style="margin-left: 15px; flex: 1;">
+                  <div class="seller-name" style="font-size: 18px; font-weight: bold; margin-bottom: 5px;">
+                     {{ book.sellerName }}
+                     <el-tag size="small" type="success" style="margin-left: 10px;">{{ book.sellerType === 'teacher' ? '教师' : '学生' }}</el-tag>
+                  </div>
+                  <div class="seller-stats" style="font-size: 14px; color: #666;">
+                     <span>交易评分: <span style="color: #ff9900; font-weight: bold;">{{ sellerStats.score || '5.0' }}</span></span>
+                     <span style="margin-left: 20px;">已售: {{ sellerStats.soldCount || 0 }}本</span>
+                  </div>
+               </div>
+               <!-- <el-button type="text" @click="toSellerDetail(book.sellerName)">查看更多</el-button> -->
+            </div>
+         </el-card>
+
+         <!-- Actions -->
+         <div class="actions-bar" style="margin-top: 30px; display: flex; gap: 15px;">
+            <el-button type="primary" size="large" @click="buyNow" :disabled="book.status !== 'on_sale' || isOwnBook || book.stock <= 0">
+              {{ isOwnBook ? '本人发布' : (book.stock <= 0 ? '已售罄' : '立即购买') }}
             </el-button>
-            <el-button type="success" @click="buyNow" :disabled="book.stock <= 0 || isOwnBook">
-              {{ isOwnBook ? '本人发布' : '立即购买' }}
+            <el-button type="warning" size="large" @click="addToCart" :disabled="book.status !== 'on_sale' || isOwnBook || book.stock <= 0">
+              加入购物车
             </el-button>
+            <el-button type="info" size="large" @click="chat" :disabled="isOwnBook">在线沟通</el-button>
             <el-button 
-              :type="isCollected ? 'default' : 'warning'" 
-              :icon="isCollected ? 'el-icon-star-on' : 'el-icon-star-off'" 
-              @click="toggleCollect"
-            >
-              {{ isCollected ? '已收藏' : '收藏' }}
-            </el-button>
-            <el-button type="info" @click="chat" :disabled="isOwnBook">
-              {{ isOwnBook ? '本人发布' : '在线沟通' }}
-            </el-button>
-          </div>
-        </el-card>
+               :type="isCollected ? 'default' : 'warning'" 
+               :icon="isCollected ? 'el-icon-star-on' : 'el-icon-star-off'" 
+               circle
+               size="large"
+               @click="toggleCollect"
+               :title="isCollected ? '取消收藏' : '收藏商品'"
+            ></el-button>
+         </div>
       </el-col>
     </el-row>
   </div>
@@ -54,17 +127,20 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
-import { logoutAndBackToLogin } from '@/utils/auth.js'
 import { getBookDetail } from '@/api/bookApi'
 import { createOrder } from '@/api/orderApi'
 import { addFavorite, removeFavorite, checkFavorite } from '@/api/collectApi'
 import { addToCart as apiAddToCart } from '@/api/cartApi'
+import { getSellerStats } from '@/api/userApi'
 
 const route = useRoute()
 const router = useRouter()
 
 const book = ref({})
+const sellerStats = ref({})
 const isCollected = ref(false)
+const loading = ref(true)
+const error = ref(false)
 
 const isOwnBook = computed(() => {
   const currentUsername = localStorage.getItem('username')
@@ -77,13 +153,39 @@ const goBack = () => {
 
 const toSellerDetail = (name) => {
   if (name) {
-    router.push({ name: 'SellerDetail', params: { name } })
+    // router.push({ name: 'SellerDetail', params: { name } })
+    ElMessage.info('卖家详情页开发中')
   }
 }
 
-// 退出登录
-const logout = () => {
-  logoutAndBackToLogin()
+const loadData = async () => {
+  loading.value = true
+  error.value = false
+  const bookId = Number(route.params.id)
+  try {
+    const res = await getBookDetail(bookId)
+    if (!res) throw new Error('Not found')
+    book.value = res
+    
+    // Fetch seller stats
+    if (book.value.sellerName) {
+       try {
+          const stats = await getSellerStats(book.value.sellerName)
+          sellerStats.value = stats || {}
+       } catch (e) {
+          console.error('Failed to load seller stats', e)
+       }
+    }
+
+    // Check collect status
+    checkCollectStatus(bookId)
+  } catch (e) {
+    console.error(e)
+    error.value = true
+    ElMessage.error('加载教材详情失败')
+  } finally {
+    loading.value = false
+  }
 }
 
 const addToCart = async () => {
@@ -98,15 +200,17 @@ const addToCart = async () => {
 
 const buyNow = async () => {
   try {
+    // Create order directly? Or redirect to confirm page?
+    // Requirement says "Immediate purchase flow". Usually creates order and goes to payment.
     const res = await createOrder(book.value.id)
     if (!res || !res.id) {
       ElMessage.error('下单失败')
       return
     }
-    ElMessage.success('下单成功，前往我的订单付款')
+    ElMessage.success('下单成功，前往订单页付款')
     router.push('/buyer/order')
   } catch (e) {
-    ElMessage.error('下单失败')
+    ElMessage.error('下单失败: ' + (e.response?.data?.message || e.message))
   }
 }
 
@@ -143,16 +247,8 @@ const checkCollectStatus = async (id) => {
   }
 }
 
-onMounted(async () => {
-  const bookId = Number(route.params.id)
-  try {
-    const res = await getBookDetail(bookId)
-    book.value = res || {}
-    // Check collect status
-    checkCollectStatus(bookId)
-  } catch (e) {
-    ElMessage.error('加载教材详情失败')
-  }
+onMounted(() => {
+  loadData()
 })
 </script>
 
@@ -165,31 +261,26 @@ onMounted(async () => {
 .book-cover {
   width: 100%;
   height: 420px;
-  object-fit: cover;
+  border-radius: 4px;
 }
-.book-name {
+.book-title {
   font-size: 24px;
-  margin: 0 0 10px 0;
+  margin: 0 0 20px 0;
+  color: #303133;
 }
-.book-author, .book-publisher, .book-seller {
-  font-size: 16px;
-  color: #666;
-  margin: 0 0 5px 0;
-}
-.book-price {
-  font-size: 20px;
-  color: #e64340;
-  margin: 0 0 10px 0;
+.sell-price {
+  font-size: 28px;
+  color: #f56c6c;
+  font-weight: bold;
 }
 .original-price {
   font-size: 14px;
-  color: #999;
+  color: #909399;
   text-decoration: line-through;
-  margin-left: 10px;
+  margin-left: 15px;
 }
-.book-desc {
-  font-size: 16px;
-  line-height: 1.6;
-  color: #333;
+.info-card :deep(.el-card__header) {
+  padding: 15px 20px;
+  background-color: #f5f7fa;
 }
 </style>

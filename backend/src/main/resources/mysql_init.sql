@@ -94,6 +94,24 @@ PREPARE stmt_users_gender FROM @users_gender_sql;
 EXECUTE stmt_users_gender;
 DEALLOCATE PREPARE stmt_users_gender;
 
+-- Add user management columns
+SET @users_has_status := (SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'status');
+SET @users_status_sql := IF(@users_has_status = 0, 'ALTER TABLE users ADD COLUMN status VARCHAR(32) NOT NULL DEFAULT ''normal'', ADD COLUMN credit_score INT NOT NULL DEFAULT 100, ADD COLUMN student_id VARCHAR(32), ADD COLUMN last_login_time BIGINT', 'SELECT 1');
+PREPARE stmt_users_status FROM @users_status_sql;
+EXECUTE stmt_users_status;
+DEALLOCATE PREPARE stmt_users_status;
+
+CREATE TABLE IF NOT EXISTS operation_logs (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  operator VARCHAR(64) NOT NULL,
+  target_user VARCHAR(64) NOT NULL,
+  action VARCHAR(64) NOT NULL,
+  detail TEXT,
+  create_time BIGINT NOT NULL,
+  INDEX idx_logs_target (target_user, create_time),
+  INDEX idx_logs_time (create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS user_roles (
   username VARCHAR(64) NOT NULL,
   role VARCHAR(32) NOT NULL,
@@ -140,10 +158,19 @@ CREATE TABLE IF NOT EXISTS books (
   status VARCHAR(32) NOT NULL,
   created_at BIGINT NOT NULL,
   seller_type VARCHAR(32),
+  audit_reason VARCHAR(512),
+  audit_time BIGINT,
   INDEX idx_books_seller (seller_name),
   INDEX idx_books_status_created (status, created_at),
   INDEX idx_books_price (sell_price)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Add audit columns to books (idempotent check)
+SET @books_has_audit_reason := (SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'books' AND COLUMN_NAME = 'audit_reason');
+SET @books_audit_reason_sql := IF(@books_has_audit_reason = 0, 'ALTER TABLE books ADD COLUMN audit_reason VARCHAR(512), ADD COLUMN audit_time BIGINT', 'SELECT 1');
+PREPARE stmt_books_audit FROM @books_audit_reason_sql;
+EXECUTE stmt_books_audit;
+DEALLOCATE PREPARE stmt_books_audit;
 
 CREATE TABLE IF NOT EXISTS cart_item (
   username VARCHAR(64) NOT NULL,
@@ -205,11 +232,21 @@ CREATE TABLE IF NOT EXISTS reviews (
   comment TEXT,
   tags TEXT,
   create_time BIGINT NOT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'pending',
+  audit_reason VARCHAR(512),
+  audit_time BIGINT,
   INDEX idx_reviews_user (username, create_time),
   INDEX idx_reviews_order (order_id),
   CONSTRAINT fk_reviews_user FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE,
   CONSTRAINT fk_reviews_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Add audit columns to reviews (idempotent check)
+SET @reviews_has_status := (SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'reviews' AND COLUMN_NAME = 'status');
+SET @reviews_status_sql := IF(@reviews_has_status = 0, 'ALTER TABLE reviews ADD COLUMN status VARCHAR(32) NOT NULL DEFAULT ''pending'', ADD COLUMN audit_reason VARCHAR(512), ADD COLUMN audit_time BIGINT', 'SELECT 1');
+PREPARE stmt_reviews_status FROM @reviews_status_sql;
+EXECUTE stmt_reviews_status;
+DEALLOCATE PREPARE stmt_reviews_status;
 
 CREATE TABLE IF NOT EXISTS review_draft (
   username VARCHAR(64) NOT NULL,
@@ -232,11 +269,20 @@ CREATE TABLE IF NOT EXISTS complaints (
   detail TEXT,
   create_time BIGINT NOT NULL,
   status VARCHAR(32) NOT NULL,
+  audit_reason VARCHAR(512),
+  audit_time BIGINT,
   INDEX idx_complaints_user (username, create_time),
   INDEX idx_complaints_order (order_id),
   CONSTRAINT fk_complaints_user FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE,
   CONSTRAINT fk_complaints_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Add audit columns to complaints (idempotent check)
+SET @complaints_has_audit_reason := (SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'complaints' AND COLUMN_NAME = 'audit_reason');
+SET @complaints_audit_reason_sql := IF(@complaints_has_audit_reason = 0, 'ALTER TABLE complaints ADD COLUMN audit_reason VARCHAR(512), ADD COLUMN audit_time BIGINT', 'SELECT 1');
+PREPARE stmt_complaints_audit FROM @complaints_audit_reason_sql;
+EXECUTE stmt_complaints_audit;
+DEALLOCATE PREPARE stmt_complaints_audit;
 
 CREATE TABLE IF NOT EXISTS notifications (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,

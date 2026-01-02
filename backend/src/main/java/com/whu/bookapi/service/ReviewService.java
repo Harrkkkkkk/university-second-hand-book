@@ -145,7 +145,7 @@ public class ReviewService {
 
     public java.util.List<Review> listAll() {
         return jdbcTemplate.query(
-                "SELECT id, order_id, username, score_condition, score_service, comment, tags, create_time FROM reviews ORDER BY create_time DESC",
+                "SELECT id, order_id, username, score_condition, score_service, comment, tags, create_time, status, audit_reason, audit_time FROM reviews ORDER BY create_time DESC",
                 (rs, rowNum) -> {
                     Review r = new Review();
                     r.setId(rs.getLong("id"));
@@ -156,8 +156,51 @@ public class ReviewService {
                     r.setComment(rs.getString("comment"));
                     r.setTags(textToTags(rs.getString("tags")));
                     r.setCreateTime(rs.getLong("create_time"));
+                    r.setStatus(rs.getString("status"));
+                    r.setAuditReason(rs.getString("audit_reason"));
+                    r.setAuditTime(rs.getObject("audit_time") == null ? null : rs.getLong("audit_time"));
                     return r;
                 }
         );
+    }
+
+    public List<Review> listPending() {
+        return jdbcTemplate.query(
+                "SELECT id, order_id, username, score_condition, score_service, comment, tags, create_time, status FROM reviews WHERE status = 'pending' ORDER BY create_time ASC",
+                (rs, rowNum) -> {
+                    Review r = new Review();
+                    r.setId(rs.getLong("id"));
+                    r.setOrderId(rs.getLong("order_id"));
+                    r.setUsername(rs.getString("username"));
+                    r.setScoreCondition(rs.getInt("score_condition"));
+                    r.setScoreService(rs.getInt("score_service"));
+                    r.setComment(rs.getString("comment"));
+                    r.setTags(textToTags(rs.getString("tags")));
+                    r.setCreateTime(rs.getLong("create_time"));
+                    r.setStatus(rs.getString("status"));
+                    return r;
+                }
+        );
+    }
+
+    public boolean audit(Long id, String status, String reason) {
+        if (id == null || status == null) return false;
+        long now = System.currentTimeMillis();
+        int updated = jdbcTemplate.update(
+                "UPDATE reviews SET status = ?, audit_reason = ?, audit_time = ? WHERE id = ?",
+                status, reason, now, id
+        );
+        return updated > 0;
+    }
+
+    public boolean undoAudit(Long id) {
+        if (id == null) return false;
+        long now = System.currentTimeMillis();
+        long limit = now - 24 * 60 * 60 * 1000L;
+        int updated = jdbcTemplate.update(
+                "UPDATE reviews SET status = 'pending', audit_reason = NULL, audit_time = NULL WHERE id = ? AND audit_time >= ?",
+                id, limit
+        );
+        return updated > 0;
     }
 }
