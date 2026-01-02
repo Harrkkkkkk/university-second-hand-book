@@ -83,6 +83,10 @@ const orderList = computed(() => {
   return allOrders.value.filter(order => order.status === orderStatus.value)
 })
 
+/**
+ * Function: loadOrders
+ * Description: Fetches all orders for the current user.
+ */
 const loadOrders = async () => {
   try {
     const res = await listOrders()
@@ -100,6 +104,12 @@ const formatMs = (ms) => {
   return `${pad2(m)}:${pad2(s)}`
 }
 
+/**
+ * Function: getRemainingText
+ * Description: Calculates and formats remaining time for pending orders.
+ * Input: order (Object)
+ * Return: String (mm:ss)
+ */
 const getRemainingText = (order) => {
   const expireAt = Number(order?.expireAt || 0)
   if (!expireAt) return '--:--'
@@ -108,6 +118,11 @@ const getRemainingText = (order) => {
 }
 
 // 付款
+/**
+ * Function: payOrder
+ * Description: Initiates payment for a pending order.
+ * Input: id (Number)
+ */
 const payOrder = (id) => {
   ElMessageBox.confirm('确认付款？', '提示', {
     confirmButtonText: '确认',
@@ -124,6 +139,11 @@ const payOrder = (id) => {
 }
 
 // 取消订单
+/**
+ * Function: cancelOrder
+ * Description: Cancels a pending order.
+ * Input: id (Number)
+ */
 const cancelOrder = (id) => {
   ElMessageBox.confirm('确认取消订单？', '提示', {
     confirmButtonText: '确认',
@@ -140,6 +160,11 @@ const cancelOrder = (id) => {
 }
 
 // 确认收货
+/**
+ * Function: confirmReceive
+ * Description: Marks an order as received.
+ * Input: id (Number)
+ */
 const confirmReceive = (id) => {
   ElMessageBox.confirm('确认收货？', '提示', {
     confirmButtonText: '确认',

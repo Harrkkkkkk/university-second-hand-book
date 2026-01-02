@@ -158,6 +158,11 @@ const toSellerDetail = (name) => {
   }
 }
 
+/**
+ * Function: loadData
+ * Description: Loads book details, seller stats, and collection status.
+ *              Handles 404 errors and displays loading state.
+ */
 const loadData = async () => {
   loading.value = true
   error.value = false
@@ -188,6 +193,10 @@ const loadData = async () => {
   }
 }
 
+/**
+ * Function: addToCart
+ * Description: Adds the current book to the shopping cart.
+ */
 const addToCart = async () => {
   try {
     await apiAddToCart(book.value.id)
@@ -198,6 +207,10 @@ const addToCart = async () => {
   }
 }
 
+/**
+ * Function: buyNow
+ * Description: Creates an order for the book immediately and redirects to payment.
+ */
 const buyNow = async () => {
   try {
     // Create order directly? Or redirect to confirm page?
@@ -214,6 +227,10 @@ const buyNow = async () => {
   }
 }
 
+/**
+ * Function: toggleCollect
+ * Description: Toggles the collection status (favorite) of the book.
+ */
 const toggleCollect = async () => {
   try {
     if (isCollected.value) {
@@ -230,10 +247,19 @@ const toggleCollect = async () => {
   }
 }
 
+/**
+ * Function: chat
+ * Description: Navigates to the chat page with the seller.
+ */
 const chat = () => {
   router.push({ path: '/chat', query: { peer: book.value.sellerName } })
 }
 
+/**
+ * Function: checkCollectStatus
+ * Description: Checks if the current user has collected this book.
+ * Input: id (Number)
+ */
 const checkCollectStatus = async (id) => {
   try {
     const res = await checkFavorite(id)

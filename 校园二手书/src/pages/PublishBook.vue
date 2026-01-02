@@ -1,3 +1,14 @@
+<!--
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: PublishBook.vue
+ * Author: WiseBookPal Team Version: 1.0 Date: 2026-01-02
+ * Description: Page for sellers to publish new books.
+ *              Includes form validation, image upload, and condition selection.
+ * History:
+ * 1. Date: 2026-01-02
+ *    Author: WiseBookPal Team
+ *    Modification: Initial implementation
+-->
 <template>
   <div class="publish-book">
     <page-header title="发布二手教材" :goBack="goBack">
@@ -88,6 +99,11 @@ const publishRules = ref({
   stock: [{ required: true, message: '请输入库存', trigger: 'change' }]
 })
 
+/**
+ * Function: handleFileChange
+ * Description: Handles book cover image upload.
+ * Input: file (Object) - The uploaded file object
+ */
 const handleFileChange = async (file) => {
   const raw = file?.raw
   if (!raw) return
@@ -107,6 +123,10 @@ const handleFileChange = async (file) => {
   }
 }
 
+/**
+ * Function: showConditionStandard
+ * Description: Displays a dialog explaining book condition standards.
+ */
 const showConditionStandard = async () => {
   await ElMessageBox.alert(
     '全新：几乎未使用，无明显折痕/污渍/笔记。\n九成新：轻微使用痕迹，少量折角或轻微划痕，可有少量笔记但不影响阅读。\n八成新：使用痕迹较明显，可能有较多折痕/划痕/少量污渍或较多笔记，但不缺页不影响正常使用。\n\n请如实选择成色，避免交易纠纷。',
@@ -115,6 +135,10 @@ const showConditionStandard = async () => {
   )
 }
 
+/**
+ * Function: submitPublish
+ * Description: Validates form and submits new book data.
+ */
 const submitPublish = async () => {
   try {
     await publishFormRef.value.validate()

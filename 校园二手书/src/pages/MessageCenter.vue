@@ -1,3 +1,14 @@
+<!--
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: MessageCenter.vue
+ * Author: WiseBookPal Team Version: 1.0 Date: 2026-01-02
+ * Description: User message center.
+ *              Combines chat conversations and system notifications.
+ * History:
+ * 1. Date: 2026-01-02
+ *    Author: WiseBookPal Team
+ *    Modification: Initial implementation
+-->
 <template>
   <div class="message-center">
     <page-header title="消息中心" :goBack="goBack">
@@ -86,11 +97,20 @@ const onSelectModule = (key) => {
   activeModule.value = key
 }
 
+/**
+ * Function: load
+ * Description: Loads notifications and conversation threads.
+ */
 const load = async () => {
   try { notifications.value = await listNotifications() || [] } catch { /* ignore */ }
   try { threads.value = await getConversations() || [] } catch { /* ignore */ }
 }
 
+/**
+ * Function: handleMarkRead
+ * Description: Marks a single notification as read.
+ * Input: row (Object) - Notification object
+ */
 const handleMarkRead = async (row) => {
   try {
     await markRead(row.id)
@@ -101,6 +121,10 @@ const handleMarkRead = async (row) => {
   }
 }
 
+/**
+ * Function: handleMarkAllRead
+ * Description: Marks all notifications as read.
+ */
 const handleMarkAllRead = async () => {
   try {
     await markAllRead()
@@ -112,13 +136,32 @@ const handleMarkAllRead = async () => {
   }
 }
 
+/**
+ * Function: formatTime
+ * Description: Formats a timestamp into a readable string.
+ */
 const formatTime = ts => ts ? new Date(ts).toLocaleString() : ''
+
+/**
+ * Function: openChat
+ * Description: Navigates to the chat page for a specific conversation.
+ * Input: row (Object) - Conversation object
+ */
 const openChat = (row) => router.push({ path: '/chat', query: { peer: row.peer, orderId: row.orderId, bookId: row.bookId } })
+
+/**
+ * Function: startChat
+ * Description: Initiates a new chat with a specified user.
+ */
 const startChat = () => {
   if (!peer.value) return
   router.push({ path: '/chat', query: { peer: peer.value } })
 }
 
+/**
+ * Function: sendAnnounce
+ * Description: Admin only - Publishes a new system announcement.
+ */
 const sendAnnounce = async () => {
   try { await announce({ title: annTitle.value, content: annContent.value }); ElMessage.success('公告已发布'); load() } catch { ElMessage.error('发布失败') }
 }

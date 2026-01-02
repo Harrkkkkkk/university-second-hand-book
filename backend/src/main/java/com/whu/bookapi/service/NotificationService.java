@@ -10,6 +10,16 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: NotificationService.java
+ * Author: WiseBookPal Team Version: 1.0 Date: 2024-11-20
+ * Description: Service class for managing system and user notifications.
+ *              Handles targeted messages, broadcast messages, and read status tracking.
+ * History:
+ * <author>          <time>          <version>          <desc>
+ * WiseBookPal Team  2024-11-20      1.0                Initial implementation.
+ */
 @Service
 public class NotificationService {
     private final JdbcTemplate jdbcTemplate;
@@ -18,6 +28,19 @@ public class NotificationService {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    /**
+     * Function: addToUser
+     * Description: Sends a notification to a specific user.
+     * Called By: UserService.updateUserStatus, UserService.deleteUser
+     * Table Accessed: notifications
+     * Table Updated: notifications
+     * Input: username (String) - Recipient's username
+     *        type (String) - Notification type
+     *        title (String) - Notification title
+     *        content (String) - Notification body
+     * Output: Notification - The created notification
+     * Return: Notification
+     */
     public Notification addToUser(String username, String type, String title, String content) {
         Notification n = new Notification();
         n.setToUser(username);
@@ -42,10 +65,31 @@ public class NotificationService {
         return n;
     }
 
+    /**
+     * Function: add
+     * Description: Simplified method to send a system notification to a user.
+     * Called By: Various service methods for simple alerts.
+     * Input: username (String) - Recipient's username
+     *        content (String) - Notification body
+     * Output: Notification - The created notification
+     * Return: Notification
+     */
     public Notification add(String username, String content) {
         return addToUser(username, "system", "系统通知", content);
     }
 
+    /**
+     * Function: addBroadcast
+     * Description: Sends a broadcast notification to all users.
+     * Called By: AdminController.sendBroadcast
+     * Table Accessed: notifications
+     * Table Updated: notifications
+     * Input: type (String) - Notification type
+     *        title (String) - Notification title
+     *        content (String) - Notification body
+     * Output: Notification - The created broadcast notification
+     * Return: Notification
+     */
     public Notification addBroadcast(String type, String title, String content) {
         Notification n = new Notification();
         n.setToUser("*");
@@ -68,6 +112,16 @@ public class NotificationService {
         return n;
     }
 
+    /**
+     * Function: listByUser
+     * Description: Retrieves all notifications for a user, including direct and broadcast messages.
+     *              Joins with notification_read table to determine read status for broadcasts.
+     * Called By: NotificationController.list
+     * Table Accessed: notifications, notification_read
+     * Input: username (String) - The username to retrieve notifications for
+     * Output: List<Notification> - List of notifications
+     * Return: List<Notification>
+     */
     public List<Notification> listByUser(String username) {
         if (username == null) return new ArrayList<>();
         return jdbcTemplate.query(
@@ -99,6 +153,16 @@ public class NotificationService {
         );
     }
 
+    /**
+     * Function: countUnread
+     * Description: Counts unread notifications for a user.
+     *              Includes unread direct messages and unread broadcast messages.
+     * Called By: NotificationController.countUnread
+     * Table Accessed: notifications, notification_read
+     * Input: username (String) - The username to count for
+     * Output: long - The count of unread notifications
+     * Return: long
+     */
     public long countUnread(String username) {
         if (username == null) return 0;
         Long direct = jdbcTemplate.queryForObject(
@@ -116,6 +180,19 @@ public class NotificationService {
         return a + b;
     }
 
+    /**
+     * Function: markRead
+     * Description: Marks a single notification as read.
+     *              For broadcast messages, inserts a record into notification_read.
+     *              For direct messages, updates the is_read flag.
+     * Called By: NotificationController.markRead
+     * Table Accessed: notifications, notification_read
+     * Table Updated: notifications, notification_read
+     * Input: id (Long) - Notification ID
+     *        username (String) - User marking it as read
+     * Output: void
+     * Return: void
+     */
     public void markRead(Long id, String username) {
         if (id == null || username == null) return;
         String toUser;
@@ -136,6 +213,16 @@ public class NotificationService {
         }
     }
 
+    /**
+     * Function: markAllRead
+     * Description: Marks all notifications as read for a user.
+     * Called By: NotificationController.markAllRead
+     * Table Accessed: notifications, notification_read
+     * Table Updated: notifications, notification_read
+     * Input: username (String) - User marking all as read
+     * Output: void
+     * Return: void
+     */
     public void markAllRead(String username) {
         if (username == null) return;
         jdbcTemplate.update("UPDATE notifications SET is_read = 1 WHERE to_user = ? AND is_read = 0", username);

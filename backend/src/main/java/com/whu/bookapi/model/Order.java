@@ -2,15 +2,38 @@ package com.whu.bookapi.model;
 
 import java.time.LocalDateTime;
 
+/**
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: Order.java
+ * Author: WiseBookPal Team Version: 1.0 Date: 2024-11-20
+ * Description: Model class representing a transaction order.
+ *              Includes buyer, seller, book details, and order status.
+ * Others:
+ * Function List:
+ * 1. Getters and Setters for all fields.
+ * History:
+ * 1. Date: 2024-11-20
+ *    Author: WiseBookPal Team
+ *    Modification: Initial implementation
+ */
 public class Order {
+    /** Unique ID of the order */
     private Long id;
+    /** ID of the book being purchased */
     private Long bookId;
+    /** Title of the book */
     private String bookName;
+    /** Username of the seller */
     private String sellerName;
+    /** Price at the time of order */
     private Double price;
+    /** Username of the buyer */
     private String buyerName;
-    private String status; // pending, paid, received, cancelled
+    /** Order status (pending, paid, received, cancelled) */
+    private String status; 
+    /** Timestamp of order creation */
     private LocalDateTime createTime;
+    /** Timestamp when the order expires (if not paid) */
     private Long expireAt;
 
     public Long getId() { return id; }

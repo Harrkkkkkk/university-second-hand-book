@@ -1,23 +1,55 @@
 package com.whu.bookapi.model;
 
+/**
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: Book.java
+ * Author: WiseBookPal Team Version: 1.0 Date: 2024-11-20
+ * Description: Model class representing a second-hand book.
+ *              Includes book details, seller info, pricing, and condition.
+ * Others:
+ * Function List:
+ * 1. Getters and Setters for all fields.
+ * History:
+ * 1. Date: 2024-11-20
+ *    Author: WiseBookPal Team
+ *    Modification: Initial implementation
+ */
 public class Book {
+    /** Unique ID of the book listing */
     private Long id;
+    /** Title of the book */
     private String bookName;
+    /** Author of the book */
     private String author;
+    /** Original market price */
     private Double originalPrice;
+    /** Selling price */
     private Double sellPrice;
+    /** Description of the book */
     private String description;
+    /** Username of the seller */
     private String sellerName;
+    /** URL of the book cover image */
     private String coverUrl;
+    /** ISBN number */
     private String isbn;
+    /** Publisher name */
     private String publisher;
+    /** Publication date */
     private String publishDate;
+    /** Condition level (e.g., New, Good, Fair) */
     private String conditionLevel;
+    /** Available stock quantity */
     private Integer stock;
+    /** Listing status (active, sold, etc.) */
     private String status;
+    /** Timestamp of listing creation */
     private Long createdAt;
-    private String sellerType; // student, teacher
+    /** Seller type (student, teacher) */
+    private String sellerType; 
+    /** Reason for audit/moderation decision */
     private String auditReason;
+    /** Timestamp of audit */
     private Long auditTime;
 
     public Long getId() {

@@ -1,3 +1,14 @@
+<!--
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: Chat.vue
+ * Author: WiseBookPal Team Version: 1.0 Date: 2026-01-02
+ * Description: Real-time chat page for users.
+ *              Supports sending messages, viewing history, and context-aware chats (book/order).
+ * History:
+ * 1. Date: 2026-01-02
+ *    Author: WiseBookPal Team
+ *    Modification: Initial implementation
+-->
 <template>
   <div class="chat-page">
     <page-header title="在线沟通" :goBack="goBack">
@@ -42,6 +53,10 @@ const logout = () => logoutAndBackToLogin()
 const messages = ref([])
 const text = ref('')
 
+/**
+ * Function: load
+ * Description: Loads chat history and marks messages as read.
+ */
 const load = async () => {
   try {
     messages.value = await getHistory({ peer, bookId, orderId }) || []
@@ -51,6 +66,10 @@ const load = async () => {
   } catch { ElMessage.error('加载历史失败') }
 }
 
+/**
+ * Function: send
+ * Description: Sends a new message to the peer.
+ */
 const send = async () => {
   if (!text.value) return
   try {
@@ -60,6 +79,10 @@ const send = async () => {
   } catch { ElMessage.error('发送失败') }
 }
 
+/**
+ * Function: formatTime
+ * Description: Formats a timestamp into a readable string.
+ */
 const formatTime = ts => new Date(ts).toLocaleString()
 onMounted(load)
 </script>

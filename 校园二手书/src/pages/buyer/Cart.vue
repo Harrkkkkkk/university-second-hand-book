@@ -1,3 +1,14 @@
+<!--
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: Cart.vue
+ * Author: WiseBookPal Team Version: 1.0 Date: 2026-01-02
+ * Description: Buyer shopping cart page.
+ *              Manages cart items (list, remove, clear) and initiates checkout.
+ * History:
+ * 1. Date: 2026-01-02
+ *    Author: WiseBookPal Team
+ *    Modification: Initial implementation
+-->
 <template>
   <div class="buyer-cart">
     <page-header title="买家中心 - 我的购物车">
@@ -37,6 +48,10 @@ const items = ref([])
 const router = useRouter()
 const logout = () => logoutAndBackToLogin()
 
+/**
+ * Function: load
+ * Description: Fetches current user's cart items.
+ */
 const load = async () => {
   try { items.value = await listCart() || [] } catch { ElMessage.error('加载购物车失败') }
 }
@@ -45,6 +60,12 @@ const toDetail = (bookId) => {
   router.push(`/book/${bookId}`)
 }
 
+/**
+ * Function: removeItem
+ * Description: Removes an item (or specific quantity) from the cart.
+ *              Prompts for quantity if item count > 1.
+ * Input: row (Object) - Cart item
+ */
 const removeItem = async (row) => {
   const bookId = row?.bookId
   const qty = Number(row?.quantity || 0)
@@ -80,10 +101,19 @@ const removeItem = async (row) => {
   }
 }
 
+/**
+ * Function: clear
+ * Description: Removes all items from the cart.
+ */
 const clear = async () => {
   try { await clearCart(); ElMessage.success('已清空'); load() } catch { ElMessage.error('清空失败') }
 }
 
+/**
+ * Function: orderAndPay
+ * Description: Creates an order for a single cart item and processes payment.
+ * Input: bookId (Number)
+ */
 const orderAndPay = async (bookId) => {
   try {
     const order = await createOrder(bookId)

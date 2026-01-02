@@ -1,3 +1,14 @@
+<!--
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: Apply.vue
+ * Author: WiseBookPal Team Version: 1.0 Date: 2026-01-02
+ * Description: Seller application page.
+ *              Allows users to apply for seller status.
+ * History:
+ * 1. Date: 2026-01-02
+ *    Author: WiseBookPal Team
+ *    Modification: Initial implementation
+-->
 <template>
   <div class="seller-apply-page">
     <el-card class="apply-card">
@@ -41,6 +52,10 @@ import { applySeller } from '@/api/userApi'
 const router = useRouter()
 const loading = ref(false)
 
+/**
+ * Function: handleApply
+ * Description: Submits a seller application request.
+ */
 const handleApply = async () => {
   try {
     await ElMessageBox.confirm('确定要申请成为卖家吗？', '提示', {

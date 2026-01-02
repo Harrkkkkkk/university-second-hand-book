@@ -8,6 +8,21 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: ComplaintController.java
+ * Author: WiseBookPal Team Version: 1.0 Date: 2024-11-20
+ * Description: Controller for handling user complaints.
+ * Others:
+ * Function List:
+ * 1. add - Submit a new complaint
+ * 2. my - List my complaints
+ * 3. received - List complaints received against me (seller)
+ * History:
+ * 1. Date: 2024-11-20
+ *    Author: WiseBookPal Team
+ *    Modification: Initial implementation
+ */
 @RestController
 @RequestMapping("/complaints")
 public class ComplaintController {
@@ -21,6 +36,19 @@ public class ComplaintController {
         this.orderService = orderService;
     }
 
+    /**
+     * Function: add
+     * Description: Submits a new complaint.
+     * Calls: UserService.getByToken, ComplaintService.add
+     * Called By: Frontend Order Page / User Profile
+     * Table Accessed: user_token, users, complaints
+     * Table Updated: complaints
+     * Input: token (String) - User token
+     *        complaint (Complaint) - Complaint details
+     * Output: Complaint - Created complaint
+     * Return: ResponseEntity<?>
+     * Others:
+     */
     @PostMapping("/add")
     public ResponseEntity<?> add(@RequestHeader(value = "token", required = false) String token,
                                  @RequestBody Complaint complaint) {
@@ -30,6 +58,18 @@ public class ComplaintController {
         return ResponseEntity.ok(complaintService.add(complaint));
     }
 
+    /**
+     * Function: my
+     * Description: Lists complaints submitted by the current user.
+     * Calls: UserService.getByToken, ComplaintService.listByUser
+     * Called By: Frontend Complaint Center
+     * Table Accessed: user_token, users, complaints
+     * Table Updated: None
+     * Input: token (String) - User token
+     * Output: List<Complaint> - List of complaints
+     * Return: ResponseEntity<?>
+     * Others:
+     */
     @GetMapping("/my")
     public ResponseEntity<?> my(@RequestHeader(value = "token", required = false) String token) {
         User u = userService.getByToken(token);
@@ -37,6 +77,18 @@ public class ComplaintController {
         return ResponseEntity.ok(complaintService.listByUser(u.getUsername()));
     }
 
+    /**
+     * Function: received
+     * Description: Lists complaints received by the current user (as a seller).
+     * Calls: UserService.getByToken, ComplaintService.listAll, OrderService.get
+     * Called By: Frontend Complaint Center
+     * Table Accessed: user_token, users, complaints, orders
+     * Table Updated: None
+     * Input: token (String) - User token
+     * Output: List<Map> - List of received complaints with details
+     * Return: ResponseEntity<?>
+     * Others: Filters all complaints to find those related to orders where the user is the seller.
+     */
     @GetMapping("/received")
     public ResponseEntity<?> received(@RequestHeader(value = "token", required = false) String token) {
         User u = userService.getByToken(token);

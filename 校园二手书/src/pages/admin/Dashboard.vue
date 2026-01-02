@@ -1,3 +1,20 @@
+<!--
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: Dashboard.vue
+ * Author: WiseBookPal Team Version: 1.0 Date: 2026-01-02
+ * Description: Admin dashboard page.
+ *              Provides comprehensive management for users, books, complaints, and system announcements.
+ *              Includes functionality for:
+ *              - User search, detail view, editing, and status management (blacklist/delete)
+ *              - Book listing audit (approve/reject)
+ *              - Complaint handling
+ *              - Seller qualification audit
+ *              - System-wide announcements
+ * History:
+ * 1. Date: 2026-01-02
+ *    Author: WiseBookPal Team
+ *    Modification: Initial implementation
+-->
 <template>
   <div class="admin-dashboard">
     <page-header title="管理员后台">
@@ -6,6 +23,10 @@
 
     <el-card>
       <el-tabs v-model="activeTab">
+        <!-- 
+          Tab: User Management
+          Function: Search, view, edit users; manage blacklist/deletion; view logs.
+        -->
         <el-tab-pane label="用户管理" name="userManage">
           <!-- 搜索栏 -->
           <div style="margin-bottom: 20px; display: flex; gap: 10px;">
@@ -160,6 +181,11 @@
             </el-table>
           </el-dialog>
         </el-tab-pane>
+
+        <!-- 
+          Tab: Book Audit
+          Function: Review and approve/reject book listings.
+        -->
         <el-tab-pane label="教材审核" name="bookAudit">
           <el-table :data="bookAuditList" border>
             <el-table-column type="expand">
@@ -196,6 +222,11 @@
             </el-table-column>
           </el-table>
         </el-tab-pane>
+
+        <!-- 
+          Tab: Complaint Audit
+          Function: Review and resolve user complaints.
+        -->
         <el-tab-pane label="投诉审核" name="complaintAudit">
           <el-table :data="complaints" border>
             <el-table-column prop="id" label="ID" width="80" />
@@ -212,6 +243,11 @@
             </el-table-column>
           </el-table>
         </el-tab-pane>
+
+        <!-- 
+          Tab: Seller Audit
+          Function: Review and approve/reject seller applications.
+        -->
         <el-tab-pane label="卖家资质审核" name="sellerAudit">
           <el-table :data="sellerApplications" border>
             <el-table-column prop="username" label="申请账号" width="180" />
@@ -239,6 +275,11 @@
             </el-table-column>
           </el-table>
         </el-tab-pane>
+
+        <!-- 
+          Tab: Announcements
+          Function: Publish system-wide announcements to all users.
+        -->
         <el-tab-pane label="发布公告" name="announce">
           <el-form label-width="80px" style="max-width: 600px; margin-top: 20px;">
             <el-form-item label="标题">
@@ -274,38 +315,75 @@ const logout = () => {
   logoutAndBackToLogin()
 }
 
+// ==========================================
+// State: Tab Management
+// ==========================================
 const activeTab = ref('userManage')
+
+// ==========================================
+// State: User Management
+// ==========================================
 const userList = ref([])
 const userSearchKeyword = ref('')
 const loadingUsers = ref(false)
 const currentUser = ref({})
 const userDetailVisible = ref(false)
 
-// 状态管理
+// 状态管理 (Status Management)
 const statusDialogVisible = ref(false)
 const statusForm = ref({ status: '', reason: '', secondAdmin: '', secondAdminPwd: '' })
+
+/**
+ * Function: openStatusDialog
+ * Description: Opens the dialog to change user status (e.g., blacklist).
+ * Input: 
+ *   - user: The target user object
+ *   - targetStatus: The status to apply (e.g., 'blacklist')
+ */
 const openStatusDialog = (user, targetStatus) => {
   currentUser.value = { ...user }
   statusForm.value = { status: targetStatus, reason: '', secondAdmin: '', secondAdminPwd: '' }
   statusDialogVisible.value = true
 }
+
+/**
+ * Function: submitStatusChange
+ * Description: Submits the user status change request.
+ *              Validates input and handles dual-admin check for permanent blacklist.
+ */
 const submitStatusChange = async () => {
   if (!statusForm.value.reason) {
     ElMessage.warning('请输入操作原因')
     return
   }
+  if (statusForm.value.status === 'permanent_blacklist') {
+    if (!statusForm.value.secondAdmin || !statusForm.value.secondAdminPwd) {
+      ElMessage.warning('永久黑名单需要双人审核，请填写审核员账号和密码')
+      return
+    }
+  }
   await handleUpdateStatus(currentUser.value, statusForm.value.status, statusForm.value.reason, statusForm.value.secondAdmin, statusForm.value.secondAdminPwd)
   statusDialogVisible.value = false
 }
 
-// 用户编辑
+// 用户编辑 (User Edit)
 const editUserVisible = ref(false)
 const editUserForm = ref({ phone: '', studentId: '', creditScore: 100 })
+
+/**
+ * Function: openEditUser
+ * Description: Opens the dialog to edit user information.
+ */
 const openEditUser = (user) => {
   currentUser.value = { ...user }
   editUserForm.value = { phone: user.phone, studentId: user.studentId, creditScore: user.creditScore }
   editUserVisible.value = true
 }
+
+/**
+ * Function: submitEditUser
+ * Description: Submits the updated user information.
+ */
 const submitEditUser = async () => {
   try {
     await updateUserInfo(currentUser.value.username, editUserForm.value)
@@ -317,14 +395,20 @@ const submitEditUser = async () => {
   }
 }
 
-// 日志管理
+// 日志管理 (Log Management)
 const logsVisible = ref(false)
 const logList = ref([])
 const logSearchKeyword = ref('')
+
+/**
+ * Function: showOperationLogs
+ * Description: Opens the operation logs dialog and loads logs.
+ */
 const showOperationLogs = () => {
   logsVisible.value = true
   loadLogs()
 }
+
 const loadLogs = async () => {
   try {
     const res = await getOperationLogs({ keyword: logSearchKeyword.value })
@@ -334,27 +418,58 @@ const loadLogs = async () => {
   }
 }
 
-// 辅助函数
+// 辅助函数 (Helpers)
+
+/**
+ * Function: getStatusType
+ * Description: Returns the Element Plus tag type based on user status.
+ * Input: status (String)
+ * Return: String (success/danger/info)
+ */
 const getStatusType = (status) => {
   if (status === 'blacklist') return 'danger'
   if (status === 'deleted') return 'info'
   return 'success'
 }
+
+/**
+ * Function: getStatusText
+ * Description: Returns the display text for user status.
+ * Input: status (String)
+ * Return: String (Chinese text)
+ */
 const getStatusText = (status) => {
   const map = { normal: '正常', blacklist: '黑名单', deleted: '已注销' }
   return map[status] || status
 }
+
+/**
+ * Function: formatDate
+ * Description: Formats a timestamp into a readable date string.
+ * Input: ts (Number/String)
+ * Return: String (Locale string)
+ */
 const formatDate = (ts) => {
   if (!ts) return '-'
   return new Date(ts).toLocaleString()
 }
 
+// ==========================================
+// State: Other Audits
+// ==========================================
 const bookAuditList = ref([])
 const complaints = ref([])
 const sellerApplications = ref([])
 const paymentCodeVisible = ref(false)
 const paymentCodeUrl = ref('')
 
+/**
+ * Function: resolveCoverUrl
+ * Description: Resolves the full URL for a book cover image.
+ *              Handles absolute URLs, relative API paths, and file storage paths.
+ * Input: url (String)
+ * Return: String (Full URL)
+ */
 const resolveCoverUrl = (url) => {
   if (!url) return ''
   if (url.startsWith('http://') || url.startsWith('https://')) return url
@@ -363,9 +478,16 @@ const resolveCoverUrl = (url) => {
   return url
 }
 
-// 公告相关
+// ==========================================
+// Logic: Announcements
+// ==========================================
 const announceTitle = ref('')
 const announceContent = ref('')
+
+/**
+ * Function: handleAnnounce
+ * Description: Publishes a system-wide announcement.
+ */
 const handleAnnounce = async () => {
   if (!announceTitle.value || !announceContent.value) {
     ElMessage.warning('请输入标题和内容')
@@ -381,11 +503,30 @@ const handleAnnounce = async () => {
   }
 }
 
+// ==========================================
+// Logic: Data Loading & Actions
+// ==========================================
+
+/**
+ * Function: loadUsers
+ * Description: Fetches users based on search keyword.
+ */
 const loadUsers = async () => {
   loadingUsers.value = true
-  try { userList.value = await listUsers(userSearchKeyword.value) || [] } catch { ElMessage.error('加载用户失败') }
+  try { 
+    const res = await listUsers(userSearchKeyword.value)
+    userList.value = res || []
+    if (userList.value.length === 0 && userSearchKeyword.value) {
+      ElMessage.info('未找到匹配的用户')
+    }
+  } catch { ElMessage.error('加载用户失败') }
   finally { loadingUsers.value = false }
 }
+
+/**
+ * Function: viewUserDetail
+ * Description: Fetches and displays detailed user info including addresses.
+ */
 const viewUserDetail = async (user) => {
   // Reset first
   currentUser.value = { ...user }
@@ -400,6 +541,11 @@ const viewUserDetail = async (user) => {
     ElMessage.error('获取用户详情失败')
   }
 }
+
+/**
+ * Function: handleUpdateStatus
+ * Description: Core logic to update user status (blacklist/delete/restore).
+ */
 const handleUpdateStatus = async (user, status, reason, secondAdmin, secondAdminPwd) => {
   try {
     const res = await updateUserStatus(user.username, status, reason, secondAdmin, secondAdminPwd)
@@ -415,6 +561,11 @@ const handleUpdateStatus = async (user, status, reason, secondAdmin, secondAdmin
     ElMessage.error(e.message || '操作失败')
   }
 }
+
+/**
+ * Function: handleUndoBlacklist
+ * Description: Initiates blacklist removal with a reason.
+ */
 const handleUndoBlacklist = async (user) => {
   try {
     const { value: reason } = await ElMessageBox.prompt('请输入撤销原因', '撤销黑名单', {
@@ -434,45 +585,107 @@ const handleUndoBlacklist = async (user) => {
   }
 }
 
+/**
+ * Function: changeRole
+ * Description: Updates a user's role (e.g., set as admin).
+ * Input: username (String), role (String)
+ */
 const changeRole = async (username, role) => {
   try { await setUserRole(username, role); ElMessage.success('角色已更新') } catch { ElMessage.error('更新失败') }
 }
+
+/**
+ * Function: removeUser
+ * Description: Soft-deletes a user (deprecated in favor of handleUpdateStatus).
+ */
 const removeUser = async (username) => {
   // try { await deleteUser(username); ElMessage.success('已删除'); loadUsers() } catch { ElMessage.error('删除失败') }
   // 改为调用 handleUpdateStatus
   await handleUpdateStatus({ username }, 'deleted', '管理员直接删除')
 }
 
+/**
+ * Function: loadBooks
+ * Description: Loads books pending review.
+ */
 const loadBooks = async () => {
   try { bookAuditList.value = await listUnderReviewBooks() || [] } catch { ElMessage.error('加载待审商品失败') }
 }
+
+/**
+ * Function: approveBook
+ * Description: Approves a book listing.
+ * Input: id (Number) - Book ID
+ */
 const approveBook = async (id) => {
   try { await apiApproveBook(id); ElMessage.success('已通过'); loadBooks() } catch { ElMessage.error('操作失败') }
 }
+
+/**
+ * Function: rejectBook
+ * Description: Rejects a book listing.
+ * Input: id (Number) - Book ID
+ */
 const rejectBook = async (id) => {
   try { await apiRejectBook(id); ElMessage.success('已驳回'); loadBooks() } catch { ElMessage.error('操作失败') }
 }
 
+/**
+ * Function: loadComplaints
+ * Description: Loads all complaints.
+ */
 const loadComplaints = async () => {
   try { complaints.value = await listComplaints() || [] } catch { ElMessage.error('加载投诉失败') }
 }
+
+/**
+ * Function: approveComplaint
+ * Description: Marks a complaint as resolved (valid).
+ * Input: id (Number) - Complaint ID
+ */
 const approveComplaint = async (id) => {
   try { await apiApproveComplaint(id); ElMessage.success('投诉已处理（通过）'); loadComplaints() } catch { ElMessage.error('操作失败') }
 }
+
+/**
+ * Function: rejectComplaint
+ * Description: Marks a complaint as rejected (invalid).
+ * Input: id (Number) - Complaint ID
+ */
 const rejectComplaint = async (id) => {
   try { await apiRejectComplaint(id); ElMessage.success('投诉已处理（驳回）'); loadComplaints() } catch { ElMessage.error('操作失败') }
 }
 
+/**
+ * Function: loadSellerApps
+ * Description: Loads pending seller applications.
+ */
 const loadSellerApps = async () => {
   try { sellerApplications.value = await listSellerApplications() || [] } catch { /* ignore */ }
 }
+
+/**
+ * Function: handleApproveSeller
+ * Description: Approves a seller application.
+ * Input: username (String)
+ */
 const handleApproveSeller = async (username) => {
   try { await approveSeller(username); ElMessage.success('已批准卖家资格'); loadSellerApps() } catch { ElMessage.error('操作失败') }
 }
+
+/**
+ * Function: handleRejectSeller
+ * Description: Rejects a seller application.
+ * Input: username (String)
+ */
 const handleRejectSeller = async (username) => {
   try { await rejectSeller(username); ElMessage.success('已驳回卖家资格'); loadSellerApps() } catch { ElMessage.error('操作失败') }
 }
 
+/**
+ * Function: openPaymentCode
+ * Description: Displays the seller's payment QR code.
+ */
 const openPaymentCode = (url) => {
   paymentCodeUrl.value = url
   paymentCodeVisible.value = true

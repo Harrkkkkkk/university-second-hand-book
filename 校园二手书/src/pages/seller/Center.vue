@@ -149,6 +149,10 @@ const goodRate = ref({})
 const orderList = ref([])
 const uploadingCover = ref(false)
 
+/**
+ * Function: loadMyBooks
+ * Description: Fetches the list of books published by the seller.
+ */
 const loadMyBooks = async () => {
   try {
     const res = await listMyBooks()
@@ -158,6 +162,10 @@ const loadMyBooks = async () => {
   }
 }
 
+/**
+ * Function: loadMyOrders
+ * Description: Fetches the list of orders for the seller's books.
+ */
 const loadMyOrders = async () => {
   try {
     const res = await listSellerOrders()
@@ -167,6 +175,12 @@ const loadMyOrders = async () => {
   }
 }
 
+/**
+ * Function: resolveCoverUrl
+ * Description: Resolves the full URL for book covers.
+ * Input: url (String)
+ * Return: String (Full URL)
+ */
 const resolveCoverUrl = (url) => {
   if (!url) return ''
   if (url.startsWith('http://') || url.startsWith('https://')) return url
@@ -175,6 +189,11 @@ const resolveCoverUrl = (url) => {
   return url
 }
 
+/**
+ * Function: handleEditCoverChange
+ * Description: Handles book cover update during editing.
+ * Input: file (Object)
+ */
 const handleEditCoverChange = async (file) => {
   const raw = file?.raw
   if (!raw) return
@@ -194,6 +213,12 @@ const handleEditCoverChange = async (file) => {
   }
 }
 
+/**
+ * Function: orderStatusText
+ * Description: Returns display text for order status.
+ * Input: status (String)
+ * Return: String
+ */
 const orderStatusText = (status) => {
   if (status === 'pending') return '待付款'
   if (status === 'paid') return '已付款'
@@ -203,6 +228,12 @@ const orderStatusText = (status) => {
   return status || '-'
 }
 
+/**
+ * Function: orderStatusTagType
+ * Description: Returns Element Plus tag type for order status.
+ * Input: status (String)
+ * Return: String
+ */
 const orderStatusTagType = (status) => {
   if (status === 'paid') return 'success'
   if (status === 'received') return 'success'
@@ -218,6 +249,10 @@ const openEdit = (row) => {
   editVisible.value = true
 }
 
+/**
+ * Function: submitEdit
+ * Description: Submits book updates.
+ */
 const submitEdit = async () => {
   try {
     const res = await updateBook(editForm.value.id, editForm.value)
@@ -230,12 +265,22 @@ const submitEdit = async () => {
   }
 }
 
+/**
+ * Function: offline
+ * Description: Takes a book offline.
+ * Input: id (Number)
+ */
 const offline = (id) => {
   ElMessageBox.confirm('确认下架该教材？', '提示', { confirmButtonText: '确认', cancelButtonText: '取消' }).then(() => {
     offlineBook(id).then(() => { ElMessage.success('下架成功'); loadMyBooks() }).catch(() => ElMessage.error('下架失败'))
   })
 }
 
+/**
+ * Function: remove
+ * Description: Deletes a book listing.
+ * Input: id (Number)
+ */
 const remove = (id) => {
   ElMessageBox.confirm('确认删除该教材？', '提示', { confirmButtonText: '确认', cancelButtonText: '取消' }).then(() => {
     deleteBook(id).then(() => { ElMessage.success('删除成功'); loadMyBooks() }).catch(() => ElMessage.error('删除失败'))

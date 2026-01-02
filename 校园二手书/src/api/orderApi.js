@@ -1,5 +1,22 @@
+/**
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: orderApi.js
+ * Author: WiseBookPal Team   Version: 1.0   Date: 2026-01-02
+ * Description: Frontend API wrapper for Order-related operations.
+ *              - Communicates with backend OrderController.
+ *              - Handles order creation, payment, cancellation, and status updates.
+ * History:
+ * <author>          <time>          <version>          <desc>
+ * WiseBookPal Team  2026-01-02      1.0                Initial implementation
+ */
+
 import request from './request'
 
+/**
+ * Function: listOrders
+ * Description: Lists all orders for the current user (buyer view).
+ * Method: GET /orders/list
+ */
 export const listOrders = () => {
   return request({
     url: '/orders/list',
@@ -8,6 +25,11 @@ export const listOrders = () => {
   })
 }
 
+/**
+ * Function: listSellerOrders
+ * Description: Lists all orders for the current user (seller view).
+ * Method: GET /orders/seller/list
+ */
 export const listSellerOrders = () => {
   return request({
     url: '/orders/seller/list',
@@ -16,6 +38,12 @@ export const listSellerOrders = () => {
   })
 }
 
+/**
+ * Function: createOrder
+ * Description: Creates a new order for a specific book.
+ * Method: POST /orders/create
+ * Input: bookId (Number)
+ */
 export const createOrder = (bookId) => {
   return request({
     url: '/orders/create',
@@ -25,6 +53,12 @@ export const createOrder = (bookId) => {
   })
 }
 
+/**
+ * Function: payOrder
+ * Description: Simulates payment for an order.
+ * Method: POST /orders/pay/{id}
+ * Input: id (Number) - Order ID
+ */
 export const payOrder = (id) => {
   return request({
     url: `/orders/pay/${id}`,
@@ -33,6 +67,12 @@ export const payOrder = (id) => {
   })
 }
 
+/**
+ * Function: cancelOrder
+ * Description: Cancels an unpaid order.
+ * Method: POST /orders/cancel/{id}
+ * Input: id (Number) - Order ID
+ */
 export const cancelOrder = (id) => {
   return request({
     url: `/orders/cancel/${id}`,
@@ -41,6 +81,12 @@ export const cancelOrder = (id) => {
   })
 }
 
+/**
+ * Function: receiveOrder
+ * Description: Marks an order as received (completed).
+ * Method: POST /orders/receive/{id}
+ * Input: id (Number) - Order ID
+ */
 export const receiveOrder = (id) => {
   return request({
     url: `/orders/receive/${id}`,

@@ -1,11 +1,31 @@
 package com.whu.bookapi.model;
 
+/**
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: OperationLog.java
+ * Author: WiseBookPal Team Version: 1.0 Date: 2026-01-02
+ * Description: Model class representing an administrative operation log.
+ *              Used for audit trails of sensitive actions.
+ * Others:
+ * Function List:
+ * 1. Getters and Setters for all fields.
+ * History:
+ * 1. Date: 2026-01-02
+ *    Author: WiseBookPal Team
+ *    Modification: Initial implementation for U14
+ */
 public class OperationLog {
+    /** Unique ID of the log entry */
     private Long id;
+    /** Username of the admin who performed the action */
     private String operator;
+    /** Username of the user affected by the action */
     private String targetUser;
-    private String action; // blacklist, unblacklist, update_info, delete_user
+    /** Type of action (e.g., blacklist, unblacklist, update_info) */
+    private String action; 
+    /** Detailed description or reason for the action */
     private String detail;
+    /** Timestamp of the operation */
     private long createTime;
 
     public Long getId() { return id; }

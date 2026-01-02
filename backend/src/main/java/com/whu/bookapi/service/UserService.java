@@ -14,6 +14,46 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.ArrayList;
 
+/**
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: UserService.java
+ * Author: WiseBookPal Team Version: 1.1 Date: 2026-01-02
+ * Description: Service for user management, including authentication, profile updates,
+ *              address management, and admin user operations (blacklist, audit logs).
+ * Others:
+ * Function List:
+ * 1. login - Authenticates user.
+ * 2. logout - Invalidates session.
+ * 3. getByToken - Retrieves user by token.
+ * 4. updateProfile - Updates profile.
+ * 5. changePassword - Changes password.
+ * 6. listAddresses - Lists addresses.
+ * 7. addAddress - Adds address.
+ * 8. updateAddress - Updates address.
+ * 9. deleteAddress - Deletes address.
+ * 10. searchUsers - Searches users (U14).
+ * 11. getUserDetail - Gets user details (U14).
+ * 12. updateUserStatus - Updates user status (U14).
+ * 13. undoBlacklist - Undoes blacklist (U14).
+ * 14. getOperationLogs - Gets logs (U14).
+ * 15. register - Registers a new user.
+ * 16. exists - Checks if user exists.
+ * 17. listAllUsers - Lists all users.
+ * 18. setUserRole - Assigns role to user.
+ * 19. getSellerStats - Gets seller statistics.
+ * 20. deleteUser - Deletes user (Soft/Hard).
+ * 21. applySeller - Handles seller application.
+ * 22. approveSeller - Approves seller application.
+ * 23. rejectSeller - Rejects seller application.
+ * 24. listSellerApplications - Lists seller applications.
+ * History:
+ * 1. Date: 2024-11-20
+ *    Author: WiseBookPal Team
+ *    Modification: Initial implementation
+ * 2. Date: 2026-01-02
+ *    Author: WiseBookPal Team
+ *    Modification: Added U14 User Management logic
+ */
 @Service
 public class UserService {
     private final JdbcTemplate jdbcTemplate;
@@ -41,6 +81,18 @@ public class UserService {
         return null;
     }
 
+    /**
+     * Function: login
+     * Description: Authenticates user credentials and generates a session token.
+     * Calls: JdbcTemplate.queryForList, JdbcTemplate.update
+     * Called By: UserController.login
+     * Table Accessed: users, user_roles
+     * Table Updated: user_token, users
+     * Input: req (LoginRequest) - Credentials
+     * Output: LoginResponse - Session info
+     * Return: LoginResponse
+     * Others:
+     */
     public LoginResponse login(LoginRequest req) {
         if (req == null || req.getUsername() == null || req.getPassword() == null) return null;
         java.util.List<java.util.Map<String, Object>> rows = jdbcTemplate.queryForList(
@@ -79,11 +131,35 @@ public class UserService {
         return resp;
     }
 
+    /**
+     * Function: logout
+     * Description: Invalidates the user's session token.
+     * Calls: JdbcTemplate.update
+     * Called By: UserController.logout
+     * Table Accessed: None
+     * Table Updated: user_token
+     * Input: token (String) - Session token
+     * Output: None
+     * Return: void
+     * Others:
+     */
     public void logout(String token) {
         if (token == null) return;
         jdbcTemplate.update("DELETE FROM user_token WHERE token = ?", token);
     }
 
+    /**
+     * Function: getByToken
+     * Description: Retrieves user information associated with a valid token.
+     * Calls: JdbcTemplate.queryForList
+     * Called By: UserController methods, AdminController methods
+     * Table Accessed: user_token, users, user_roles
+     * Table Updated: None
+     * Input: token (String) - Session token
+     * Output: User - User object
+     * Return: User
+     * Others:
+     */
     public User getByToken(String token) {
         if (token == null) return null;
         java.util.List<java.util.Map<String, Object>> rows = jdbcTemplate.queryForList(
@@ -116,6 +192,18 @@ public class UserService {
         return u;
     }
 
+    /**
+     * Function: updateProfile
+     * Description: Updates user profile details.
+     * Calls: JdbcTemplate.update
+     * Called By: UserController.updateProfile
+     * Table Accessed: None
+     * Table Updated: users
+     * Input: username (String), phone (String), email (String), gender (String)
+     * Output: boolean - Success status
+     * Return: boolean
+     * Others:
+     */
     public boolean updateProfile(String username, String phone, String email, String gender) {
         if (username == null) return false;
         String g = gender;
@@ -132,6 +220,18 @@ public class UserService {
         return true;
     }
 
+    /**
+     * Function: changePassword
+     * Description: Updates user password after verification.
+     * Calls: JdbcTemplate.queryForList, JdbcTemplate.update
+     * Called By: UserController.changePassword
+     * Table Accessed: users
+     * Table Updated: users
+     * Input: username (String), oldPassword (String), newPassword (String)
+     * Output: boolean - Success status
+     * Return: boolean
+     * Others:
+     */
     public boolean changePassword(String username, String oldPassword, String newPassword) {
         if (username == null || oldPassword == null || newPassword == null) return false;
         if (newPassword.isBlank()) return false;
@@ -151,6 +251,18 @@ public class UserService {
         return updated > 0;
     }
 
+    /**
+     * Function: listAddresses
+     * Description: Retrieves all shipping addresses for a user.
+     * Calls: JdbcTemplate.queryForList
+     * Called By: UserController.listAddresses
+     * Table Accessed: user_address
+     * Table Updated: None
+     * Input: username (String)
+     * Output: List<Map> - List of addresses
+     * Return: List<Map<String, Object>>
+     * Others:
+     */
     public java.util.List<java.util.Map<String, Object>> listAddresses(String username) {
         if (username == null) return new java.util.ArrayList<>();
         java.util.List<java.util.Map<String, Object>> rows = jdbcTemplate.queryForList(
@@ -174,6 +286,18 @@ public class UserService {
         return res;
     }
 
+    /**
+     * Function: addAddress
+     * Description: Adds a new shipping address.
+     * Calls: JdbcTemplate.update
+     * Called By: UserController.addAddress
+     * Table Accessed: user_address
+     * Table Updated: user_address
+     * Input: username (String), name (String), phone (String), address (String), isDefault (Boolean)
+     * Output: Long - New address ID
+     * Return: Long
+     * Others:
+     */
     public Long addAddress(String username, String name, String phone, String address, Boolean isDefault) {
         if (username == null) return null;
         if (name == null || name.isBlank()) return null;
@@ -209,6 +333,18 @@ public class UserService {
         return key == null ? null : key.longValue();
     }
 
+    /**
+     * Function: updateAddress
+     * Description: Updates an existing address.
+     * Calls: JdbcTemplate.update
+     * Called By: UserController.updateAddress
+     * Table Accessed: user_address
+     * Table Updated: user_address
+     * Input: username (String), id (Long), name (String), phone (String), address (String), isDefault (Boolean)
+     * Output: boolean - Success status
+     * Return: boolean
+     * Others:
+     */
     public boolean updateAddress(String username, Long id, String name, String phone, String address, Boolean isDefault) {
         if (username == null || id == null) return false;
         if (name == null || name.isBlank()) return false;
@@ -235,6 +371,18 @@ public class UserService {
         return true;
     }
 
+    /**
+     * Function: deleteAddress
+     * Description: Deletes a shipping address.
+     * Calls: JdbcTemplate.update
+     * Called By: UserController.deleteAddress
+     * Table Accessed: None
+     * Table Updated: user_address
+     * Input: username (String), id (Long)
+     * Output: boolean - Success status
+     * Return: boolean
+     * Others:
+     */
     public boolean deleteAddress(String username, Long id) {
         if (username == null || id == null) return false;
         int rows = jdbcTemplate.update("DELETE FROM user_address WHERE id = ? AND username = ?", id, username);
@@ -243,6 +391,18 @@ public class UserService {
 
     // --- U14 User Management Methods ---
 
+    /**
+     * Function: searchUsers
+     * Description: Searches for users by keyword (U14).
+     * Calls: JdbcTemplate.query
+     * Called By: AdminController.listUsers
+     * Table Accessed: users
+     * Table Updated: None
+     * Input: keyword (String)
+     * Output: List<User>
+     * Return: List<User>
+     * Others:
+     */
     public List<User> searchUsers(String keyword) {
         String sql = "SELECT username, phone, student_id, status, credit_score, created_at, last_login_time FROM users";
         List<Object> params = new ArrayList<>();
@@ -268,6 +428,18 @@ public class UserService {
         }, params.toArray());
     }
 
+    /**
+     * Function: getUserDetail
+     * Description: Gets detailed user info (U14).
+     * Calls: JdbcTemplate.queryForObject
+     * Called By: AdminController.getUserDetail
+     * Table Accessed: users
+     * Table Updated: None
+     * Input: username (String)
+     * Output: User
+     * Return: User
+     * Others:
+     */
     public User getUserDetail(String username) {
         if (username == null) return null;
         try {
@@ -294,6 +466,18 @@ public class UserService {
         }
     }
 
+    /**
+     * Function: verifyAdminPassword
+     * Description: Verifies admin password for double audit (U14).
+     * Calls: JdbcTemplate.queryForObject
+     * Called By: updateUserStatus
+     * Table Accessed: users, user_roles
+     * Table Updated: None
+     * Input: username (String), password (String)
+     * Output: boolean
+     * Return: boolean
+     * Others:
+     */
     private boolean verifyAdminPassword(String username, String password) {
         if (username == null || password == null) return false;
         try {
@@ -306,6 +490,18 @@ public class UserService {
         }
     }
 
+    /**
+     * Function: updateUserStatus
+     * Description: Updates user status and logs the operation (U14).
+     * Calls: verifyAdminPassword, hasUncompletedOrders, logOperation, NotificationService.addToUser
+     * Called By: AdminController.updateUserStatus
+     * Table Accessed: users
+     * Table Updated: users
+     * Input: targetUser, status, reason, operator, secondAdmin, secondAdminPwd
+     * Output: Map - Result
+     * Return: Map<String, Object>
+     * Others:
+     */
     public Map<String, Object> updateUserStatus(String targetUser, String status, String reason, String operator, String secondAdmin, String secondAdminPwd) {
         Map<String, Object> result = new HashMap<>();
         User user = getUserDetail(targetUser);
@@ -318,7 +514,7 @@ public class UserService {
         if ("permanent_blacklist".equals(status)) {
              if (secondAdmin == null || secondAdminPwd == null || secondAdmin.isBlank() || secondAdminPwd.isBlank()) {
                  result.put("success", false);
-                 result.put("message", "Double audit required: Second admin credentials missing");
+                 result.put("message", "Permanent blacklist requires dual admin approval");
                  return result;
              }
              if (secondAdmin.equals(operator)) {
@@ -360,6 +556,18 @@ public class UserService {
         return result;
     }
 
+    /**
+     * Function: undoBlacklist
+     * Description: Reverts blacklist status if within 24 hours (U14).
+     * Calls: JdbcTemplate.queryForList, logOperation, NotificationService.addToUser
+     * Called By: AdminController.undoBlacklist
+     * Table Accessed: operation_logs, users
+     * Table Updated: users, operation_logs
+     * Input: targetUser, operator, reason
+     * Output: boolean
+     * Return: boolean
+     * Others:
+     */
     public boolean undoBlacklist(String targetUser, String operator, String reason) {
         // Check if last operation was blacklist and within 24h
         // This is a simplification. Ideally we find the last blacklist log.
@@ -380,6 +588,18 @@ public class UserService {
         return true;
     }
 
+    /**
+     * Function: updateUserInfo
+     * Description: Updates user info by admin (U14).
+     * Calls: JdbcTemplate.update, logOperation
+     * Called By: AdminController.updateUserInfo
+     * Table Accessed: users
+     * Table Updated: users, operation_logs
+     * Input: user (User), operator (String)
+     * Output: boolean
+     * Return: boolean
+     * Others:
+     */
     public boolean updateUserInfo(User user, String operator) {
         if (user == null || user.getUsername() == null) return false;
         jdbcTemplate.update(
@@ -390,6 +610,18 @@ public class UserService {
         return true;
     }
 
+    /**
+     * Function: deleteUser
+     * Description: Soft deletes a user (U14).
+     * Calls: JdbcTemplate.update, logOperation, NotificationService.addToUser
+     * Called By: AdminController.deleteUser
+     * Table Accessed: users
+     * Table Updated: users, operation_logs
+     * Input: targetUser, operator
+     * Output: boolean
+     * Return: boolean
+     * Others:
+     */
     public boolean deleteUser(String targetUser, String operator) {
         jdbcTemplate.update("UPDATE users SET status = 'deleted' WHERE username = ?", targetUser);
         logOperation(operator, targetUser, "delete_user", "User deleted");
@@ -397,6 +629,18 @@ public class UserService {
         return true;
     }
 
+    /**
+     * Function: getOperationLogs
+     * Description: Retrieves logs with filters (U14).
+     * Calls: JdbcTemplate.query
+     * Called By: AdminController.getOperationLogs
+     * Table Accessed: operation_logs
+     * Table Updated: None
+     * Input: keyword, targetUser, operator, startTime, endTime, action
+     * Output: List<OperationLog>
+     * Return: List<OperationLog>
+     * Others:
+     */
     public List<OperationLog> getOperationLogs(String keyword, String targetUser, String operator, Long startTime, Long endTime, String action) {
         StringBuilder sql = new StringBuilder("SELECT * FROM operation_logs WHERE 1=1");
         List<Object> params = new ArrayList<>();
@@ -443,6 +687,18 @@ public class UserService {
         }, params.toArray());
     }
 
+    /**
+     * Function: logOperation
+     * Description: Helper to insert a log entry.
+     * Calls: JdbcTemplate.update
+     * Called By: updateUserStatus, undoBlacklist, updateUserInfo, deleteUser
+     * Table Accessed: None
+     * Table Updated: operation_logs
+     * Input: operator, targetUser, action, detail
+     * Output: None
+     * Return: void
+     * Others:
+     */
     private void logOperation(String operator, String targetUser, String action, String detail) {
         jdbcTemplate.update(
             "INSERT INTO operation_logs (operator, target_user, action, detail, create_time) VALUES (?, ?, ?, ?, ?)",
@@ -450,6 +706,18 @@ public class UserService {
         );
     }
 
+    /**
+     * Function: hasUncompletedOrders
+     * Description: Checks if user has pending/paid orders (U14).
+     * Calls: OrderService.listByBuyer, OrderService.listBySeller
+     * Called By: updateUserStatus
+     * Table Accessed: orders
+     * Table Updated: None
+     * Input: username
+     * Output: boolean
+     * Return: boolean
+     * Others:
+     */
     public boolean hasUncompletedOrders(String username) {
         // Check as buyer
         List<com.whu.bookapi.model.Order> buyerOrders = orderService.listByBuyer(username);
@@ -464,6 +732,18 @@ public class UserService {
         return false;
     }
 
+    /**
+     * Function: register
+     * Description: Registers a new user.
+     * Calls: exists, JdbcTemplate.update
+     * Called By: UserController.register
+     * Table Accessed: users, user_roles
+     * Table Updated: users, user_roles
+     * Input: username, password, roles
+     * Output: boolean
+     * Return: boolean
+     * Others:
+     */
     public boolean register(String username, String password, java.util.Set<String> roles) {
         if (username == null || password == null || username.isEmpty() || password.isEmpty()) return false;
         if (exists(username)) return false;
@@ -486,12 +766,36 @@ public class UserService {
         return true;
     }
 
+    /**
+     * Function: exists
+     * Description: Checks if a username exists.
+     * Calls: JdbcTemplate.queryForObject
+     * Called By: register, setUserRole
+     * Table Accessed: users
+     * Table Updated: None
+     * Input: username
+     * Output: boolean
+     * Return: boolean
+     * Others:
+     */
     public boolean exists(String username) {
         if (username == null) return false;
         Integer c = jdbcTemplate.queryForObject("SELECT COUNT(1) FROM users WHERE username = ?", Integer.class, username);
         return c != null && c > 0;
     }
 
+    /**
+     * Function: listAllUsers
+     * Description: Lists all users (Basic).
+     * Calls: JdbcTemplate.queryForList
+     * Called By: AdminController (Legacy)
+     * Table Accessed: users, user_roles
+     * Table Updated: None
+     * Input: None
+     * Output: List<User>
+     * Return: List<User>
+     * Others:
+     */
     public java.util.List<User> listAllUsers() {
         java.util.List<java.util.Map<String, Object>> rows = jdbcTemplate.queryForList("SELECT username, current_role FROM users");
         java.util.List<User> res = new java.util.ArrayList<>();
@@ -513,6 +817,18 @@ public class UserService {
         return res;
     }
 
+    /**
+     * Function: setUserRole
+     * Description: Assigns a role to a user.
+     * Calls: exists, JdbcTemplate.update
+     * Called By: AdminController (Legacy)
+     * Table Accessed: user_roles
+     * Table Updated: user_roles
+     * Input: username, role
+     * Output: boolean
+     * Return: boolean
+     * Others:
+     */
     public boolean setUserRole(String username, String role) {
         if (username == null || role == null) return false;
         if (!exists(username)) return false;
@@ -520,6 +836,18 @@ public class UserService {
         return true;
     }
 
+    /**
+     * Function: getSellerStats
+     * Description: Calculates seller stats.
+     * Calls: JdbcTemplate.queryForObject
+     * Called By: SellerController.getStats
+     * Table Accessed: reviews, orders
+     * Table Updated: None
+     * Input: username
+     * Output: Map
+     * Return: Map<String, Object>
+     * Others:
+     */
     public java.util.Map<String, Object> getSellerStats(String username) {
         if (username == null) return null;
         if (!exists(username)) return null;
@@ -540,17 +868,53 @@ public class UserService {
         return stats;
     }
 
+    /**
+     * Function: deleteUser
+     * Description: Hard deletes a user (Legacy/Admin only).
+     * Calls: JdbcTemplate.update
+     * Called By: AdminController (Legacy)
+     * Table Accessed: None
+     * Table Updated: users
+     * Input: username
+     * Output: boolean
+     * Return: boolean
+     * Others:
+     */
     public boolean deleteUser(String username) {
         if (username == null) return false;
         int updated = jdbcTemplate.update("DELETE FROM users WHERE username = ?", username);
         return updated > 0;
     }
 
+    /**
+     * Function: applySeller
+     * Description: Marks user as pending seller.
+     * Calls: JdbcTemplate.update
+     * Called By: UserController.applySeller
+     * Table Accessed: None
+     * Table Updated: users
+     * Input: username
+     * Output: None
+     * Return: void
+     * Others:
+     */
     public void applySeller(String username) {
         if (username == null) return;
         jdbcTemplate.update("UPDATE users SET seller_status = 'PENDING' WHERE username = ?", username);
     }
 
+    /**
+     * Function: applySeller
+     * Description: Marks user as pending seller with payment code.
+     * Calls: JdbcTemplate.queryForList, JdbcTemplate.update
+     * Called By: UserController.applySeller
+     * Table Accessed: stored_file, users
+     * Table Updated: users
+     * Input: username, paymentCodeFileId
+     * Output: boolean
+     * Return: boolean
+     * Others:
+     */
     public boolean applySeller(String username, Long paymentCodeFileId) {
         if (username == null || paymentCodeFileId == null) return false;
         java.util.List<java.util.Map<String, Object>> rows = jdbcTemplate.queryForList(
@@ -569,6 +933,18 @@ public class UserService {
         return true;
     }
 
+    /**
+     * Function: approveSeller
+     * Description: Approves seller status and grants role.
+     * Calls: JdbcTemplate.update, JdbcTemplate.queryForList
+     * Called By: AdminController.approveSeller
+     * Table Accessed: users
+     * Table Updated: users, user_roles
+     * Input: username
+     * Output: None
+     * Return: void
+     * Others:
+     */
     public void approveSeller(String username) {
         if (username == null) return;
         jdbcTemplate.update("UPDATE users SET seller_status = 'APPROVED' WHERE username = ?", username);
@@ -585,11 +961,35 @@ public class UserService {
         }
     }
 
+    /**
+     * Function: rejectSeller
+     * Description: Rejects seller application.
+     * Calls: JdbcTemplate.update
+     * Called By: AdminController.rejectSeller
+     * Table Accessed: None
+     * Table Updated: users
+     * Input: username
+     * Output: None
+     * Return: void
+     * Others:
+     */
     public void rejectSeller(String username) {
         if (username == null) return;
         jdbcTemplate.update("UPDATE users SET seller_status = 'REJECTED' WHERE username = ?", username);
     }
 
+    /**
+     * Function: listSellerApplications
+     * Description: Lists pending seller applications.
+     * Calls: JdbcTemplate.queryForList
+     * Called By: AdminController.listSellerApplications
+     * Table Accessed: users
+     * Table Updated: None
+     * Input: None
+     * Output: List<User>
+     * Return: List<User>
+     * Others:
+     */
     public java.util.List<User> listSellerApplications() {
         java.util.List<java.util.Map<String, Object>> rows = jdbcTemplate.queryForList(
                 "SELECT username, payment_code_file_id FROM users WHERE seller_status = 'PENDING' ORDER BY username"

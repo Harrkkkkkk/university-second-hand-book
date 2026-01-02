@@ -8,6 +8,18 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+/**
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: BookService.java
+ * Author: WiseBookPal Team Version: 1.0 Date: 2024-11-20
+ * Description: Service class for managing book listings.
+ *              Handles book creation, retrieval, updates, deletions, and stock management.
+ *              Includes features for pagination, filtering, search suggestions, and administrative approvals.
+ * History:
+ * <author>          <time>          <version>          <desc>
+ * WiseBookPal Team  2024-11-20      1.0                Initial implementation.
+ * WiseBookPal Team  2024-12-25      1.1                Added stock management and admin review workflow.
+ */
 @Service
 public class BookService {
     private final JdbcTemplate jdbcTemplate;
@@ -16,6 +28,18 @@ public class BookService {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    /**
+     * Function: add
+     * Description: Adds a new book listing to the database.
+     *              Sets initial status to 'under_review' and default stock to 1.
+     * Called By: BookController.add
+     * Table Accessed: books
+     * Table Updated: books
+     * Input: book (Book) - The book object to add
+     *        sellerName (String) - The name of the seller adding the book
+     * Output: Book - The added book object with generated ID
+     * Return: Book
+     */
     public Book add(Book book, String sellerName) {
         if (book == null) return null;
         book.setSellerName(sellerName);
@@ -49,6 +73,15 @@ public class BookService {
         return book;
     }
 
+    /**
+     * Function: get
+     * Description: Retrieves a book by its ID.
+     * Called By: BookController.get, OrderService.createOrder
+     * Table Accessed: books
+     * Input: id (Long) - The ID of the book to retrieve
+     * Output: Book - The book object, or null if not found
+     * Return: Book
+     */
     public Book get(Long id) {
         if (id == null) return null;
         java.util.List<Book> list = jdbcTemplate.query(
@@ -78,6 +111,18 @@ public class BookService {
         return list.isEmpty() ? null : list.get(0);
     }
 
+    /**
+     * Function: tryReserveStock
+     * Description: Attempts to reserve stock for a book order.
+     *              Decrements stock by 1. If stock reaches 0, sets status to 'offline'.
+     *              Only succeeds if stock is greater than 0.
+     * Called By: OrderService.createOrder
+     * Table Accessed: books
+     * Table Updated: books
+     * Input: id (Long) - The ID of the book to reserve
+     * Output: boolean - True if reservation successful, false otherwise
+     * Return: boolean
+     */
     public boolean tryReserveStock(Long id) {
         if (id == null) return false;
         int updated = jdbcTemplate.update(
@@ -90,6 +135,17 @@ public class BookService {
         return updated > 0;
     }
 
+    /**
+     * Function: releaseStock
+     * Description: Releases reserved stock (e.g., if an order is cancelled).
+     *              Increments stock by 1. If status was 'offline' and stock becomes positive, sets status back to 'on_sale'.
+     * Called By: OrderService.cancelOrder
+     * Table Accessed: books
+     * Table Updated: books
+     * Input: id (Long) - The ID of the book to release
+     * Output: void
+     * Return: void
+     */
     public void releaseStock(Long id) {
         if (id == null) return;
         jdbcTemplate.update(
@@ -101,6 +157,23 @@ public class BookService {
         );
     }
 
+    /**
+     * Function: page
+     * Description: Retrieves a paginated list of books based on various filters.
+     *              Supports filtering by name, price range, and condition.
+     *              Supports sorting by price or creation date.
+     * Called By: BookController.page
+     * Table Accessed: books
+     * Input: bookName (String) - Search keyword for title, author, isbn, or description
+     *        minPrice (Double) - Minimum price filter
+     *        maxPrice (Double) - Maximum price filter
+     *        conditionLevel (String) - Condition level filter
+     *        pageNum (int) - Page number (1-based)
+     *        pageSize (int) - Number of items per page
+     *        sortBy (String) - Sort criteria ("price_asc", "price_desc", "created_desc")
+     * Output: List<Book> - List of books matching criteria
+     * Return: List<Book>
+     */
     public List<Book> page(String bookName, Double minPrice, Double maxPrice, String conditionLevel, int pageNum, int pageSize, String sortBy) {
         int safePageNum = Math.max(pageNum, 1);
         int safePageSize = Math.min(Math.max(pageSize, 1), 200);
@@ -161,6 +234,16 @@ public class BookService {
         );
     }
 
+    /**
+     * Function: getHotBooks
+     * Description: Retrieves a list of random "hot" books.
+     *              Currently implemented as random selection for demonstration.
+     * Called By: BookController.listHot
+     * Table Accessed: books
+     * Input: limit (int) - Number of books to retrieve
+     * Output: List<Book> - List of hot books
+     * Return: List<Book>
+     */
     public List<Book> getHotBooks(int limit) {
         // Simulate hot books by random selection for now
         String sql = "SELECT id, book_name, author, original_price, sell_price, description, seller_name, cover_url, isbn, publisher, publish_date, condition_level, stock, status, created_at, seller_type FROM books WHERE status = 'on_sale' AND stock > 0 ORDER BY RAND() LIMIT ?";
@@ -186,12 +269,34 @@ public class BookService {
         }, limit);
     }
 
+    /**
+     * Function: getSuggestions
+     * Description: Retrieves search suggestions based on a keyword.
+     *              Returns distinct book names matching the keyword.
+     * Called By: BookController.getSuggestions
+     * Table Accessed: books
+     * Input: keyword (String) - Search keyword
+     * Output: List<String> - List of suggested book names
+     * Return: List<String>
+     */
     public List<String> getSuggestions(String keyword) {
         if (keyword == null || keyword.trim().isEmpty()) return new java.util.ArrayList<>();
         String sql = "SELECT DISTINCT book_name FROM books WHERE LOWER(book_name) LIKE ? AND status = 'on_sale' LIMIT 10";
         return jdbcTemplate.queryForList(sql, String.class, "%" + keyword.toLowerCase() + "%");
     }
 
+    /**
+     * Function: count
+     * Description: Counts the total number of books matching search criteria.
+     *              Used for pagination metadata.
+     * Called By: BookController.page
+     * Table Accessed: books
+     * Input: bookName (String) - Search keyword
+     *        minPrice (Double) - Minimum price filter
+     *        maxPrice (Double) - Maximum price filter
+     * Output: long - Total count of matching books
+     * Return: long
+     */
     public long count(String bookName, Double minPrice, Double maxPrice) {
         java.util.List<Object> params = new java.util.ArrayList<>();
         StringBuilder sb = new StringBuilder();
@@ -216,6 +321,15 @@ public class BookService {
         return c == null ? 0 : c;
     }
 
+    /**
+     * Function: listHot
+     * Description: Retrieves a list of the most recently added books.
+     * Called By: BookController.listHot
+     * Table Accessed: books
+     * Input: limit (int) - Number of books to retrieve
+     * Output: List<Book> - List of recent books
+     * Return: List<Book>
+     */
     public List<Book> listHot(int limit) {
         int n = Math.min(Math.max(limit, 1), 50);
         return jdbcTemplate.query(
@@ -244,6 +358,19 @@ public class BookService {
         );
     }
 
+    /**
+     * Function: update
+     * Description: Updates an existing book listing.
+     *              Resets status to 'under_review' after update.
+     *              Verifies that the operator is the owner of the book.
+     * Called By: BookController.update
+     * Table Accessed: books
+     * Table Updated: books
+     * Input: incoming (Book) - The updated book data
+     *        operator (String) - The username of the person performing the update
+     * Output: Book - The updated book object, or null if update failed
+     * Return: Book
+     */
     public Book update(Book incoming, String operator) {
         if (incoming == null || incoming.getId() == null) return null;
         Book origin = get(incoming.getId());
@@ -282,18 +409,51 @@ public class BookService {
         return origin;
     }
 
+    /**
+     * Function: offline
+     * Description: Takes a book listing offline (sets status to 'offline').
+     *              Verifies that the operator is the owner of the book.
+     * Called By: BookController.offline
+     * Table Accessed: books
+     * Table Updated: books
+     * Input: id (Long) - The ID of the book to take offline
+     *        operator (String) - The username of the person performing the action
+     * Output: boolean - True if successful
+     * Return: boolean
+     */
     public boolean offline(Long id, String operator) {
         if (id == null || operator == null) return false;
         int updated = jdbcTemplate.update("UPDATE books SET status = 'offline' WHERE id = ? AND seller_name = ?", id, operator);
         return updated > 0;
     }
 
+    /**
+     * Function: delete
+     * Description: Deletes a book listing from the database.
+     *              Verifies that the operator is the owner of the book.
+     * Called By: BookController.delete
+     * Table Accessed: books
+     * Table Updated: books
+     * Input: id (Long) - The ID of the book to delete
+     *        operator (String) - The username of the person performing the action
+     * Output: boolean - True if successful
+     * Return: boolean
+     */
     public boolean delete(Long id, String operator) {
         if (id == null || operator == null) return false;
         int updated = jdbcTemplate.update("DELETE FROM books WHERE id = ? AND seller_name = ?", id, operator);
         return updated > 0;
     }
 
+    /**
+     * Function: listBySeller
+     * Description: Retrieves all books listed by a specific seller.
+     * Called By: BookController.listBySeller
+     * Table Accessed: books
+     * Input: sellerName (String) - The seller's username
+     * Output: List<Book> - List of books by the seller
+     * Return: List<Book>
+     */
     public java.util.List<Book> listBySeller(String sellerName) {
         if (sellerName == null) return new java.util.ArrayList<>();
         return jdbcTemplate.query(
@@ -322,6 +482,16 @@ public class BookService {
         );
     }
 
+    /**
+     * Function: listUnderReview
+     * Description: Retrieves all books that are currently under review.
+     *              Used by admins to moderate new listings.
+     * Called By: AdminController.listPendingBooks
+     * Table Accessed: books
+     * Input: None
+     * Output: List<Book> - List of books with 'under_review' status
+     * Return: List<Book>
+     */
     public List<Book> listUnderReview() {
         return jdbcTemplate.query(
                 "SELECT id, book_name, author, original_price, sell_price, description, seller_name, cover_url, isbn, publisher, publish_date, condition_level, stock, status, created_at, seller_type FROM books WHERE status = 'under_review' ORDER BY id",
@@ -348,12 +518,32 @@ public class BookService {
         );
     }
 
+    /**
+     * Function: approve
+     * Description: Approves a book listing, making it visible for sale.
+     * Called By: AdminController.approveBook
+     * Table Accessed: books
+     * Table Updated: books
+     * Input: id (Long) - The ID of the book to approve
+     * Output: boolean - True if successful
+     * Return: boolean
+     */
     public boolean approve(Long id) {
         if (id == null) return false;
         int updated = jdbcTemplate.update("UPDATE books SET status = 'on_sale' WHERE id = ?", id);
         return updated > 0;
     }
 
+    /**
+     * Function: reject
+     * Description: Rejects a book listing.
+     * Called By: AdminController.rejectBook
+     * Table Accessed: books
+     * Table Updated: books
+     * Input: id (Long) - The ID of the book to reject
+     * Output: boolean - True if successful
+     * Return: boolean
+     */
     public boolean reject(Long id) {
         if (id == null) return false;
         int updated = jdbcTemplate.update("UPDATE books SET status = 'rejected' WHERE id = ?", id);

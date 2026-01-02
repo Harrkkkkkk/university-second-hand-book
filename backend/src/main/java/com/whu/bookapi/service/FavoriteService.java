@@ -1,3 +1,23 @@
+/**
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: FavoriteService.java
+ * Author: WiseBookPal Team   Version: 1.0   Date: 2026-01-02
+ * Description: Service for managing user favorites (book collection).
+ *              - Handles adding/removing books from favorites.
+ *              - Checks collection status.
+ *              - Lists favorite books or their IDs.
+ * Others:
+ * Function List:
+ * 1. add - Adds a book to favorites.
+ * 2. remove - Removes a book from favorites.
+ * 3. isCollected - Checks if a book is in favorites.
+ * 4. listIds - Lists IDs of all favorite books.
+ * 5. list - Lists full details of favorite books.
+ * History:
+ * <author>          <time>          <version>          <desc>
+ * WiseBookPal Team  2026-01-02      1.0                Initial implementation
+ */
+
 package com.whu.bookapi.service;
 
 import com.whu.bookapi.model.Book;
@@ -6,6 +26,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 
+/**
+ * Service class for Favorites/Collection management.
+ */
 @Service
 public class FavoriteService {
     private final JdbcTemplate jdbcTemplate;
@@ -14,6 +37,18 @@ public class FavoriteService {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    /**
+     * Function: add
+     * Description: Adds a book to the user's favorites list.
+     *              Uses INSERT IGNORE to prevent duplicates.
+     * Calls: JdbcTemplate.update
+     * Called By: FavoriteController.add
+     * Table Accessed: favorites
+     * Table Updated: favorites
+     * Input: username (String), bookId (Long)
+     * Output: None
+     * Return: void
+     */
     public void add(String username, Long bookId) {
         if (username == null || bookId == null) return;
         jdbcTemplate.update(
@@ -24,11 +59,33 @@ public class FavoriteService {
         );
     }
 
+    /**
+     * Function: remove
+     * Description: Removes a book from the user's favorites list.
+     * Calls: JdbcTemplate.update
+     * Called By: FavoriteController.remove
+     * Table Accessed: favorites
+     * Table Updated: favorites
+     * Input: username (String), bookId (Long)
+     * Output: None
+     * Return: void
+     */
     public void remove(String username, Long bookId) {
         if (username == null || bookId == null) return;
         jdbcTemplate.update("DELETE FROM favorites WHERE username = ? AND book_id = ?", username, bookId);
     }
 
+    /**
+     * Function: isCollected
+     * Description: Checks if a specific book is in the user's favorites.
+     * Calls: JdbcTemplate.queryForObject
+     * Called By: FavoriteController.checkStatus
+     * Table Accessed: favorites
+     * Table Updated: None
+     * Input: username (String), bookId (Long)
+     * Output: boolean
+     * Return: boolean
+     */
     public boolean isCollected(String username, Long bookId) {
         if (username == null || bookId == null) return false;
         Integer c = jdbcTemplate.queryForObject(
@@ -40,6 +97,17 @@ public class FavoriteService {
         return c != null && c > 0;
     }
 
+    /**
+     * Function: listIds
+     * Description: Retrieves the list of book IDs favorited by the user.
+     * Calls: JdbcTemplate.queryForList
+     * Called By: FavoriteController.listIds
+     * Table Accessed: favorites
+     * Table Updated: None
+     * Input: username (String)
+     * Output: List<Long>
+     * Return: List<Long>
+     */
     public List<Long> listIds(String username) {
         if (username == null) return new ArrayList<>();
         return jdbcTemplate.queryForList(
@@ -49,6 +117,18 @@ public class FavoriteService {
         );
     }
 
+    /**
+     * Function: list
+     * Description: Retrieves full details of books favorited by the user.
+     *              Only returns books that are currently 'on_sale' and have stock > 0.
+     * Calls: JdbcTemplate.query
+     * Called By: FavoriteController.list
+     * Table Accessed: favorites, books
+     * Table Updated: None
+     * Input: username (String)
+     * Output: List<Book>
+     * Return: List<Book>
+     */
     public List<Book> list(String username) {
         if (username == null) return new ArrayList<>();
         return jdbcTemplate.query(

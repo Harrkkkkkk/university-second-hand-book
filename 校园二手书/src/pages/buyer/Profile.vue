@@ -1,3 +1,14 @@
+<!--
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: Profile.vue
+ * Author: WiseBookPal Team Version: 1.0 Date: 2026-01-02
+ * Description: User profile management page.
+ *              Includes personal info, address management, and security settings.
+ * History:
+ * 1. Date: 2026-01-02
+ *    Author: WiseBookPal Team
+ *    Modification: Initial implementation
+-->
 <template>
   <div class="buyer-profile">
     <div class="page-header">
@@ -239,6 +250,10 @@ const goBack = () => {
   router.back()
 }
 
+/**
+ * Function: loadUser
+ * Description: Fetches and displays current user information.
+ */
 const loadUser = async () => {
   loadingUserInfo.value = true
   try {
@@ -262,6 +277,10 @@ const loadUser = async () => {
   }
 }
 
+/**
+ * Function: loadAddresses
+ * Description: Fetches the user's address list.
+ */
 const loadAddresses = async () => {
   addressLoading.value = true
   try {
@@ -275,7 +294,10 @@ const loadAddresses = async () => {
   }
 }
 
-// 保存个人信息
+/**
+ * Function: saveInfo
+ * Description: Updates the user's profile information.
+ */
 const saveInfo = async () => {
   try {
     await updateUserProfile({
@@ -290,7 +312,10 @@ const saveInfo = async () => {
   }
 }
 
-// 添加地址
+/**
+ * Function: addAddress
+ * Description: Opens the dialog to add a new address.
+ */
 const addAddress = () => {
   addressDialogMode.value = 'add'
   addressForm.value = { id: null, name: '', phone: '', address: '', isDefault: false }
@@ -298,7 +323,11 @@ const addAddress = () => {
   nextTick(() => addressFormRef.value && addressFormRef.value.clearValidate())
 }
 
-// 编辑地址
+/**
+ * Function: editAddress
+ * Description: Opens the dialog to edit an existing address.
+ * Input: row (Object) - Address object
+ */
 const editAddress = (row) => {
   addressDialogMode.value = 'edit'
   addressForm.value = {
@@ -312,7 +341,11 @@ const editAddress = (row) => {
   nextTick(() => addressFormRef.value && addressFormRef.value.clearValidate())
 }
 
-// 删除地址
+/**
+ * Function: deleteAddress
+ * Description: Deletes an address after confirmation.
+ * Input: row (Object) - Address object
+ */
 const deleteAddress = (row) => {
   ElMessageBox.confirm('确认删除该地址吗？', '提示', { type: 'warning' })
     .then(async () => {
@@ -327,6 +360,10 @@ const deleteAddress = (row) => {
     .catch(() => {})
 }
 
+/**
+ * Function: submitAddress
+ * Description: Submits the address form (add or update).
+ */
 const submitAddress = async () => {
   if (!addressFormRef.value) return
   try {
@@ -365,6 +402,10 @@ const changePassword = () => {
   nextTick(() => passwordFormRef.value && passwordFormRef.value.clearValidate())
 }
 
+/**
+ * Function: submitPassword
+ * Description: Submits the password change request.
+ */
 const submitPassword = async () => {
   if (!passwordFormRef.value) return
   try {

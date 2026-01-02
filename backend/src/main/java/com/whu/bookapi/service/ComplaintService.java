@@ -9,6 +9,16 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: ComplaintService.java
+ * Author: WiseBookPal Team Version: 1.0 Date: 2024-11-20
+ * Description: Service class for managing user complaints.
+ *              Handles complaint submission, retrieval, and status updates (resolution).
+ * History:
+ * <author>          <time>          <version>          <desc>
+ * WiseBookPal Team  2024-11-20      1.0                Initial implementation.
+ */
 @Service
 public class ComplaintService {
     private final JdbcTemplate jdbcTemplate;
@@ -17,6 +27,17 @@ public class ComplaintService {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    /**
+     * Function: add
+     * Description: Submits a new complaint for an order.
+     *              Sets initial status to 'pending'.
+     * Called By: ComplaintController.add
+     * Table Accessed: complaints
+     * Table Updated: complaints
+     * Input: c (Complaint) - The complaint object containing order ID, type, and details
+     * Output: Complaint - The created complaint object with generated ID
+     * Return: Complaint
+     */
     public Complaint add(Complaint c) {
         if (c == null || c.getOrderId() == null || c.getUsername() == null) return null;
         c.setCreateTime(System.currentTimeMillis());
@@ -38,6 +59,15 @@ public class ComplaintService {
         return c;
     }
 
+    /**
+     * Function: listByUser
+     * Description: Retrieves all complaints submitted by a specific user.
+     * Called By: ComplaintController.listByUser
+     * Table Accessed: complaints
+     * Input: username (String) - The username of the complainant
+     * Output: List<Complaint> - List of complaints
+     * Return: List<Complaint>
+     */
     public List<Complaint> listByUser(String username) {
         List<Complaint> res = new ArrayList<>();
         if (username == null) return res;
@@ -58,6 +88,16 @@ public class ComplaintService {
         );
     }
 
+    /**
+     * Function: listAll
+     * Description: Retrieves all complaints in the system.
+     *              Used for administrative review.
+     * Called By: AdminController.listComplaints
+     * Table Accessed: complaints
+     * Input: None
+     * Output: List<Complaint> - List of all complaints
+     * Return: List<Complaint>
+     */
     public List<Complaint> listAll() {
         return jdbcTemplate.query(
                 "SELECT id, order_id, username, type, detail, create_time, status FROM complaints ORDER BY create_time DESC",
@@ -75,6 +115,17 @@ public class ComplaintService {
         );
     }
 
+    /**
+     * Function: setStatus
+     * Description: Updates the status of a complaint (e.g., to 'resolved').
+     * Called By: AdminController.resolveComplaint
+     * Table Accessed: complaints
+     * Table Updated: complaints
+     * Input: id (Long) - The ID of the complaint
+     *        status (String) - The new status
+     * Output: boolean - True if successful
+     * Return: boolean
+     */
     public boolean setStatus(Long id, String status) {
         if (id == null || status == null) return false;
         int updated = jdbcTemplate.update("UPDATE complaints SET status = ? WHERE id = ?", status, id);

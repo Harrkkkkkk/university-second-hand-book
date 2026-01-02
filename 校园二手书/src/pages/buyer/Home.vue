@@ -1,3 +1,15 @@
+<!--
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: Home.vue (Buyer)
+ * Author: WiseBookPal Team Version: 1.0 Date: 2026-01-02
+ * Description: Buyer homepage.
+ *              Displays book listings with advanced search, filtering, and bulk cart actions.
+ *              Also features hot book recommendations.
+ * History:
+ * 1. Date: 2026-01-02
+ *    Author: WiseBookPal Team
+ *    Modification: Initial implementation
+-->
 <template>
   <div class="buyer-home">
     <page-header title="买家中心 - 教材选购">
@@ -168,6 +180,10 @@ const selectedIds = ref([])
 const selectedMap = ref({})
 const collectedMap = ref({})
 
+/**
+ * Function: loadCollectedIds
+ * Description: Fetches the list of book IDs collected by the current user.
+ */
 const loadCollectedIds = async () => {
   try {
     const ids = await getCollectedIds()
@@ -181,6 +197,11 @@ const loadCollectedIds = async () => {
   }
 }
 
+/**
+ * Function: loadBooks
+ * Description: Fetches books based on search filters.
+ *              Falls back to hot books if no results found.
+ */
 const loadBooks = async () => {
   loading.value = true
   try {
@@ -214,6 +235,11 @@ const loadBooks = async () => {
   }
 }
 
+/**
+ * Function: querySearchAsync
+ * Description: Fetches search suggestions for autocomplete.
+ * Input: queryString (String), cb (Function)
+ */
 const querySearchAsync = async (queryString, cb) => {
   if (!queryString) {
     cb([])
@@ -235,6 +261,10 @@ const handleSelect = (item) => {
 }
 
 // 搜索教材
+/**
+ * Function: searchBooks
+ * Description: Filters invalid characters and triggers book search.
+ */
 const searchBooks = () => {
   const sanitized = searchKey.value.replace(/[^\w\u4e00-\u9fa5]/g, '')
   if (sanitized !== searchKey.value) {
@@ -246,6 +276,10 @@ const searchBooks = () => {
 }
 
 // 重置筛选
+/**
+ * Function: resetFilter
+ * Description: Resets all search filters to default values.
+ */
 const resetFilter = () => {
   searchKey.value = ''
   category.value = ''
@@ -263,6 +297,11 @@ const toBookDetail = (id) => {
 }
 
 // 加入购物车
+/**
+ * Function: addToCart
+ * Description: Adds a single book to cart.
+ * Input: id (Number)
+ */
 const addToCart = async (id) => {
   try {
     await apiAddToCart(id)
@@ -280,6 +319,10 @@ const onSelectChange = (id) => {
   selectedIds.value = Array.from(set)
 }
 
+/**
+ * Function: bulkAddToCart
+ * Description: Adds multiple selected books to cart.
+ */
 const bulkAddToCart = async () => {
   if (!selectedIds.value.length) { ElMessage.warning('请先选择教材'); return }
   try {
@@ -296,6 +339,11 @@ const bulkAddToCart = async () => {
 }
 
 // 收藏教材
+/**
+ * Function: collectBook
+ * Description: Toggles collection status for a book.
+ * Input: id (Number)
+ */
 const collectBook = async (id) => {
   try {
     if (collectedMap.value[id]) {

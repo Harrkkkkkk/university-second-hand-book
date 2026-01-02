@@ -12,6 +12,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 
+/**
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: NotificationController.java
+ * Author: WiseBookPal Team Version: 1.0 Date: 2024-11-20
+ * Description: Controller for managing system notifications and announcements.
+ * Others:
+ * Function List:
+ * 1. announce - Send a system announcement (Admin only)
+ * 2. list - List user notifications
+ * 3. unreadCount - Get count of unread notifications and chat messages
+ * 4. markRead - Mark a notification as read
+ * 5. markAllRead - Mark all notifications as read
+ * History:
+ * 1. Date: 2024-11-20
+ *    Author: WiseBookPal Team
+ *    Modification: Initial implementation
+ */
 @RestController
 @RequestMapping("/notifications")
 public class NotificationController {
@@ -25,6 +42,19 @@ public class NotificationController {
         this.chatService = chatService;
     }
 
+    /**
+     * Function: announce
+     * Description: Sends a system-wide announcement to all users (broadcast).
+     * Calls: UserService.getByToken, NotificationService.addBroadcast
+     * Called By: Frontend Admin Dashboard
+     * Table Accessed: user_token, users, notifications
+     * Table Updated: notifications
+     * Input: token (String) - Admin token
+     *        body (Map) - Title and content of announcement
+     * Output: None
+     * Return: ResponseEntity<?>
+     * Others: Restricted to admin users.
+     */
     @PostMapping("/announce")
     public ResponseEntity<?> announce(@RequestHeader(value = "token", required = false) String token,
                                       @RequestBody Map<String, String> body) {
@@ -41,6 +71,18 @@ public class NotificationController {
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * Function: list
+     * Description: Lists notifications for the current user.
+     * Calls: UserService.getByToken, NotificationService.listByUser
+     * Called By: Frontend Message Center
+     * Table Accessed: user_token, users, notifications
+     * Table Updated: None
+     * Input: token (String) - User token
+     * Output: List<Map> - List of notifications
+     * Return: ResponseEntity<?>
+     * Others:
+     */
     @GetMapping("/list")
     public ResponseEntity<?> list(@RequestHeader(value = "token", required = false) String token) {
         User u = userService.getByToken(token);
@@ -61,6 +103,18 @@ public class NotificationController {
         return ResponseEntity.ok(dtos);
     }
 
+    /**
+     * Function: unreadCount
+     * Description: Gets the total count of unread notifications and chat messages.
+     * Calls: UserService.getByToken, NotificationService.countUnread, ChatService.countTotalUnread
+     * Called By: Frontend Page Header (Badge)
+     * Table Accessed: user_token, users, notifications, chat_messages
+     * Table Updated: None
+     * Input: token (String) - User token
+     * Output: Map - {"count": total_unread}
+     * Return: ResponseEntity<?>
+     * Others: Combines system notifications and chat messages.
+     */
     @GetMapping("/unread-count")
     public ResponseEntity<?> unreadCount(@RequestHeader(value = "token", required = false) String token) {
         User u = userService.getByToken(token);
@@ -72,6 +126,19 @@ public class NotificationController {
         return ResponseEntity.ok(m);
     }
 
+    /**
+     * Function: markRead
+     * Description: Marks a specific notification as read.
+     * Calls: UserService.getByToken, NotificationService.markRead
+     * Called By: Frontend Message Center
+     * Table Accessed: user_token, users, notifications
+     * Table Updated: notifications (read_status)
+     * Input: token (String) - User token
+     *        id (Long) - Notification ID
+     * Output: None
+     * Return: ResponseEntity<?>
+     * Others:
+     */
     @PostMapping("/read/{id}")
     public ResponseEntity<?> markRead(@RequestHeader(value = "token", required = false) String token,
                                       @PathVariable Long id) {
@@ -81,6 +148,18 @@ public class NotificationController {
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * Function: markAllRead
+     * Description: Marks all notifications for the user as read.
+     * Calls: UserService.getByToken, NotificationService.markAllRead
+     * Called By: Frontend Message Center
+     * Table Accessed: user_token, users, notifications
+     * Table Updated: notifications (read_status)
+     * Input: token (String) - User token
+     * Output: None
+     * Return: ResponseEntity<?>
+     * Others:
+     */
     @PostMapping("/mark-all-read")
     public ResponseEntity<?> markAllRead(@RequestHeader(value = "token", required = false) String token) {
         User u = userService.getByToken(token);

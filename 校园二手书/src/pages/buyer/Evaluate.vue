@@ -1,3 +1,14 @@
+<!--
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: Evaluate.vue
+ * Author: WiseBookPal Team Version: 1.0 Date: 2026-01-02
+ * Description: Order evaluation page.
+ *              Allows buyers to rate and review completed orders.
+ * History:
+ * 1. Date: 2026-01-02
+ *    Author: WiseBookPal Team
+ *    Modification: Initial implementation
+-->
 <template>
   <div class="evaluate-page">
     <page-header title="订单评价" :goBack="goBack">
@@ -42,6 +53,11 @@ const form = ref({ orderId: '', scoreCondition: 5, scoreService: 5, comment: '',
 const tagOptions = ['书籍很新','笔记实用','发货快','沟通顺畅']
 
 import request from '@/api/request'
+
+/**
+ * Function: submit
+ * Description: Submits the evaluation (review) for an order.
+ */
 const submit = async () => {
   try {
     const res = await request({ url: '/reviews/add', method: 'post', data: form.value, headers: { token: localStorage.getItem('token') } })
@@ -50,6 +66,10 @@ const submit = async () => {
   } catch { ElMessage.error('提交失败') }
 }
 
+/**
+ * Function: saveDraft
+ * Description: Saves the current evaluation as a draft.
+ */
 const saveDraft = async () => {
   try {
     const res = await request({ url: '/reviews/draft/save', method: 'post', data: form.value, headers: { token: localStorage.getItem('token') } })

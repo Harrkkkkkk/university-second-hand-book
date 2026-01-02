@@ -1,3 +1,15 @@
+/**
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: index.js
+ * Author: WiseBookPal Team   Version: 1.0   Date: 2026-01-02
+ * Description: Vue Router configuration.
+ *              - Defines application routes for Buyers, Sellers, and Admins.
+ *              - Implements global navigation guards for authentication and role-based access control (RBAC).
+ * History:
+ * <author>          <time>          <version>          <desc>
+ * WiseBookPal Team  2026-01-02      1.0                Initial implementation
+ */
+
 import { createRouter, createWebHistory } from 'vue-router'
 import { ElMessage } from 'element-plus'
 
@@ -153,6 +165,14 @@ const router = createRouter({
 })
 
 // ---------------------- 核心：路由守卫（强制登录+权限控制） ----------------------
+/**
+ * Global Navigation Guard
+ * Description: Checks authentication and role permissions before every route change.
+ * Logic:
+ * 1. If route requires auth and user is not logged in -> Redirect to /login
+ * 2. If user is logged in but has insufficient role -> Redirect to role-specific home
+ * 3. If user is logged in and tries to access /login -> Redirect to role-specific home
+ */
 router.beforeEach((to, from, next) => {
     // 从localStorage读取登录状态（强制校验）
     const token = localStorage.getItem('token') || ''

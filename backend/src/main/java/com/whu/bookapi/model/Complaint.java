@@ -1,14 +1,37 @@
 package com.whu.bookapi.model;
 
+/**
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: Complaint.java
+ * Author: WiseBookPal Team Version: 1.0 Date: 2026-01-02
+ * Description: Model class representing a user complaint.
+ *              Includes complaint details, type, and resolution status.
+ * Others:
+ * Function List:
+ * 1. Getters and Setters for all fields.
+ * History:
+ * 1. Date: 2026-01-02
+ *    Author: WiseBookPal Team
+ *    Modification: Initial implementation
+ */
 public class Complaint {
+    /** Unique ID of the complaint */
     private Long id;
+    /** ID of the order related to the complaint (optional) */
     private Long orderId;
+    /** Username of the complainant */
     private String username;
+    /** Type of complaint (e.g., fraud, harassment) */
     private String type;
+    /** Detailed description of the complaint */
     private String detail;
+    /** Timestamp of complaint creation */
     private long createTime;
-    private String status; // pending, handling, resolved, rejected
+    /** Resolution status (pending, handling, resolved, rejected) */
+    private String status; 
+    /** Reason for the resolution decision */
     private String auditReason;
+    /** Timestamp of resolution */
     private Long auditTime;
 
     public Long getId() { return id; }

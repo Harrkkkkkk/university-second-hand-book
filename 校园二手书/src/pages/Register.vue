@@ -32,6 +32,10 @@ const rules = ref({
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
 })
 
+/**
+ * Function: submit
+ * Description: Validates form and submits registration request.
+ */
 const submit = async () => {
   try {
     await formRef.value.validate()
@@ -44,6 +48,10 @@ const submit = async () => {
   }
 }
 
+/**
+ * Function: toLogin
+ * Description: Navigates to the login page.
+ */
 const toLogin = () => router.push('/login')
 </script>
 

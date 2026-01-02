@@ -1,3 +1,14 @@
+<!--
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: Collect.vue
+ * Author: WiseBookPal Team Version: 1.0 Date: 2026-01-02
+ * Description: Buyer's collection (favorites) page.
+ *              Allows users to view and manage their collected books.
+ * History:
+ * 1. Date: 2026-01-02
+ *    Author: WiseBookPal Team
+ *    Modification: Initial implementation
+-->
 <template>
   <div class="buyer-collect">
     <page-header title="买家中心 - 我的收藏">
@@ -42,6 +53,10 @@ const logout = () => {
 
 const collectList = ref([])
 
+/**
+ * Function: loadFavorites
+ * Description: Loads the current user's favorite books.
+ */
 const loadFavorites = async () => {
   try {
     const res = await listFavorites()
@@ -51,12 +66,20 @@ const loadFavorites = async () => {
   }
 }
 
-// 跳转到教材详情
+/**
+ * Function: toBookDetail
+ * Description: Navigates to the book detail page.
+ * Input: id (Number) - Book ID
+ */
 const toBookDetail = (id) => {
   router.push(`/book/${id}`)
 }
 
-// 取消收藏
+/**
+ * Function: removeCollect
+ * Description: Removes a book from favorites after confirmation.
+ * Input: id (Number) - Book ID
+ */
 const removeCollect = (id) => {
   ElMessageBox.confirm('确认取消收藏？', '提示', {
     confirmButtonText: '确认',

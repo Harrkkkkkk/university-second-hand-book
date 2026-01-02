@@ -1,3 +1,14 @@
+<!--
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: Complaint.vue
+ * Author: WiseBookPal Team Version: 1.0 Date: 2026-01-02
+ * Description: Complaint submission page.
+ *              Allows buyers to submit complaints against orders.
+ * History:
+ * 1. Date: 2026-01-02
+ *    Author: WiseBookPal Team
+ *    Modification: Initial implementation
+-->
 <template>
   <div class="complaint-page">
     <page-header title="发起投诉" :goBack="goBack">
@@ -39,6 +50,12 @@ const logout = () => logoutAndBackToLogin()
 const form = ref({ orderId: '', type: '', detail: '' })
 
 import request from '@/api/request'
+
+/**
+ * Function: submit
+ * Description: Submits a new complaint.
+ *              Validates order ID and sends data to backend.
+ */
 const submit = async () => {
   if (!form.value.orderId) {
     ElMessage.error('订单ID缺失')

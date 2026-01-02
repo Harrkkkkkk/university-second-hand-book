@@ -1,16 +1,41 @@
 package com.whu.bookapi.model;
 
+/**
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: Review.java
+ * Author: WiseBookPal Team Version: 1.0 Date: 2026-01-02
+ * Description: Model class representing a review for an order.
+ *              Includes scores, comments, tags, and moderation status.
+ * Others:
+ * Function List:
+ * 1. Getters and Setters for all fields.
+ * History:
+ * 1. Date: 2026-01-02
+ *    Author: WiseBookPal Team
+ *    Modification: Initial implementation with moderation fields
+ */
 public class Review {
+    /** Unique ID of the review */
     private Long id;
+    /** ID of the associated order */
     private Long orderId;
+    /** Username of the reviewer */
     private String username;
+    /** Score for book condition (1-5) */
     private int scoreCondition;
+    /** Score for service (1-5) */
     private int scoreService;
+    /** Text comment */
     private String comment;
+    /** Timestamp of review creation */
     private long createTime;
+    /** List of tags describing the review */
     private java.util.List<String> tags;
-    private String status; // pending, approved, rejected
+    /** Moderation status (pending, approved, rejected) */
+    private String status; 
+    /** Reason for moderation decision */
     private String auditReason;
+    /** Timestamp of moderation */
     private Long auditTime;
 
     public Long getId() { return id; }

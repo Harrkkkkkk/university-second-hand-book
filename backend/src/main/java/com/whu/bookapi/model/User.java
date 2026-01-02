@@ -1,20 +1,51 @@
 package com.whu.bookapi.model;
 
+/**
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: User.java
+ * Author: WiseBookPal Team Version: 1.1 Date: 2026-01-02
+ * Description: Model class representing a user in the system.
+ *              Includes personal info, credentials, roles, and status.
+ * Others:
+ * Function List:
+ * 1. Getters and Setters for all fields.
+ * History:
+ * 1. Date: 2024-11-20
+ *    Author: WiseBookPal Team
+ *    Modification: Initial implementation
+ * 2. Date: 2026-01-02
+ *    Author: WiseBookPal Team
+ *    Modification: Added status, creditScore, studentId, lastLoginTime for U14
+ */
 public class User {
+    /** User's unique username */
     private String username;
+    /** User's role (admin, buyer, seller) */
     private String role;
+    /** Session token */
     private String token;
-    private String sellerStatus; // NONE, PENDING, APPROVED, REJECTED
+    /** Seller application status (NONE, PENDING, APPROVED, REJECTED) */
+    private String sellerStatus; 
+    /** ID of the payment code file */
     private Long paymentCodeFileId;
+    /** URL of the payment code image */
     private String paymentCodeUrl;
+    /** User's phone number */
     private String phone;
+    /** User's email address */
     private String email;
+    /** User's gender (male, female, secret) */
     private String gender;
-    private String status; // normal, blacklist, deleted
+    /** Account status (normal, blacklist, deleted) */
+    private String status; 
+    /** Credit score (default 100) */
     private int creditScore;
+    /** Student ID number */
     private String studentId;
+    /** Timestamp of last login */
     private Long lastLoginTime;
-    private Long createdAt; // register time
+    /** Timestamp of registration */
+    private Long createdAt; 
 
     public String getUsername() {
         return username;

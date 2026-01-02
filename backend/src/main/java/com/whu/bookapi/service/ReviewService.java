@@ -10,6 +10,30 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: ReviewService.java
+ * Author: WiseBookPal Team Version: 1.0 Date: 2024-11-20
+ * Description: Service for managing book reviews and ratings.
+ *              Handles review submission, drafting, and moderation.
+ * Others:
+ * Function List:
+ * 1. add - Submits a new review.
+ * 2. listByUser - Retrieves reviews by a specific user.
+ * 3. saveDraft - Saves a review draft.
+ * 4. getDraft - Retrieves a saved draft.
+ * 5. listAll - Lists all reviews (for admin).
+ * 6. listPending - Lists pending reviews (for moderation).
+ * 7. audit - Approves or rejects a review.
+ * 8. undoAudit - Reverts a moderation decision within 24 hours.
+ * History:
+ * 1. Date: 2024-11-20
+ *    Author: WiseBookPal Team
+ *    Modification: Initial implementation
+ * 2. Date: 2026-01-02
+ *    Author: WiseBookPal Team
+ *    Modification: Added moderation and undo functionality
+ */
 @Service
 public class ReviewService {
     private final JdbcTemplate jdbcTemplate;
@@ -20,6 +44,12 @@ public class ReviewService {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    /**
+     * Function: filter
+     * Description: Filters sensitive words from text.
+     * Input: s (String) - Input text
+     * Output: String - Filtered text
+     */
     private String filter(String s) {
         if (s == null) return null;
         String r = s;
@@ -29,6 +59,12 @@ public class ReviewService {
         return r;
     }
 
+    /**
+     * Function: tagsToText
+     * Description: Converts a list of tags to a comma-separated string.
+     * Input: tags (List<String>) - List of tags
+     * Output: String - Comma-separated string
+     */
     private static String tagsToText(java.util.List<String> tags) {
         if (tags == null || tags.isEmpty()) return null;
         java.util.List<String> cleaned = new java.util.ArrayList<>();
@@ -41,6 +77,12 @@ public class ReviewService {
         return String.join(",", cleaned);
     }
 
+    /**
+     * Function: textToTags
+     * Description: Converts a comma-separated string to a list of tags.
+     * Input: text (String) - Comma-separated string
+     * Output: List<String> - List of tags
+     */
     private static java.util.List<String> textToTags(String text) {
         if (text == null || text.isEmpty()) return null;
         String[] parts = text.split(",");
@@ -53,6 +95,17 @@ public class ReviewService {
         return tags.isEmpty() ? null : tags;
     }
 
+    /**
+     * Function: add
+     * Description: Adds a new review to the database.
+     * Calls: filter, tagsToText
+     * Called By: ReviewController.add
+     * Table Accessed: reviews
+     * Table Updated: reviews
+     * Input: r (Review) - Review object
+     * Output: Review - Created review with ID
+     * Return: Review
+     */
     public Review add(Review r) {
         if (r == null || r.getOrderId() == null || r.getUsername() == null) return null;
         r.setCreateTime(System.currentTimeMillis());
@@ -76,6 +129,16 @@ public class ReviewService {
         return r;
     }
 
+    /**
+     * Function: listByUser
+     * Description: Retrieves all reviews submitted by a user.
+     * Calls: textToTags
+     * Called By: ReviewController.listByUser
+     * Table Accessed: reviews
+     * Input: username (String) - User's username
+     * Output: List<Review> - List of reviews
+     * Return: List<Review>
+     */
     public List<Review> listByUser(String username) {
         if (username == null) return new ArrayList<>();
         return jdbcTemplate.query(
@@ -96,6 +159,18 @@ public class ReviewService {
         );
     }
 
+    /**
+     * Function: saveDraft
+     * Description: Saves or updates a review draft.
+     * Calls: tagsToText
+     * Called By: ReviewController.saveDraft
+     * Table Accessed: review_draft
+     * Table Updated: review_draft
+     * Input: username (String) - User's username
+     *        r (Review) - Review draft
+     * Output: Review - Saved draft
+     * Return: Review
+     */
     public Review saveDraft(String username, Review r) {
         if (r.getOrderId() == null) return null;
         Review copy = new Review();
@@ -119,6 +194,17 @@ public class ReviewService {
         return copy;
     }
 
+    /**
+     * Function: getDraft
+     * Description: Retrieves a saved review draft.
+     * Calls: textToTags
+     * Called By: ReviewController.getDraft
+     * Table Accessed: review_draft
+     * Input: username (String) - User's username
+     *        orderId (Long) - Order ID
+     * Output: Review - Draft if exists, else null
+     * Return: Review
+     */
     public Review getDraft(String username, Long orderId) {
         if (orderId == null) return null;
         try {
@@ -143,6 +229,16 @@ public class ReviewService {
         }
     }
 
+    /**
+     * Function: listAll
+     * Description: Lists all reviews for admin, including status.
+     * Calls: textToTags
+     * Called By: AdminController.listReviews
+     * Table Accessed: reviews
+     * Input: None
+     * Output: List<Review> - List of all reviews
+     * Return: List<Review>
+     */
     public java.util.List<Review> listAll() {
         return jdbcTemplate.query(
                 "SELECT id, order_id, username, score_condition, score_service, comment, tags, create_time, status, audit_reason, audit_time FROM reviews ORDER BY create_time DESC",
@@ -164,6 +260,16 @@ public class ReviewService {
         );
     }
 
+    /**
+     * Function: listPending
+     * Description: Lists reviews waiting for moderation.
+     * Calls: textToTags
+     * Called By: AdminController.listPendingReviews
+     * Table Accessed: reviews
+     * Input: None
+     * Output: List<Review> - List of pending reviews
+     * Return: List<Review>
+     */
     public List<Review> listPending() {
         return jdbcTemplate.query(
                 "SELECT id, order_id, username, score_condition, score_service, comment, tags, create_time, status FROM reviews WHERE status = 'pending' ORDER BY create_time ASC",
@@ -183,6 +289,18 @@ public class ReviewService {
         );
     }
 
+    /**
+     * Function: audit
+     * Description: Updates the moderation status of a review.
+     * Called By: AdminController.auditReview
+     * Table Accessed: reviews
+     * Table Updated: reviews
+     * Input: id (Long) - Review ID
+     *        status (String) - New status (approved/rejected)
+     *        reason (String) - Reason for decision
+     * Output: boolean - True if successful
+     * Return: boolean
+     */
     public boolean audit(Long id, String status, String reason) {
         if (id == null || status == null) return false;
         long now = System.currentTimeMillis();
@@ -193,6 +311,16 @@ public class ReviewService {
         return updated > 0;
     }
 
+    /**
+     * Function: undoAudit
+     * Description: Reverts a moderation decision if within 24 hours.
+     * Called By: AdminController.undoReviewAudit
+     * Table Accessed: reviews
+     * Table Updated: reviews
+     * Input: id (Long) - Review ID
+     * Output: boolean - True if successful
+     * Return: boolean
+     */
     public boolean undoAudit(Long id) {
         if (id == null) return false;
         long now = System.currentTimeMillis();

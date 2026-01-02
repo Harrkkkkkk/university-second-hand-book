@@ -12,6 +12,22 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: CartController.java
+ * Author: WiseBookPal Team Version: 1.0 Date: 2024-11-20
+ * Description: Controller for shopping cart management.
+ * Others:
+ * Function List:
+ * 1. list - List items in the cart
+ * 2. add - Add an item to the cart
+ * 3. remove - Remove an item from the cart
+ * 4. clear - Clear the cart
+ * History:
+ * 1. Date: 2024-11-20
+ *    Author: WiseBookPal Team
+ *    Modification: Initial implementation
+ */
 @RestController
 @RequestMapping("/cart")
 public class CartController {
@@ -25,6 +41,18 @@ public class CartController {
         this.bookService = bookService;
     }
 
+    /**
+     * Function: list
+     * Description: Lists items in the current user's shopping cart.
+     * Calls: UserService.getByToken, CartService.list, BookService.get
+     * Called By: Frontend Cart Page
+     * Table Accessed: user_token, users, cart_items, books
+     * Table Updated: None
+     * Input: token (String) - User token
+     * Output: List<Map> - List of cart items with book details
+     * Return: ResponseEntity<?>
+     * Others: Enriches cart items with book details.
+     */
     @GetMapping("/list")
     public ResponseEntity<?> list(@RequestHeader(value = "token", required = false) String token) {
         User user = token == null ? null : userService.getByToken(token);
@@ -47,6 +75,19 @@ public class CartController {
         return ResponseEntity.ok(view);
     }
 
+    /**
+     * Function: add
+     * Description: Adds a book to the shopping cart.
+     * Calls: UserService.getByToken, CartService.add
+     * Called By: Frontend Book Detail Page
+     * Table Accessed: user_token, users, cart_items
+     * Table Updated: cart_items
+     * Input: token (String) - User token
+     *        bookId (Long) - ID of the book to add
+     * Output: None
+     * Return: ResponseEntity<?>
+     * Others:
+     */
     @PostMapping("/add/{bookId}")
     public ResponseEntity<?> add(@RequestHeader(value = "token", required = false) String token,
                                  @PathVariable("bookId") Long bookId) {
@@ -60,6 +101,20 @@ public class CartController {
         }
     }
 
+    /**
+     * Function: remove
+     * Description: Removes a book from the shopping cart.
+     * Calls: UserService.getByToken, CartService.remove
+     * Called By: Frontend Cart Page
+     * Table Accessed: user_token, users, cart_items
+     * Table Updated: cart_items
+     * Input: token (String) - User token
+     *        bookId (Long) - ID of the book to remove
+     *        count (Integer) - Number of items to remove (optional)
+     * Output: None
+     * Return: ResponseEntity<?>
+     * Others:
+     */
     @DeleteMapping("/remove/{bookId}")
     public ResponseEntity<?> remove(@RequestHeader(value = "token", required = false) String token,
                                     @PathVariable("bookId") Long bookId,
@@ -70,6 +125,18 @@ public class CartController {
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * Function: clear
+     * Description: Clears all items from the shopping cart.
+     * Calls: UserService.getByToken, CartService.clear
+     * Called By: Frontend Cart Page
+     * Table Accessed: user_token, users, cart_items
+     * Table Updated: cart_items
+     * Input: token (String) - User token
+     * Output: None
+     * Return: ResponseEntity<?>
+     * Others:
+     */
     @PostMapping("/clear")
     public ResponseEntity<?> clear(@RequestHeader(value = "token", required = false) String token) {
         User user = token == null ? null : userService.getByToken(token);

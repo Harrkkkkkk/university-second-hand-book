@@ -50,6 +50,10 @@ const goBack = () => {
   router.back()
 }
 
+/**
+ * Function: toChat
+ * Description: Initiates a chat with the seller.
+ */
 const toChat = () => {
   const currentUsername = localStorage.getItem('username')
   if (sellerName.value === currentUsername) {
@@ -59,6 +63,10 @@ const toChat = () => {
   router.push({ path: '/chat', query: { peer: sellerName.value } })
 }
 
+/**
+ * Function: loadReviews
+ * Description: Loads reviews received by the seller.
+ */
 const loadReviews = async () => {
   try {
     const res = await listSellerReviews(sellerName.value)

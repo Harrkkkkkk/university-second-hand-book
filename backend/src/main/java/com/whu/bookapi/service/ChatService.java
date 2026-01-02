@@ -1,3 +1,22 @@
+/**
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: ChatService.java
+ * Author: WiseBookPal Team   Version: 1.0   Date: 2026-01-02
+ * Description: Service for managing chat messages and conversations.
+ *              - Handles sending messages, retrieving history, and marking messages as read.
+ *              - Manages conversation grouping by context (book or order).
+ * Others:
+ * Function List:
+ * 1. send - Sends a chat message.
+ * 2. markRead - Marks messages from a specific user as read.
+ * 3. countTotalUnread - Counts total unread messages for a user.
+ * 4. history - Retrieves chat history for a specific conversation context.
+ * 5. listConversations - Lists all conversations for a user with last message and unread count.
+ * History:
+ * <author>          <time>          <version>          <desc>
+ * WiseBookPal Team  2026-01-02      1.0                Initial implementation
+ */
+
 package com.whu.bookapi.service;
 
 import com.whu.bookapi.model.ChatMessage;
@@ -9,6 +28,9 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Service class for Chat/Message management.
+ */
 @Service
 public class ChatService {
     private final JdbcTemplate jdbcTemplate;
@@ -17,12 +39,34 @@ public class ChatService {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    /**
+     * Function: key
+     * Description: Generates a unique conversation key based on participants and context.
+     *              Format: [B{bookId}|O{orderId}]:user1:user2 (users sorted alphabetically).
+     * Calls: None
+     * Called By: send, history
+     * Input: a (String), b (String), bookId (Long), orderId (Long)
+     * Output: String (conversation key)
+     * Return: String
+     */
     private String key(String a, String b, Long bookId, Long orderId) {
         String u1 = a.compareTo(b) <= 0 ? a : b;
         String u2 = a.compareTo(b) <= 0 ? b : a;
         return (bookId != null ? "B" + bookId : "O" + (orderId == null ? 0 : orderId)) + ":" + u1 + ":" + u2;
     }
 
+    /**
+     * Function: send
+     * Description: Sends a chat message.
+     *              Generates conversation key, inserts message into database, and sets ID.
+     * Calls: key, JdbcTemplate.update
+     * Called By: ChatController.send
+     * Table Accessed: chat_message
+     * Table Updated: chat_message
+     * Input: m (ChatMessage)
+     * Output: ChatMessage (with ID set)
+     * Return: ChatMessage
+     */
     public ChatMessage send(ChatMessage m) {
         if (m == null || m.getFromUser() == null || m.getToUser() == null) return null;
         m.setCreateTime(System.currentTimeMillis());
@@ -48,6 +92,17 @@ public class ChatService {
         return m;
     }
 
+    /**
+     * Function: markRead
+     * Description: Marks all unread messages from a specific peer as read for the current user.
+     * Calls: JdbcTemplate.update
+     * Called By: ChatController.markRead
+     * Table Accessed: chat_message
+     * Table Updated: chat_message
+     * Input: username (String - current user), peer (String - sender)
+     * Output: None
+     * Return: void
+     */
     public void markRead(String username, String peer) {
         if (username == null || peer == null) return;
         jdbcTemplate.update(
@@ -57,6 +112,17 @@ public class ChatService {
         );
     }
 
+    /**
+     * Function: countTotalUnread
+     * Description: Counts total unread messages for the user across all conversations.
+     * Calls: JdbcTemplate.queryForObject
+     * Called By: ChatController.countUnread
+     * Table Accessed: chat_message
+     * Table Updated: None
+     * Input: username (String)
+     * Output: long
+     * Return: long
+     */
     public long countTotalUnread(String username) {
         if (username == null) return 0;
         Long c = jdbcTemplate.queryForObject(
@@ -67,6 +133,17 @@ public class ChatService {
         return c == null ? 0 : c;
     }
 
+    /**
+     * Function: history
+     * Description: Retrieves chat history between two users for a specific context (book or order).
+     * Calls: key, JdbcTemplate.query
+     * Called By: ChatController.history
+     * Table Accessed: chat_message
+     * Table Updated: None
+     * Input: a (String), b (String), bookId (Long), orderId (Long)
+     * Output: List<ChatMessage>
+     * Return: List<ChatMessage>
+     */
     public List<ChatMessage> history(String a, String b, Long bookId, Long orderId) {
         String k = key(a, b, bookId, orderId);
         return jdbcTemplate.query(
@@ -89,6 +166,18 @@ public class ChatService {
         );
     }
 
+    /**
+     * Function: listConversations
+     * Description: Lists all conversations for the user, aggregated by conversation key.
+     *              Includes the last message content, time, and unread count for each conversation.
+     * Calls: JdbcTemplate.queryForList
+     * Called By: ChatController.listConversations
+     * Table Accessed: chat_message
+     * Table Updated: None
+     * Input: username (String)
+     * Output: List<Map<String, Object>>
+     * Return: List<Map<String, Object>>
+     */
     public java.util.List<java.util.Map<String, Object>> listConversations(String username) {
         if (username == null) return new java.util.ArrayList<>();
         java.util.List<java.util.Map<String, Object>> rows = jdbcTemplate.queryForList(

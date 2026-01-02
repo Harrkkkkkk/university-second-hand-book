@@ -1,3 +1,14 @@
+<!--
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: Login.vue
+ * Author: WiseBookPal Team Version: 1.0 Date: 2026-01-02
+ * Description: User login page.
+ *              Provides functionality for user authentication and redirection based on roles.
+ * History:
+ * 1. Date: 2026-01-02
+ *    Author: WiseBookPal Team
+ *    Modification: Initial implementation
+-->
 <template>
   <div class="login-page">
     <el-card class="login-card" shadow="hover">
@@ -43,10 +54,19 @@ const loginRules = ref({
 })
 
 // 测试账号（模拟数据）
+/**
+ * Function: useTestAccount
+ * Description: Fills the form with a test account credentials.
+ */
 const useTestAccount = () => {
   loginForm.value = { username: 'buyer1', password: '123456' }
 }
 
+/**
+ * Function: submitLogin
+ * Description: Validates form and submits login request.
+ *              Redirects user based on role (admin or buyer).
+ */
 const submitLogin = async () => {
   try {
     await loginFormRef.value.validate()
@@ -83,6 +103,10 @@ const submitLogin = async () => {
   }
 }
 
+/**
+ * Function: toRegister
+ * Description: Navigates to the registration page.
+ */
 const toRegister = () => {
   router.push('/register')
 }

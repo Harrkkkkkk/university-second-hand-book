@@ -27,6 +27,10 @@ const props = defineProps({
   }
 })
 
+/**
+ * Function: toDetail
+ * Description: Navigates to the book detail page.
+ */
 const toDetail = () => {
   router.push({ name: 'BookDetail', params: { id: props.book.id } })
 }

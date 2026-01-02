@@ -1,3 +1,14 @@
+<!--
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: BookList.vue
+ * Author: WiseBookPal Team Version: 1.0 Date: 2026-01-02
+ * Description: Book listing page.
+ *              Displays a list of books with search, filter, and pagination functionalities.
+ * History:
+ * 1. Date: 2026-01-02
+ *    Author: WiseBookPal Team
+ *    Modification: Initial implementation
+-->
 <template>
   <div class="book-list-page">
     <page-header title="二手教材列表"></page-header>
@@ -67,6 +78,11 @@ const total = ref(0)
 const recommendList = ref([])
 let lastSortChange = 0
 
+/**
+ * Function: loadBooks
+ * Description: Fetches a page of books based on current search criteria.
+ *              Loads hot books if no results are found.
+ */
 const loadBooks = async () => {
   try {
     const res = await getBookPage(searchForm.value)
@@ -83,11 +99,19 @@ const loadBooks = async () => {
   }
 }
 
+/**
+ * Function: searchBooks
+ * Description: Resets page to 1 and loads books with new filters.
+ */
 const searchBooks = () => {
   searchForm.value.pageNum = 1
   loadBooks()
 }
 
+/**
+ * Function: resetSearch
+ * Description: Clears all filters and reloads the default book list.
+ */
 const resetSearch = () => {
   searchForm.value = {
     bookName: '',
@@ -99,15 +123,30 @@ const resetSearch = () => {
   loadBooks()
 }
 
+/**
+ * Function: handleSizeChange
+ * Description: Updates page size and reloads.
+ * Input: val (Number)
+ */
 const handleSizeChange = (val) => {
   searchForm.value.pageSize = val
   loadBooks()
 }
+
+/**
+ * Function: handleCurrentChange
+ * Description: Updates current page number and reloads.
+ * Input: val (Number)
+ */
 const handleCurrentChange = (val) => {
   searchForm.value.pageNum = val
   loadBooks()
 }
 
+/**
+ * Function: handleSortChange
+ * Description: Handles sort criteria changes with debouncing (800ms).
+ */
 const handleSortChange = () => {
   const now = Date.now()
   if (now - lastSortChange < 800) return

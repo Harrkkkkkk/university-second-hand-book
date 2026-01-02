@@ -1,3 +1,14 @@
+<!--
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: ReviewDashboard.vue
+ * Author: WiseBookPal Team Version: 1.0 Date: 2026-01-02
+ * Description: Admin dashboard for reviewing book listings.
+ *              Allows admins to approve or reject books uploaded by sellers.
+ * History:
+ * 1. Date: 2026-01-02
+ *    Author: WiseBookPal Team
+ *    Modification: Initial implementation
+-->
 <template>
   <div class="admin-dashboard">
     <page-header title="管理员后台 - 内容审核" :goBack="goBack">
@@ -48,6 +59,12 @@ const goBack = () => router.back()
 const logout = () => logoutAndBackToLogin()
 const underReview = ref([])
 
+/**
+ * Function: resolveCoverUrl
+ * Description: Resolves the full URL for book covers.
+ * Input: url (String)
+ * Return: String (Full URL)
+ */
 const resolveCoverUrl = (url) => {
   if (!url) return ''
   if (url.startsWith('http://') || url.startsWith('https://')) return url
@@ -56,13 +73,28 @@ const resolveCoverUrl = (url) => {
   return url
 }
 
+/**
+ * Function: load
+ * Description: Loads the list of books currently under review.
+ */
 const load = async () => {
   try { underReview.value = await listUnderReviewBooks() || [] } catch { ElMessage.error('加载待审核商品失败') }
 }
 
+/**
+ * Function: approve
+ * Description: Approves a book listing.
+ * Input: id (Number) - Book ID
+ */
 const approve = async (id) => {
   try { await approveBook(id); ElMessage.success('已通过'); load() } catch { ElMessage.error('操作失败') }
 }
+
+/**
+ * Function: reject
+ * Description: Rejects a book listing.
+ * Input: id (Number) - Book ID
+ */
 const reject = async (id) => {
   try { await rejectBook(id); ElMessage.success('已驳回'); load() } catch { ElMessage.error('操作失败') }
 }

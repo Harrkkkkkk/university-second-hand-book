@@ -1,3 +1,21 @@
+/**
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: CartService.java
+ * Author: WiseBookPal Team   Version: 1.0   Date: 2026-01-02
+ * Description: Service for managing shopping cart operations.
+ *              - Handles adding, removing, clearing, and listing cart items.
+ *              - Validates stock and prevents self-purchasing.
+ * Others:
+ * Function List:
+ * 1. add - Adds a book to the cart.
+ * 2. remove - Removes a book from the cart (optionally specific quantity).
+ * 3. clear - Clears all items from the user's cart.
+ * 4. list - Lists all items in the user's cart.
+ * History:
+ * <author>          <time>          <version>          <desc>
+ * WiseBookPal Team  2026-01-02      1.0                Initial implementation
+ */
+
 package com.whu.bookapi.service;
 
 import com.whu.bookapi.model.Book;
@@ -8,6 +26,9 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Service class for Shopping Cart management.
+ */
 @Service
 public class CartService {
     private final BookService bookService;
@@ -18,6 +39,20 @@ public class CartService {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    /**
+     * Function: add
+     * Description: Adds a book to the user's shopping cart.
+     *              Validates if the book exists, if the user is the seller (cannot buy own book),
+     *              and if there is sufficient stock.
+     * Calls: BookService.get, JdbcTemplate.queryForObject, JdbcTemplate.update
+     * Called By: CartController.add
+     * Table Accessed: cart_item, books (via BookService)
+     * Table Updated: cart_item
+     * Input: username (String), bookId (Long)
+     * Output: None
+     * Return: void
+     * Others: Throws RuntimeException if validation fails.
+     */
     public void add(String username, Long bookId) {
         Book book = bookService.get(bookId);
         if (book == null) {
@@ -50,10 +85,32 @@ public class CartService {
         );
     }
 
+    /**
+     * Function: remove
+     * Description: Removes a book from the cart (entirely).
+     * Calls: remove(username, bookId, null)
+     * Called By: CartController.remove
+     * Input: username (String), bookId (Long)
+     * Output: None
+     * Return: void
+     */
     public void remove(String username, Long bookId) {
         remove(username, bookId, null);
     }
 
+    /**
+     * Function: remove
+     * Description: Removes a specific quantity of a book from the cart.
+     *              If count is null or <= 0, removes the item entirely.
+     *              If count >= existing quantity, removes the item entirely.
+     * Calls: JdbcTemplate.queryForObject, JdbcTemplate.update
+     * Called By: remove(username, bookId)
+     * Table Accessed: cart_item
+     * Table Updated: cart_item
+     * Input: username (String), bookId (Long), count (Integer)
+     * Output: None
+     * Return: void
+     */
     public void remove(String username, Long bookId, Integer count) {
         if (username == null || bookId == null) return;
         if (count == null || count <= 0) {
@@ -83,10 +140,32 @@ public class CartService {
         }
     }
 
+    /**
+     * Function: clear
+     * Description: Removes all items from the user's cart.
+     * Calls: JdbcTemplate.update
+     * Called By: CartController.clear
+     * Table Accessed: None
+     * Table Updated: cart_item
+     * Input: username (String)
+     * Output: None
+     * Return: void
+     */
     public void clear(String username) {
         jdbcTemplate.update("DELETE FROM cart_item WHERE username = ?", username);
     }
 
+    /**
+     * Function: list
+     * Description: Retrieves all items in the user's cart.
+     * Calls: JdbcTemplate.queryForList
+     * Called By: CartController.list
+     * Table Accessed: cart_item
+     * Table Updated: None
+     * Input: username (String)
+     * Output: List<CartItem>
+     * Return: List<CartItem>
+     */
     public List<CartItem> list(String username) {
         List<CartItem> res = new ArrayList<>();
         List<java.util.Map<String, Object>> rows = jdbcTemplate.queryForList(

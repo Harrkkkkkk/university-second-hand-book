@@ -1,3 +1,23 @@
+/**
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: FileStorageService.java
+ * Author: WiseBookPal Team   Version: 1.0   Date: 2026-01-02
+ * Description: Service for managing file storage and retrieval.
+ *              - Handles file upload, storage, and metadata retrieval.
+ *              - Computes SHA256 hash for file integrity/deduplication (potential).
+ *              - Manages file storage paths and directories.
+ * Others:
+ * Function List:
+ * 1. save - Saves an uploaded file to disk and records metadata.
+ * 2. getMeta - Retrieves file metadata by ID.
+ * 3. getLocation - Retrieves physical file location by ID.
+ * 4. ensureUploadDir - Ensures the upload directory exists.
+ * 5. sha256Hex - Computes SHA256 hash of an input stream.
+ * History:
+ * <author>          <time>          <version>          <desc>
+ * WiseBookPal Team  2026-01-02      1.0                Initial implementation
+ */
+
 package com.whu.bookapi.service;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -17,6 +37,9 @@ import java.util.HexFormat;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Service class for File Storage management.
+ */
 @Service
 public class FileStorageService {
     private final JdbcTemplate jdbcTemplate;
@@ -27,6 +50,22 @@ public class FileStorageService {
         this.uploadDir = Path.of(uploadDir).toAbsolutePath().normalize();
     }
 
+    /**
+     * Function: save
+     * Description: Saves an uploaded file to the local filesystem and records its metadata in the database.
+     *              - Generates a random UUID filename.
+     *              - Computes SHA256 hash.
+     *              - Stores file content.
+     *              - Inserts metadata into 'stored_file' table.
+     * Calls: ensureUploadDir, sha256Hex, JdbcTemplate.update
+     * Called By: FileController.upload
+     * Table Accessed: stored_file
+     * Table Updated: stored_file
+     * Input: file (MultipartFile), uploader (String - username)
+     * Output: long (file ID)
+     * Return: long
+     * Others: Throws RuntimeException if file is empty or storage fails.
+     */
     public long save(MultipartFile file, String uploader) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("Empty file");
@@ -70,6 +109,17 @@ public class FileStorageService {
         return key.longValue();
     }
 
+    /**
+     * Function: getMeta
+     * Description: Retrieves metadata for a stored file by its ID.
+     * Calls: JdbcTemplate.queryForMap
+     * Called By: FileController.getMeta
+     * Table Accessed: stored_file
+     * Table Updated: None
+     * Input: id (long)
+     * Output: Map<String, Object>
+     * Return: Map<String, Object>
+     */
     public Map<String, Object> getMeta(long id) {
         try {
             return jdbcTemplate.queryForMap(
@@ -81,6 +131,18 @@ public class FileStorageService {
         }
     }
 
+    /**
+     * Function: getLocation
+     * Description: Retrieves the physical storage location and basic info of a file by its ID.
+     *              Used for serving the file content.
+     * Calls: JdbcTemplate.queryForObject
+     * Called By: FileController.download
+     * Table Accessed: stored_file
+     * Table Updated: None
+     * Input: id (long)
+     * Output: StoredFileLocation
+     * Return: StoredFileLocation
+     */
     public StoredFileLocation getLocation(long id) {
         try {
             return jdbcTemplate.queryForObject(
@@ -93,6 +155,15 @@ public class FileStorageService {
         }
     }
 
+    /**
+     * Function: ensureUploadDir
+     * Description: Ensures that the upload directory exists; creates it if necessary.
+     * Calls: Files.createDirectories
+     * Called By: save
+     * Input: None
+     * Output: Path
+     * Return: Path
+     */
     private Path ensureUploadDir() {
         try {
             Files.createDirectories(uploadDir);
@@ -102,6 +173,15 @@ public class FileStorageService {
         return uploadDir;
     }
 
+    /**
+     * Function: sha256Hex
+     * Description: Computes the SHA-256 hash of the input stream.
+     * Calls: MessageDigest.getInstance, HexFormat.of
+     * Called By: save
+     * Input: in (InputStream)
+     * Output: String (Hex representation of SHA-256)
+     * Return: String
+     */
     private static String sha256Hex(InputStream in) throws Exception {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         byte[] buf = new byte[8192];
@@ -112,6 +192,10 @@ public class FileStorageService {
         return HexFormat.of().formatHex(digest.digest());
     }
 
+    /**
+     * Record: StoredFileLocation
+     * Description: Helper record to hold file location, original name, and content type.
+     */
     public record StoredFileLocation(String storagePath, String originalName, String contentType) {
     }
 }

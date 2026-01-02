@@ -13,6 +13,24 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: OrderController.java
+ * Author: WiseBookPal Team Version: 1.0 Date: 2024-11-20
+ * Description: Controller for order management including creation, payment, cancellation, and receiving.
+ * Others:
+ * Function List:
+ * 1. list - List buyer's orders
+ * 2. listForSeller - List seller's orders
+ * 3. create - Create a new order
+ * 4. pay - Pay for an order
+ * 5. cancel - Cancel an order
+ * 6. receive - Confirm receipt of an order
+ * History:
+ * 1. Date: 2024-11-20
+ *    Author: WiseBookPal Team
+ *    Modification: Initial implementation
+ */
 @RestController
 @RequestMapping("/orders")
 public class OrderController {
@@ -30,6 +48,18 @@ public class OrderController {
         this.notificationService = notificationService;
     }
 
+    /**
+     * Function: list
+     * Description: Lists orders where the current user is the buyer.
+     * Calls: UserService.getByToken, OrderService.listByBuyer
+     * Called By: Frontend Buyer Order Page
+     * Table Accessed: user_token, users, orders
+     * Table Updated: None
+     * Input: token (String) - User token
+     * Output: List<Order> - List of orders
+     * Return: ResponseEntity<?>
+     * Others:
+     */
     @GetMapping("/list")
     public ResponseEntity<?> list(@RequestHeader(value = "token", required = false) String token) {
         User user = token == null ? null : userService.getByToken(token);
@@ -38,6 +68,18 @@ public class OrderController {
         return ResponseEntity.ok(orders);
     }
 
+    /**
+     * Function: listForSeller
+     * Description: Lists orders where the current user is the seller.
+     * Calls: UserService.getByToken, OrderService.listBySeller
+     * Called By: Frontend Seller Order Page
+     * Table Accessed: user_token, users, orders
+     * Table Updated: None
+     * Input: token (String) - User token
+     * Output: List<Order> - List of orders
+     * Return: ResponseEntity<?>
+     * Others:
+     */
     @GetMapping("/seller/list")
     public ResponseEntity<?> listForSeller(@RequestHeader(value = "token", required = false) String token) {
         User user = token == null ? null : userService.getByToken(token);
@@ -46,6 +88,19 @@ public class OrderController {
         return ResponseEntity.ok(orders);
     }
 
+    /**
+     * Function: create
+     * Description: Creates a new order for a book.
+     * Calls: UserService.getByToken, BookService.get, BookService.tryReserveStock, OrderService.create, CartService.remove
+     * Called By: Frontend Book Detail / Cart Page
+     * Table Accessed: user_token, users, books, orders, cart_items
+     * Table Updated: orders, books (stock), cart_items
+     * Input: token (String) - User token
+     *        bookId (Long) - ID of the book to buy
+     * Output: Order - Created order
+     * Return: ResponseEntity<?>
+     * Others: Checks if user is buying their own book or if stock is available.
+     */
     @PostMapping("/create")
     public ResponseEntity<?> create(@RequestHeader(value = "token", required = false) String token,
                                     @RequestParam("bookId") Long bookId) {
@@ -70,6 +125,19 @@ public class OrderController {
         return ResponseEntity.ok(o);
     }
 
+    /**
+     * Function: pay
+     * Description: Processes payment for an order.
+     * Calls: UserService.getByToken, OrderService.get, OrderService.setStatus, NotificationService.addToUser
+     * Called By: Frontend Payment Page
+     * Table Accessed: user_token, users, orders
+     * Table Updated: orders (status, payment_time), notifications
+     * Input: token (String) - User token
+     *        id (Long) - Order ID
+     * Output: Order - Updated order
+     * Return: ResponseEntity<?>
+     * Others: Checks for order expiration and valid status.
+     */
     @PostMapping("/pay/{id}")
     public ResponseEntity<?> pay(@RequestHeader(value = "token", required = false) String token,
                                  @PathVariable("id") Long id) {
@@ -98,6 +166,19 @@ public class OrderController {
         return ResponseEntity.ok(o);
     }
 
+    /**
+     * Function: cancel
+     * Description: Cancels an order.
+     * Calls: UserService.getByToken, OrderService.get, OrderService.setStatus, BookService.releaseStock
+     * Called By: Frontend Buyer Order Page
+     * Table Accessed: user_token, users, orders
+     * Table Updated: orders (status), books (stock)
+     * Input: token (String) - User token
+     *        id (Long) - Order ID
+     * Output: Order - Updated order
+     * Return: ResponseEntity<?>
+     * Others: Only pending orders can be cancelled.
+     */
     @PostMapping("/cancel/{id}")
     public ResponseEntity<?> cancel(@RequestHeader(value = "token", required = false) String token,
                                     @PathVariable("id") Long id) {
@@ -116,6 +197,19 @@ public class OrderController {
         return ResponseEntity.ok(o);
     }
 
+    /**
+     * Function: receive
+     * Description: Confirms receipt of an order by the buyer.
+     * Calls: UserService.getByToken, OrderService.get, OrderService.setStatus, NotificationService.addToUser
+     * Called By: Frontend Buyer Order Page
+     * Table Accessed: user_token, users, orders
+     * Table Updated: orders (status, finish_time), notifications
+     * Input: token (String) - User token
+     *        id (Long) - Order ID
+     * Output: Order - Updated order
+     * Return: ResponseEntity<?>
+     * Others: Only paid orders can be received.
+     */
     @PostMapping("/receive/{id}")
     public ResponseEntity<?> receive(@RequestHeader(value = "token", required = false) String token,
                                      @PathVariable("id") Long id) {
