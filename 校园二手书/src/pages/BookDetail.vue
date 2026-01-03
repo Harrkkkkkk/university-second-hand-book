@@ -125,7 +125,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
 import { getBookDetail } from '@/api/bookApi'
 import { createOrder } from '@/api/orderApi'
@@ -193,6 +193,26 @@ const loadData = async () => {
   }
 }
 
+const checkIdentity = () => {
+  const isVerified = localStorage.getItem('isVerified') === '1'
+  if (!isVerified) {
+     ElMessageBox.confirm(
+       '购买商品前需要先完成实名认证，是否前往认证？',
+       '提示',
+       {
+         confirmButtonText: '去认证',
+         cancelButtonText: '取消',
+         type: 'warning'
+       }
+     ).then(() => {
+       const bookId = route.params.id
+       router.push(`/verify-identity?redirect=/book/${bookId}`)
+     }).catch(() => {})
+     return false
+  }
+  return true
+}
+
 /**
  * Function: addToCart
  * Description: Adds the current book to the shopping cart.
@@ -200,30 +220,25 @@ const loadData = async () => {
 const addToCart = async () => {
   try {
     await apiAddToCart(book.value.id)
-    ElMessage.success('加入购物车成功！')
+    ElMessage.success('已加入购物车')
   } catch (e) {
-    const msg = e.response?.data || '加入购物车失败'
-    ElMessage.error(msg)
+    ElMessage.error(e.message || '加入购物车失败')
   }
 }
 
 /**
  * Function: buyNow
- * Description: Creates an order for the book immediately and redirects to payment.
+ * Description: Directly creates an order for the current book.
+ *              Redirects to the order list upon success.
  */
 const buyNow = async () => {
+  if (!checkIdentity()) return
   try {
-    // Create order directly? Or redirect to confirm page?
-    // Requirement says "Immediate purchase flow". Usually creates order and goes to payment.
-    const res = await createOrder(book.value.id)
-    if (!res || !res.id) {
-      ElMessage.error('下单失败')
-      return
-    }
-    ElMessage.success('下单成功，前往订单页付款')
+    await createOrder(book.value.id)
+    ElMessage.success('下单成功！')
     router.push('/buyer/order')
   } catch (e) {
-    ElMessage.error('下单失败: ' + (e.response?.data?.message || e.message))
+    ElMessage.error(e.message || '下单失败')
   }
 }
 

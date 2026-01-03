@@ -8,6 +8,9 @@
  * 1. Date: 2026-01-02
  *    Author: WiseBookPal Team
  *    Modification: Initial implementation
+ * 2. Date: 2026-01-02
+ *    Author: WiseBookPal Team
+ *    Modification: Added image upload and display support.
 -->
 <template>
   <div class="chat-page">
@@ -18,10 +21,23 @@
       <div class="chat-box">
         <div v-for="m in messages" :key="m.id" :class="m.fromUser===username? 'msg me':'msg peer'">
           <div class="meta">{{ m.fromUser }} · {{ formatTime(m.createTime) }}</div>
-          <div class="content">{{ m.content }}</div>
+          <div class="content">
+            <template v-if="m.type === 'image'">
+              <el-image 
+                :src="m.content" 
+                :preview-src-list="[m.content]"
+                style="max-width: 200px; border-radius: 4px;"
+              />
+            </template>
+            <template v-else>
+              {{ m.content }}
+            </template>
+          </div>
         </div>
       </div>
       <div class="input-bar">
+        <el-button :icon="Plus" circle @click="chooseFile" />
+        <input type="file" ref="fileInput" style="display:none" accept="image/*" @change="handleFileChange">
         <el-input v-model="text" placeholder="输入消息..." @keyup.enter.native="send"></el-input>
         <el-button type="primary" @click="send">发送</el-button>
       </div>
@@ -35,7 +51,9 @@ import { useRoute, useRouter } from 'vue-router'
 import PageHeader from '@/components/PageHeader.vue'
 import { logoutAndBackToLogin } from '@/utils/auth.js'
 import { sendMessage, getHistory, markRead } from '@/api/chatApi'
+import { uploadFile } from '@/api/bookApi'
 import { ElMessage } from 'element-plus'
+import { Plus } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -52,6 +70,34 @@ const logout = () => logoutAndBackToLogin()
 
 const messages = ref([])
 const text = ref('')
+const fileInput = ref(null)
+
+const chooseFile = () => {
+  fileInput.value.click()
+}
+
+const handleFileChange = async (e) => {
+  const file = e.target.files[0]
+  if (!file) return
+  
+  try {
+    const res = await uploadFile(file)
+    if (res && res.url) {
+      await sendMessage({ 
+        toUser: peer, 
+        content: res.url, 
+        bookId, 
+        orderId, 
+        type: 'image' 
+      })
+      load()
+    }
+  } catch (err) {
+    ElMessage.error('图片发送失败')
+  } finally {
+    e.target.value = '' // Reset input
+  }
+}
 
 /**
  * Function: load
@@ -73,7 +119,7 @@ const load = async () => {
 const send = async () => {
   if (!text.value) return
   try {
-    await sendMessage({ toUser: peer, content: text.value, bookId, orderId })
+    await sendMessage({ toUser: peer, content: text.value, bookId, orderId, type: 'text' })
     text.value = ''
     load()
   } catch { ElMessage.error('发送失败') }

@@ -44,8 +44,23 @@ public class User {
     private String studentId;
     /** Timestamp of last login */
     private Long lastLoginTime;
+    /** Timestamp of last seller audit (rejection) */
+    private Long lastAuditTime;
     /** Timestamp of registration */
     private Long createdAt; 
+    /** Real name of the user (verified) */
+    private String realName;
+    /** Whether the user is identity verified */
+    private boolean isVerified;
+
+    public String getRealName() { return realName; }
+    public void setRealName(String realName) { this.realName = realName; }
+
+    public boolean getIsVerified() { return isVerified; }
+    public void setIsVerified(boolean isVerified) { this.isVerified = isVerified; }
+
+    public Long getLastAuditTime() { return lastAuditTime; }
+    public void setLastAuditTime(Long lastAuditTime) { this.lastAuditTime = lastAuditTime; }
 
     public String getUsername() {
         return username;

@@ -24,7 +24,7 @@
           <!-- 卖家专属菜单（仅通过审核的卖家显示） -->
           <el-menu-item v-if="role !== 'admin' && sellerStatus === 'APPROVED'" index="5" @click="toSellerCenter">卖家中心</el-menu-item>
           <el-menu-item v-if="role !== 'admin' && sellerStatus === 'APPROVED'" index="6" @click="toPublish">发布教材</el-menu-item>
-          <el-menu-item v-if="role !== 'admin' && sellerStatus === 'NONE'" index="7" @click="toSellerApply">申请成为卖家</el-menu-item>
+          <el-menu-item v-if="role !== 'admin' && (sellerStatus === 'NONE' || sellerStatus === 'REJECTED')" index="7" @click="toSellerApply">申请成为卖家</el-menu-item>
           <el-menu-item v-if="role !== 'admin' && sellerStatus === 'PENDING'" index="7" disabled>卖家资质审核中</el-menu-item>
 
           <!-- 管理员专属菜单 -->

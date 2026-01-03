@@ -26,6 +26,21 @@ public class LoginResponse {
     /** Seller Status (e.g., NONE, PENDING, APPROVED) */
     private String sellerStatus;
 
+    /** Response Message */
+    private String message;
+
+    /** Real name (verified) */
+    private String realName;
+
+    /** Is Identity Verified */
+    private boolean isVerified;
+
+    public String getRealName() { return realName; }
+    public void setRealName(String realName) { this.realName = realName; }
+
+    public boolean getIsVerified() { return isVerified; }
+    public void setIsVerified(boolean isVerified) { this.isVerified = isVerified; }
+
     public String getToken() {
         return token;
     }
@@ -56,5 +71,13 @@ public class LoginResponse {
 
     public void setSellerStatus(String sellerStatus) {
         this.sellerStatus = sellerStatus;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
     }
 }

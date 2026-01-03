@@ -96,10 +96,16 @@ DEALLOCATE PREPARE stmt_users_gender;
 
 -- Add user management columns
 SET @users_has_status := (SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'status');
-SET @users_status_sql := IF(@users_has_status = 0, 'ALTER TABLE users ADD COLUMN status VARCHAR(32) NOT NULL DEFAULT ''normal'', ADD COLUMN credit_score INT NOT NULL DEFAULT 100, ADD COLUMN student_id VARCHAR(32), ADD COLUMN last_login_time BIGINT', 'SELECT 1');
+SET @users_status_sql := IF(@users_has_status = 0, 'ALTER TABLE users ADD COLUMN status VARCHAR(32) NOT NULL DEFAULT ''normal'', ADD COLUMN credit_score INT NOT NULL DEFAULT 100, ADD COLUMN student_id VARCHAR(32), ADD COLUMN last_login_time BIGINT, ADD COLUMN last_audit_time BIGINT', 'SELECT 1');
 PREPARE stmt_users_status FROM @users_status_sql;
 EXECUTE stmt_users_status;
 DEALLOCATE PREPARE stmt_users_status;
+
+SET @users_has_last_audit_time := (SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'last_audit_time');
+SET @users_last_audit_time_sql := IF(@users_has_last_audit_time = 0, 'ALTER TABLE users ADD COLUMN last_audit_time BIGINT', 'SELECT 1');
+PREPARE stmt_users_last_audit_time FROM @users_last_audit_time_sql;
+EXECUTE stmt_users_last_audit_time;
+DEALLOCATE PREPARE stmt_users_last_audit_time;
 
 CREATE TABLE IF NOT EXISTS operation_logs (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -314,12 +320,19 @@ CREATE TABLE IF NOT EXISTS chat_message (
   content TEXT,
   create_time BIGINT NOT NULL,
   is_read TINYINT(1) NOT NULL DEFAULT 0,
+  type VARCHAR(16) NOT NULL DEFAULT 'text',
   INDEX idx_chat_conv_time (conv_key, create_time),
   INDEX idx_chat_to_user_read (to_user, is_read),
   INDEX idx_chat_users (from_user, to_user),
   CONSTRAINT fk_chat_from_user FOREIGN KEY (from_user) REFERENCES users(username) ON DELETE CASCADE,
   CONSTRAINT fk_chat_to_user FOREIGN KEY (to_user) REFERENCES users(username) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+SET @chat_message_has_type := (SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'chat_message' AND COLUMN_NAME = 'type');
+SET @chat_message_type_sql := IF(@chat_message_has_type = 0, 'ALTER TABLE chat_message ADD COLUMN type VARCHAR(16) NOT NULL DEFAULT ''text''', 'SELECT 1');
+PREPARE stmt_chat_message_type FROM @chat_message_type_sql;
+EXECUTE stmt_chat_message_type;
+DEALLOCATE PREPARE stmt_chat_message_type;
 
 INSERT IGNORE INTO users (username, password, current_role, seller_status, created_at) VALUES
 ('buyer1', '123456', 'buyer', 'NONE', UNIX_TIMESTAMP() * 1000),
@@ -343,3 +356,29 @@ INSERT IGNORE INTO books (id, book_name, author, original_price, sell_price, sel
 (6, '西游记', '吴承恩', 38, 12, '卖家2', '九成新', 10, 'on_sale', UNIX_TIMESTAMP() * 1000),
 (7, 'MySQL实战', '王五', 99, 28, '卖家1', '九成新', 10, 'on_sale', UNIX_TIMESTAMP() * 1000),
 (8, '财务管理', '赵六', 59, 18, '卖家2', '九成新', 10, 'on_sale', UNIX_TIMESTAMP() * 1000);
+
+-- Create Mock University Database Table
+CREATE TABLE IF NOT EXISTS university_students (
+  student_id VARCHAR(32) PRIMARY KEY,
+  name VARCHAR(64) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Populate with some dummy data for testing
+INSERT IGNORE INTO university_students (student_id, name) VALUES
+('2021001', '张三'),
+('2021002', '李四'),
+('2021003', '王五'),
+('2024001', 'TestUser');
+
+-- Add Real-name Authentication columns to users
+SET @users_has_real_name := (SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'real_name');
+SET @users_real_name_sql := IF(@users_has_real_name = 0, 'ALTER TABLE users ADD COLUMN real_name VARCHAR(64)', 'SELECT 1');
+PREPARE stmt_users_real_name FROM @users_real_name_sql;
+EXECUTE stmt_users_real_name;
+DEALLOCATE PREPARE stmt_users_real_name;
+
+SET @users_has_is_verified := (SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'is_verified');
+SET @users_is_verified_sql := IF(@users_has_is_verified = 0, 'ALTER TABLE users ADD COLUMN is_verified TINYINT(1) NOT NULL DEFAULT 0', 'SELECT 1');
+PREPARE stmt_users_is_verified FROM @users_is_verified_sql;
+EXECUTE stmt_users_is_verified;
+DEALLOCATE PREPARE stmt_users_is_verified;

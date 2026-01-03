@@ -32,7 +32,7 @@ import java.util.Map;
  * 6. reject - Rejects a book listing.
  * 7. listUsers - Searches for users (U14).
  * 8. setRole - Sets user role.
- * 9. deleteUser - Deletes a user (U14).
+ * 9. [Disabled] deleteUser - Deletes a user (U14).
  * 10. getUserDetail - Gets user details (U14).
  * 11. updateUserStatus - Updates user status (U14).
  * 12. undoBlacklist - Undoes blacklist (U14).
@@ -275,13 +275,14 @@ public class AdminController {
      * Calls: UserService.deleteUser
      * Called By: Frontend Admin Dashboard
      * Table Accessed: user_token, users
-     * Table Updated: users (status)
+     * Table Updated: users, books, orders, user_roles, user_token, etc. (Hard Delete)
      * Input: token (String) - Admin token
      *        username (String) - Target user
      * Output: None
      * Return: ResponseEntity<?>
      * Others:
      */
+    /*
     @DeleteMapping("/users/{username}")
     public ResponseEntity<?> deleteUser(@RequestHeader(value = "token", required = false) String token,
                                         @PathVariable("username") String username) {
@@ -291,6 +292,7 @@ public class AdminController {
         if (!ok) return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         return ResponseEntity.ok().build();
     }
+    */
 
     /**
      * Function: getUserDetail

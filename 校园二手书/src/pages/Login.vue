@@ -35,10 +35,11 @@
 <script setup>
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { login as apiLogin } from '@/api/userApi'
 
 const router = useRouter()
+const route = useRoute()
 const loginFormRef = ref(null)
 
 // 登录表单
@@ -83,8 +84,18 @@ const submitLogin = async () => {
     localStorage.setItem('role', res.role)
     localStorage.setItem('username', res.username)
     if (res.sellerStatus) localStorage.setItem('sellerStatus', res.sellerStatus)
+    if (res.realName) localStorage.setItem('realName', res.realName)
+    localStorage.setItem('isVerified', res.isVerified ? '1' : '0')
     
     ElMessage.success('登录成功！')
+    
+    // Check if there is a redirect query param
+    const redirect = route.query.redirect
+    if (redirect) {
+      router.push(redirect)
+      return
+    }
+
     if (res.role === 'admin') {
       router.push('/admin/dashboard')
     } else {

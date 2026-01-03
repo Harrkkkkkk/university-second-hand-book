@@ -115,6 +115,23 @@ const clear = async () => {
  * Input: bookId (Number)
  */
 const orderAndPay = async (bookId) => {
+  // Check identity
+  const isVerified = localStorage.getItem('isVerified') === '1'
+  if (!isVerified) {
+    ElMessageBox.confirm(
+      '下单前需要先完成实名认证，是否前往认证？',
+      '提示',
+      {
+        confirmButtonText: '去认证',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    ).then(() => {
+      router.push('/verify-identity?redirect=/buyer/cart')
+    }).catch(() => {})
+    return
+  }
+
   try {
     const order = await createOrder(bookId)
     if (!order || !order.id) { ElMessage.error('下单失败'); return }

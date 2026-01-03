@@ -15,7 +15,9 @@
  * History:
  * <author>          <time>          <version>          <desc>
  * WiseBookPal Team  2026-01-02      1.0                Initial implementation
+ * WiseBookPal Team  2026-01-02      1.1                Added image support (type field).
  */
+
 
 package com.whu.bookapi.service;
 
@@ -71,9 +73,10 @@ public class ChatService {
         if (m == null || m.getFromUser() == null || m.getToUser() == null) return null;
         m.setCreateTime(System.currentTimeMillis());
         m.setRead(false);
+        if (m.getType() == null) m.setType("text");
         String k = key(m.getFromUser(), m.getToUser(), m.getBookId(), m.getOrderId());
         KeyHolder keyHolder = new GeneratedKeyHolder();
-        String sql = "INSERT INTO chat_message (conv_key, from_user, to_user, book_id, order_id, content, create_time, is_read) VALUES (?, ?, ?, ?, ?, ?, ?, 0)";
+        String sql = "INSERT INTO chat_message (conv_key, from_user, to_user, book_id, order_id, content, create_time, is_read, type) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)";
         jdbcTemplate.update(connection -> {
             var ps = connection.prepareStatement(sql, new String[]{"id"});
             ps.setString(1, k);
@@ -85,6 +88,7 @@ public class ChatService {
             else ps.setLong(5, m.getOrderId());
             ps.setString(6, m.getContent());
             ps.setLong(7, m.getCreateTime());
+            ps.setString(8, m.getType());
             return ps;
         }, keyHolder);
         Number id = keyHolder.getKey();
@@ -147,7 +151,7 @@ public class ChatService {
     public List<ChatMessage> history(String a, String b, Long bookId, Long orderId) {
         String k = key(a, b, bookId, orderId);
         return jdbcTemplate.query(
-                "SELECT id, from_user, to_user, book_id, order_id, content, create_time, is_read FROM chat_message WHERE conv_key = ? ORDER BY create_time ASC, id ASC",
+                "SELECT id, from_user, to_user, book_id, order_id, content, create_time, is_read, type FROM chat_message WHERE conv_key = ? ORDER BY create_time ASC, id ASC",
                 (rs, rowNum) -> {
                     ChatMessage m = new ChatMessage();
                     m.setId(rs.getLong("id"));
@@ -160,6 +164,8 @@ public class ChatService {
                     m.setContent(rs.getString("content"));
                     m.setCreateTime(rs.getLong("create_time"));
                     m.setRead(rs.getInt("is_read") != 0);
+                    m.setType(rs.getString("type"));
+                    if (m.getType() == null) m.setType("text");
                     return m;
                 },
                 k

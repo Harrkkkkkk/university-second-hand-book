@@ -76,6 +76,11 @@ public class UserController {
             m.put("message", "用户名或密码错误");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(m);
         }
+        if (resp.getMessage() != null) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("message", resp.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(m);
+        }
         return ResponseEntity.ok(resp);
     }
 
@@ -129,6 +134,9 @@ public class UserController {
         m.put("phone", user.getPhone());
         m.put("email", user.getEmail());
         m.put("gender", user.getGender());
+        m.put("lastAuditTime", user.getLastAuditTime());
+        m.put("realName", user.getRealName());
+        m.put("isVerified", user.getIsVerified());
         return ResponseEntity.ok(m);
     }
 
@@ -340,36 +348,14 @@ public class UserController {
      * Description: Submits an application to become a seller.
      * Calls: UserService.getByToken, UserService.applySeller
      * Input: token (String) - User token
-     *        body (Map) - Payment code file ID
-     * Output: Map - Error message if failed
+     * Output: None
      * Return: ResponseEntity<?>
      */
     @PostMapping("/apply-seller")
-    public ResponseEntity<?> applySeller(@RequestHeader(value = "token", required = false) String token,
-                                         @RequestBody(required = false) Map<String, Object> body) {
+    public ResponseEntity<?> applySeller(@RequestHeader(value = "token", required = false) String token) {
         User user = token == null ? null : userService.getByToken(token);
         if (user == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        Object fileIdObj = body == null ? null : body.get("paymentCodeFileId");
-        Long paymentCodeFileId = null;
-        if (fileIdObj instanceof Number) {
-            paymentCodeFileId = ((Number) fileIdObj).longValue();
-        } else if (fileIdObj instanceof String) {
-            try {
-                paymentCodeFileId = Long.parseLong((String) fileIdObj);
-            } catch (NumberFormatException ignored) {
-            }
-        }
-        if (paymentCodeFileId == null) {
-            Map<String, Object> m = new HashMap<>();
-            m.put("message", "缺少收款码图片");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(m);
-        }
-        boolean ok = userService.applySeller(user.getUsername(), paymentCodeFileId);
-        if (!ok) {
-            Map<String, Object> m = new HashMap<>();
-            m.put("message", "收款码图片无效");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(m);
-        }
+        userService.applySeller(user.getUsername());
         return ResponseEntity.ok().build();
     }
 
@@ -414,5 +400,61 @@ public class UserController {
         java.util.Map<String, Object> stats = userService.getSellerStats(username);
         if (stats == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         return ResponseEntity.ok(stats);
+    }
+
+    /**
+     * Function: deleteAccount
+     * Description: Allows user to delete their own account.
+     * Calls: UserService.deleteSelf, UserService.logout
+     * Input: token (String)
+     * Output: None
+     * Return: ResponseEntity<?>
+     */
+    @DeleteMapping("/account")
+    public ResponseEntity<?> deleteAccount(@RequestHeader(value = "token", required = false) String token) {
+        User user = token == null ? null : userService.getByToken(token);
+        if (user == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        
+        boolean ok = userService.deleteSelf(user.getUsername());
+        if (ok) {
+            userService.logout(token);
+            return ResponseEntity.ok().build();
+        } else {
+             Map<String, Object> m = new HashMap<>();
+             m.put("message", "删除失败");
+             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(m);
+        }
+    }
+
+    /**
+     * Function: verifyIdentity
+     * Description: Verifies user identity.
+     * Calls: UserService.verifyIdentity
+     * Called By: Frontend IdentityVerify Page
+     * Table Accessed: university_students
+     * Table Updated: users
+     * Input: token (String), body (Map) - studentId, name
+     * Output: Map - Success status
+     * Return: ResponseEntity<?>
+     * Others:
+     */
+    @PostMapping("/verify-identity")
+    public ResponseEntity<?> verifyIdentity(@RequestHeader(value = "token", required = false) String token,
+                                            @RequestBody Map<String, String> body) {
+        User u = userService.getByToken(token);
+        if (u == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        
+        String studentId = body.get("studentId");
+        String name = body.get("name");
+        
+        if (studentId == null || name == null) {
+             return ResponseEntity.badRequest().body(Map.of("message", "请输入学号和姓名"));
+        }
+        
+        boolean ok = userService.verifyIdentity(u.getUsername(), studentId, name);
+        if (!ok) {
+            return ResponseEntity.badRequest().body(Map.of("message", "实名认证失败，学号或姓名不匹配"));
+        }
+        return ResponseEntity.ok(Map.of("message", "实名认证成功"));
     }
 }

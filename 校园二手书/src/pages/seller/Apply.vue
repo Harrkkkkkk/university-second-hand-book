@@ -26,6 +26,17 @@
         </ul>
 
         <el-alert
+          v-if="cooldownMsg"
+          title="无法申请"
+          type="error"
+          :description="cooldownMsg"
+          show-icon
+          :closable="false"
+          style="margin: 20px 0;"
+        />
+
+        <el-alert
+          v-else
           title="申请须知"
           type="info"
           description="提交申请后，管理员将在1-3个工作日内审核您的资质。审核通过后，您将获得卖家权限。"
@@ -35,7 +46,9 @@
         />
         
         <div class="actions">
-          <el-button type="primary" size="large" @click="handleApply" :loading="loading">立即申请</el-button>
+          <el-button type="primary" size="large" @click="handleApply" :loading="loading" :disabled="isCooldown">
+            {{ isCooldown ? '冷却中' : '立即申请' }}
+          </el-button>
           <el-button size="large" @click="$router.push('/buyer/home')">暂不申请</el-button>
         </div>
       </div>
@@ -44,19 +57,81 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { applySeller } from '@/api/userApi'
+import { applySeller, getUserInfo } from '@/api/userApi'
 
 const router = useRouter()
 const loading = ref(false)
+const cooldownMsg = ref('')
+const isCooldown = ref(false)
+let timer = null
+
+onMounted(async () => {
+  try {
+    const res = await getUserInfo()
+    if (res) {
+      const u = res
+      if (u.sellerStatus === 'REJECTED' && u.lastAuditTime) {
+        checkCooldown(u.lastAuditTime)
+      }
+    }
+  } catch (e) {
+    console.error(e)
+  }
+})
+
+onUnmounted(() => {
+  if (timer) clearInterval(timer)
+})
+
+const checkCooldown = (lastAuditTime) => {
+  const update = () => {
+    const diff = Date.now() - lastAuditTime
+    const cooldownTime = 20 * 60 * 1000
+    if (diff < cooldownTime) {
+      isCooldown.value = true
+      const remaining = cooldownTime - diff
+      const min = Math.floor(remaining / 60000)
+      const sec = Math.floor((remaining % 60000) / 1000)
+      cooldownMsg.value = `您的申请已被驳回，请在 ${min} 分 ${sec} 秒后再次申请`
+    } else {
+      isCooldown.value = false
+      cooldownMsg.value = ''
+      if (timer) clearInterval(timer)
+    }
+  }
+  update()
+  timer = setInterval(update, 1000)
+}
 
 /**
  * Function: handleApply
  * Description: Submits a seller application request.
  */
 const handleApply = async () => {
+  // Check if user is verified
+  const isVerified = localStorage.getItem('isVerified') === '1'
+  if (!isVerified) {
+    ElMessageBox.confirm(
+      '申请成为卖家需要先完成实名认证，是否前往认证？',
+      '提示',
+      {
+        confirmButtonText: '去认证',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    ).then(() => {
+      router.push('/verify-identity?redirect=/seller/apply')
+    }).catch(() => {})
+    return
+  }
+
+  if (isCooldown.value) {
+    ElMessage.warning('请等待冷却时间结束')
+    return
+  }
   try {
     await ElMessageBox.confirm('确定要申请成为卖家吗？', '提示', {
       confirmButtonText: '确定',

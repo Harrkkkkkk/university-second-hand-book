@@ -46,6 +46,10 @@
               <i class="el-icon-star-on"></i>
               <span>我的收藏</span>
             </el-menu-item>
+            <el-menu-item index="5">
+              <i class="el-icon-s-check"></i>
+              <span>实名认证</span>
+            </el-menu-item>
           </el-menu>
         </el-card>
       </el-col>
@@ -115,7 +119,25 @@
               <el-form-item label="绑定QQ">
                 <el-button type="info" @click="bindQQ">立即绑定</el-button>
               </el-form-item>
+              <el-form-item label="账号管理">
+                <el-button type="danger" @click="handleDeleteAccount">注销账号</el-button>
+                <span class="tips" style="margin-left: 10px; color: #909399; font-size: 12px;">注销后无法恢复，请谨慎操作</span>
+              </el-form-item>
             </el-form>
+          </div>
+
+          <!-- 实名认证 -->
+          <div v-if="activeTab === '5'" class="identity-verify">
+             <el-result icon="success" title="已认证" sub-title="您已完成实名认证" v-if="userInfo.isVerified">
+                <template #extra>
+                  <p>真实姓名：{{ userInfo.realName }}</p>
+                </template>
+             </el-result>
+             <el-result icon="warning" title="未认证" sub-title="您尚未完成实名认证" v-else>
+                <template #extra>
+                  <el-button type="primary" @click="goToVerify">去认证</el-button>
+                </template>
+             </el-result>
           </div>
 
         </el-card>
@@ -167,7 +189,7 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getUserInfo, updateUserProfile, listAddresses, addAddress as apiAddAddress, updateAddress as apiUpdateAddress, deleteAddress as apiDeleteAddress, changePassword as apiChangePassword } from '@/api/userApi'
+import { getUserInfo, updateUserProfile, listAddresses, addAddress as apiAddAddress, updateAddress as apiUpdateAddress, deleteAddress as apiDeleteAddress, changePassword as apiChangePassword, deleteAccount } from '@/api/userApi'
 
 const router = useRouter()
 // 当前激活的标签页
@@ -270,11 +292,21 @@ const loadUser = async () => {
     userInfo.value.phone = res && res.phone ? res.phone : ''
     userInfo.value.email = res && res.email ? res.email : ''
     userInfo.value.gender = res && res.gender ? res.gender : 'secret'
+    userInfo.value.realName = res && res.realName ? res.realName : ''
+    userInfo.value.isVerified = res && res.isVerified ? true : false
+    
+    // Sync to localStorage
+    if (userInfo.value.realName) localStorage.setItem('realName', userInfo.value.realName)
+    localStorage.setItem('isVerified', userInfo.value.isVerified ? '1' : '0')
   } catch (e) {
     ElMessage.error('加载个人信息失败')
   } finally {
     loadingUserInfo.value = false
   }
+}
+
+const goToVerify = () => {
+  router.push('/verify-identity?redirect=/buyer/home')
 }
 
 /**
@@ -435,8 +467,34 @@ const bindWechat = () => {
 
 // 绑定QQ
 const bindQQ = () => {
-  ElMessage.success('QQ绑定成功！')
+  ElMessage.info('QQ绑定功能开发中...')
 }
+
+const handleDeleteAccount = () => {
+  ElMessageBox.confirm(
+    '注销账号后，您的所有数据（包括订单、收藏、发布的商品等）将被永久删除且无法恢复。确定要继续吗？',
+    '危险操作警告',
+    {
+      confirmButtonText: '确定注销',
+      cancelButtonText: '取消',
+      type: 'warning',
+      confirmButtonClass: 'el-button--danger'
+    }
+  ).then(async () => {
+    try {
+      await deleteAccount()
+      ElMessage.success('账号已注销')
+      localStorage.clear()
+      router.push('/login')
+    } catch (e) {
+      ElMessage.error('注销失败：' + (e.response?.data?.message || e.message))
+    }
+  }).catch(() => {
+    // canceled
+  })
+}
+
+
 
 watch(activeTab, (tab) => {
   if (tab === '2') loadAddresses()

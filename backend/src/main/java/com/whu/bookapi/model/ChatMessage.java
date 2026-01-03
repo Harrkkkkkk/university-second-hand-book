@@ -13,6 +13,9 @@ package com.whu.bookapi.model;
  * 1. Date: 2026-01-02
  *    Author: WiseBookPal Team
  *    Modification: Initial implementation
+ * 2. Date: 2026-01-02
+ *    Author: WiseBookPal Team
+ *    Modification: Added 'type' field for image support.
  */
 public class ChatMessage {
     /** Unique ID of the message */
@@ -31,6 +34,8 @@ public class ChatMessage {
     private long createTime;
     /** Read status of the message */
     private boolean read;
+    /** Message type: text, image */
+    private String type = "text";
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -48,4 +53,6 @@ public class ChatMessage {
     public void setCreateTime(long createTime) { this.createTime = createTime; }
     public boolean isRead() { return read; }
     public void setRead(boolean read) { this.read = read; }
+    public String getType() { return type; }
+    public void setType(String type) { this.type = type; }
 }

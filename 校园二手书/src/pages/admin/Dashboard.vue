@@ -14,6 +14,9 @@
  * 1. Date: 2026-01-02
  *    Author: WiseBookPal Team
  *    Modification: Initial implementation
+ * 2. Date: 2026-01-02
+ *    Author: WiseBookPal Team
+ *    Modification: Removed payment code from seller audit, removed duplicate blacklist button.
 -->
 <template>
   <div class="admin-dashboard">
@@ -66,20 +69,8 @@
                   v-if="scope.row.status === 'blacklist'" 
                   size="small" 
                   type="success" 
-                  @click="handleUndoBlacklist(scope.row)"
-                >撤销拉黑</el-button>
-                <el-button 
-                  v-if="scope.row.status === 'blacklist'" 
-                  size="small" 
-                  type="success" 
                   @click="openStatusDialog(scope.row, 'normal')"
                 >解除黑名单</el-button>
-
-                <el-popconfirm title="确认注销该账号？" @confirm="() => handleUpdateStatus(scope.row, 'deleted', '管理员注销')">
-                  <template #reference>
-                    <el-button v-if="scope.row.status !== 'deleted'" type="danger" size="small">注销</el-button>
-                  </template>
-                </el-popconfirm>
               </template>
             </el-table-column>
           </el-table>
@@ -256,17 +247,6 @@
                 <el-tag type="warning">{{ scope.row.sellerStatus }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="收款码" width="120">
-              <template #default="scope">
-                <el-button
-                  v-if="scope.row.paymentCodeUrl"
-                  type="primary"
-                  size="small"
-                  @click="openPaymentCode(scope.row.paymentCodeUrl)"
-                >查看</el-button>
-                <span v-else>-</span>
-              </template>
-            </el-table-column>
             <el-table-column label="操作" width="200">
               <template #default="scope">
                 <el-button type="success" size="small" @click="handleApproveSeller(scope.row.username)">通过</el-button>
@@ -296,9 +276,6 @@
       </el-tabs>
     </el-card>
 
-    <el-dialog v-model="paymentCodeVisible" title="收款码" width="420px">
-      <img v-if="paymentCodeUrl" :src="paymentCodeUrl" style="width: 100%; max-height: 520px; object-fit: contain;" />
-    </el-dialog>
   </div>
 </template>
 
@@ -307,7 +284,7 @@ import { ref, onMounted } from 'vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { logoutAndBackToLogin } from '@/utils/auth.js'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { listUsers, setUserRole, deleteUser, listUnderReviewBooks, approveBook as apiApproveBook, rejectBook as apiRejectBook, listComplaints, approveComplaint as apiApproveComplaint, rejectComplaint as apiRejectComplaint, listSellerApplications, approveSeller, rejectSeller, updateUserStatus, undoBlacklist, updateUserInfo, getOperationLogs, getUserDetail } from '@/api/adminApi'
+import { listUsers, setUserRole, listUnderReviewBooks, approveBook as apiApproveBook, rejectBook as apiRejectBook, listComplaints, approveComplaint as apiApproveComplaint, rejectComplaint as apiRejectComplaint, listSellerApplications, approveSeller, rejectSeller, updateUserStatus, updateUserInfo, getOperationLogs, getUserDetail } from '@/api/adminApi'
 import { announce } from '@/api/notificationApi'
 
 // 退出登录
@@ -460,8 +437,6 @@ const formatDate = (ts) => {
 const bookAuditList = ref([])
 const complaints = ref([])
 const sellerApplications = ref([])
-const paymentCodeVisible = ref(false)
-const paymentCodeUrl = ref('')
 
 /**
  * Function: resolveCoverUrl
@@ -553,37 +528,17 @@ const handleUpdateStatus = async (user, status, reason, secondAdmin, secondAdmin
        ElMessage.warning(res.riskWarning)
     } else if (res && res.success === false) {
        ElMessage.error(res.message || '操作失败')
+       throw new Error(res.message || '操作失败')
     } else {
        ElMessage.success('操作成功')
     }
     loadUsers()
   } catch (e) {
     ElMessage.error(e.message || '操作失败')
+    throw e
   }
 }
 
-/**
- * Function: handleUndoBlacklist
- * Description: Initiates blacklist removal with a reason.
- */
-const handleUndoBlacklist = async (user) => {
-  try {
-    const { value: reason } = await ElMessageBox.prompt('请输入撤销原因', '撤销黑名单', {
-      confirmButtonText: '确认',
-      cancelButtonText: '取消',
-      inputPattern: /.+/,
-      inputErrorMessage: '原因不能为空'
-    })
-    
-    await undoBlacklist(user.username, reason)
-    ElMessage.success('撤销成功，账号已恢复正常')
-    loadUsers()
-  } catch (e) {
-    if (e !== 'cancel') {
-      ElMessage.error(e.message || '撤销失败')
-    }
-  }
-}
 
 /**
  * Function: changeRole
@@ -682,14 +637,6 @@ const handleRejectSeller = async (username) => {
   try { await rejectSeller(username); ElMessage.success('已驳回卖家资格'); loadSellerApps() } catch { ElMessage.error('操作失败') }
 }
 
-/**
- * Function: openPaymentCode
- * Description: Displays the seller's payment QR code.
- */
-const openPaymentCode = (url) => {
-  paymentCodeUrl.value = url
-  paymentCodeVisible.value = true
-}
 
 import { watch } from 'vue'
 watch(activeTab, (val) => {

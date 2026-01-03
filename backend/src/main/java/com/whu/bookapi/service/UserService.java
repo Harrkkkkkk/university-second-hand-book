@@ -5,6 +5,7 @@ import com.whu.bookapi.dto.LoginResponse;
 import com.whu.bookapi.model.User;
 import com.whu.bookapi.model.OperationLog;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.context.annotation.Lazy;
 
@@ -50,9 +51,9 @@ import java.util.ArrayList;
  * 1. Date: 2024-11-20
  *    Author: WiseBookPal Team
  *    Modification: Initial implementation
- * 2. Date: 2026-01-02
+ * 3. Date: 2026-01-02
  *    Author: WiseBookPal Team
- *    Modification: Added U14 User Management logic
+ *    Modification: Added validation for register, removed payment code from seller application.
  */
 @Service
 public class UserService {
@@ -96,15 +97,28 @@ public class UserService {
     public LoginResponse login(LoginRequest req) {
         if (req == null || req.getUsername() == null || req.getPassword() == null) return null;
         java.util.List<java.util.Map<String, Object>> rows = jdbcTemplate.queryForList(
-                "SELECT username, password, current_role, seller_status FROM users WHERE username = ?",
+                "SELECT username, password, current_role, seller_status, status, real_name, is_verified FROM users WHERE username = ?",
                 req.getUsername()
         );
         if (rows.isEmpty()) return null;
         java.util.Map<String, Object> row = rows.get(0);
+        
+        String userStatus = (String) row.get("status");
+        if (userStatus != null && "blacklist".equals(userStatus)) {
+            LoginResponse resp = new LoginResponse();
+            resp.setMessage("该账号已被添加至黑名单");
+            return resp;
+        }
+        
         String pwd = (String) row.get("password");
         if (pwd == null || !pwd.equals(req.getPassword())) return null;
         String currentRole = (String) row.get("current_role");
         String sellerStatus = (String) row.get("seller_status");
+        
+        String realName = (String) row.get("real_name");
+        Object ivObj = row.get("is_verified");
+        boolean isVerified = ivObj instanceof Boolean ? (Boolean) ivObj : (ivObj instanceof Number && ((Number) ivObj).intValue() != 0);
+
         java.util.Set<String> roles = new java.util.HashSet<>(jdbcTemplate.queryForList(
                 "SELECT role FROM user_roles WHERE username = ?",
                 String.class,
@@ -128,6 +142,8 @@ public class UserService {
         resp.setUsername(req.getUsername());
         resp.setRole(role);
         resp.setSellerStatus(sellerStatus == null ? "NONE" : sellerStatus);
+        resp.setRealName(realName);
+        resp.setIsVerified(isVerified);
         return resp;
     }
 
@@ -163,7 +179,7 @@ public class UserService {
     public User getByToken(String token) {
         if (token == null) return null;
         java.util.List<java.util.Map<String, Object>> rows = jdbcTemplate.queryForList(
-                "SELECT u.username, u.current_role, u.seller_status, u.phone, u.email, u.gender FROM user_token t JOIN users u ON t.username = u.username WHERE t.token = ?",
+                "SELECT u.username, u.current_role, u.seller_status, u.phone, u.email, u.gender, u.last_audit_time, u.real_name, u.is_verified FROM user_token t JOIN users u ON t.username = u.username WHERE t.token = ?",
                 token
         );
         if (rows.isEmpty()) return null;
@@ -174,6 +190,12 @@ public class UserService {
         String phone = row.get("phone") == null ? null : row.get("phone").toString();
         String email = row.get("email") == null ? null : row.get("email").toString();
         String gender = row.get("gender") == null ? null : row.get("gender").toString();
+        Object latObj = row.get("last_audit_time");
+        Long lastAuditTime = latObj instanceof Number ? ((Number) latObj).longValue() : null;
+        String realName = (String) row.get("real_name");
+        Object ivObj = row.get("is_verified");
+        boolean isVerified = ivObj instanceof Boolean ? (Boolean) ivObj : (ivObj instanceof Number && ((Number) ivObj).intValue() != 0);
+        
         java.util.Set<String> roles = new java.util.HashSet<>(jdbcTemplate.queryForList(
                 "SELECT role FROM user_roles WHERE username = ?",
                 String.class,
@@ -189,6 +211,9 @@ public class UserService {
         u.setPhone(phone);
         u.setEmail(email);
         u.setGender(gender == null ? "secret" : gender);
+        u.setLastAuditTime(lastAuditTime);
+        u.setRealName(realName);
+        u.setIsVerified(isVerified);
         return u;
     }
 
@@ -444,7 +469,7 @@ public class UserService {
         if (username == null) return null;
         try {
             return jdbcTemplate.queryForObject(
-                "SELECT username, phone, student_id, status, credit_score, created_at, last_login_time, email, gender, current_role FROM users WHERE username = ?",
+                "SELECT username, phone, student_id, status, credit_score, created_at, last_login_time, email, gender, current_role, real_name, is_verified FROM users WHERE username = ?",
                 (rs, rowNum) -> {
                     User u = new User();
                     u.setUsername(rs.getString("username"));
@@ -456,6 +481,8 @@ public class UserService {
                     u.setLastLoginTime(rs.getLong("last_login_time"));
                     u.setEmail(rs.getString("email"));
                     u.setGender(rs.getString("gender"));
+                    u.setRealName(rs.getString("real_name"));
+                    u.setIsVerified(rs.getBoolean("is_verified"));
                     // We don't load roles here for simplicity, or we could join
                     return u;
                 },
@@ -465,6 +492,39 @@ public class UserService {
             return null;
         }
     }
+
+    /**
+     * Function: verifyIdentity
+     * Description: Verifies user identity against simulated external DB.
+     * Calls: JdbcTemplate.queryForList, JdbcTemplate.update
+     * Called By: UserController.verifyIdentity
+     * Table Accessed: university_students
+     * Table Updated: users
+     * Input: username (String), studentId (String), name (String)
+     * Output: boolean - Verification success status
+     * Return: boolean
+     * Others:
+     */
+    @Transactional
+    public boolean verifyIdentity(String username, String studentId, String name) {
+        if (username == null || studentId == null || name == null) return false;
+
+        // 1. Check against university_students table (Simulated external DB)
+        String checkSql = "SELECT count(*) FROM university_students WHERE student_id = ? AND name = ?";
+        Integer count = jdbcTemplate.queryForObject(checkSql, Integer.class, studentId, name);
+        
+        if (count == null || count == 0) {
+            return false; // Not found or mismatch
+        }
+
+        // 2. Update users table
+        String updateSql = "UPDATE users SET real_name = ?, is_verified = 1, student_id = ? WHERE username = ?";
+        int rows = jdbcTemplate.update(updateSql, name, studentId, username);
+        
+        return rows > 0;
+    }
+
+
 
     /**
      * Function: verifyAdminPassword
@@ -612,8 +672,8 @@ public class UserService {
 
     /**
      * Function: deleteUser
-     * Description: Soft deletes a user (U14).
-     * Calls: JdbcTemplate.update, logOperation, NotificationService.addToUser
+     * Description: Hard deletes a user (U14).
+     * Calls: deleteUser(username), logOperation
      * Called By: AdminController.deleteUser
      * Table Accessed: users
      * Table Updated: users, operation_logs
@@ -622,11 +682,11 @@ public class UserService {
      * Return: boolean
      * Others:
      */
+    @Transactional
     public boolean deleteUser(String targetUser, String operator) {
-        jdbcTemplate.update("UPDATE users SET status = 'deleted' WHERE username = ?", targetUser);
-        logOperation(operator, targetUser, "delete_user", "User deleted");
-        notificationService.addToUser(targetUser, "system", "Account Deleted", "Your account has been deleted.");
-        return true;
+        logOperation(operator, targetUser, "delete_user", "User deleted (Hard Delete)");
+        // We perform hard delete
+        return deleteUser(targetUser);
     }
 
     /**
@@ -746,6 +806,12 @@ public class UserService {
      */
     public boolean register(String username, String password, java.util.Set<String> roles) {
         if (username == null || password == null || username.isEmpty() || password.isEmpty()) return false;
+        // Validation: Username <= 16 chars
+        if (username.length() > 16) return false;
+        // Validation: Password 6-25 chars, must contain letters and numbers
+        if (password.length() < 6 || password.length() > 25) return false;
+        if (!password.matches("^(?=.*[a-zA-Z])(?=.*[0-9]).*$")) return false;
+
         if (exists(username)) return false;
         long now = System.currentTimeMillis();
         jdbcTemplate.update(
@@ -870,20 +936,94 @@ public class UserService {
 
     /**
      * Function: deleteUser
-     * Description: Hard deletes a user (Legacy/Admin only).
+     * Description: Hard deletes a user and related content.
      * Calls: JdbcTemplate.update
-     * Called By: AdminController (Legacy)
+     * Called By: AdminController (Legacy), deleteUser(operator), deleteSelf
      * Table Accessed: None
-     * Table Updated: users
+     * Table Updated: users, books, orders, etc.
      * Input: username
      * Output: boolean
      * Return: boolean
      * Others:
      */
+    @Transactional
     public boolean deleteUser(String username) {
         if (username == null) return false;
+
+        // Manually delete related data to ensure hard delete succeeds even without CASCADE
+        // Order matters: delete child records first
+        try {
+            // 1. Delete user_token (Login sessions)
+            jdbcTemplate.update("DELETE FROM user_token WHERE username = ?", username);
+            
+            // 2. Delete user_roles
+            jdbcTemplate.update("DELETE FROM user_roles WHERE username = ?", username);
+            
+            // 3. Delete user_address
+            jdbcTemplate.update("DELETE FROM user_address WHERE username = ?", username);
+
+            // 4. Delete cart_item
+            jdbcTemplate.update("DELETE FROM cart_item WHERE username = ?", username);
+
+            // 5. Delete favorites
+            jdbcTemplate.update("DELETE FROM favorites WHERE username = ?", username);
+
+            // 6. Delete review_draft
+            jdbcTemplate.update("DELETE FROM review_draft WHERE username = ?", username);
+
+            // 7. Delete reviews
+            jdbcTemplate.update("DELETE FROM reviews WHERE username = ?", username);
+
+            // 8. Delete complaints (as complainant)
+            jdbcTemplate.update("DELETE FROM complaints WHERE username = ?", username);
+
+            // 9. Delete notification_read status
+            jdbcTemplate.update("DELETE FROM notification_read WHERE username = ?", username);
+
+            // 10. Delete notifications sent to this user
+            jdbcTemplate.update("DELETE FROM notifications WHERE to_user = ?", username);
+
+            // 11. Delete chat_message (sent or received)
+            jdbcTemplate.update("DELETE FROM chat_message WHERE from_user = ? OR to_user = ?", username, username);
+
+            // 12. Delete orders (buyer or seller)
+            // Note: orders reference books, so delete orders first
+            jdbcTemplate.update("DELETE FROM orders WHERE seller_name = ? OR buyer_name = ?", username, username);
+
+            // 13. Delete books (as seller)
+            jdbcTemplate.update("DELETE FROM books WHERE seller_name = ?", username);
+
+            // 14. Delete operation_logs where target_user or operator is this user
+            jdbcTemplate.update("DELETE FROM operation_logs WHERE target_user = ?", username);
+            jdbcTemplate.update("DELETE FROM operation_logs WHERE operator = ?", username);
+
+        } catch (Exception e) {
+            // Log error but continue to try deleting the user
+            // In a transactional context, this might not be enough if the exception marks the transaction for rollback.
+            // But for now we try to proceed. Ideally we should let the exception propagate to rollback.
+            System.err.println("Error deleting related data for user " + username + ": " + e.getMessage());
+            throw e; // Rethrow to trigger rollback if something goes wrong
+        }
+
+        // Finally, delete user
         int updated = jdbcTemplate.update("DELETE FROM users WHERE username = ?", username);
         return updated > 0;
+    }
+
+    /**
+     * Function: deleteSelf
+     * Description: Allows user to delete their own account.
+     * Calls: deleteUser
+     * Called By: UserController.deleteAccount
+     * Table Accessed: None
+     * Table Updated: users, etc.
+     * Input: username
+     * Output: boolean
+     * Return: boolean
+     */
+    @Transactional
+    public boolean deleteSelf(String username) {
+        return deleteUser(username);
     }
 
     /**
@@ -900,37 +1040,23 @@ public class UserService {
      */
     public void applySeller(String username) {
         if (username == null) return;
-        jdbcTemplate.update("UPDATE users SET seller_status = 'PENDING' WHERE username = ?", username);
-    }
-
-    /**
-     * Function: applySeller
-     * Description: Marks user as pending seller with payment code.
-     * Calls: JdbcTemplate.queryForList, JdbcTemplate.update
-     * Called By: UserController.applySeller
-     * Table Accessed: stored_file, users
-     * Table Updated: users
-     * Input: username, paymentCodeFileId
-     * Output: boolean
-     * Return: boolean
-     * Others:
-     */
-    public boolean applySeller(String username, Long paymentCodeFileId) {
-        if (username == null || paymentCodeFileId == null) return false;
+        // Check current status and last audit time
         java.util.List<java.util.Map<String, Object>> rows = jdbcTemplate.queryForList(
-                "SELECT uploader FROM stored_file WHERE id = ?",
-                paymentCodeFileId
+            "SELECT seller_status, last_audit_time FROM users WHERE username = ?", username
         );
-        if (rows.isEmpty()) return false;
-        Object uploaderObj = rows.get(0).get("uploader");
-        String uploader = uploaderObj == null ? null : uploaderObj.toString();
-        if (uploader == null || !uploader.equals(username)) return false;
-        jdbcTemplate.update(
-                "UPDATE users SET seller_status = 'PENDING', payment_code_file_id = ? WHERE username = ?",
-                paymentCodeFileId,
-                username
-        );
-        return true;
+        if (!rows.isEmpty()) {
+            java.util.Map<String, Object> row = rows.get(0);
+            String status = (String) row.get("seller_status");
+            if ("REJECTED".equals(status)) {
+                Object latObj = row.get("last_audit_time");
+                long lastAuditTime = latObj instanceof Number ? ((Number) latObj).longValue() : 0L;
+                long now = System.currentTimeMillis();
+                if (now - lastAuditTime < 20 * 60 * 1000) {
+                    throw new IllegalArgumentException("申请被驳回，请在20分钟后再次尝试");
+                }
+            }
+        }
+        jdbcTemplate.update("UPDATE users SET seller_status = 'PENDING' WHERE username = ?", username);
     }
 
     /**
@@ -975,7 +1101,7 @@ public class UserService {
      */
     public void rejectSeller(String username) {
         if (username == null) return;
-        jdbcTemplate.update("UPDATE users SET seller_status = 'REJECTED' WHERE username = ?", username);
+        jdbcTemplate.update("UPDATE users SET seller_status = 'REJECTED', last_audit_time = ? WHERE username = ?", System.currentTimeMillis(), username);
     }
 
     /**
@@ -992,19 +1118,14 @@ public class UserService {
      */
     public java.util.List<User> listSellerApplications() {
         java.util.List<java.util.Map<String, Object>> rows = jdbcTemplate.queryForList(
-                "SELECT username, payment_code_file_id FROM users WHERE seller_status = 'PENDING' ORDER BY username"
+                "SELECT username FROM users WHERE seller_status = 'PENDING' ORDER BY username"
         );
         java.util.List<User> res = new java.util.ArrayList<>();
         for (java.util.Map<String, Object> row : rows) {
             String username = (String) row.get("username");
-            Long paymentCodeFileId = row.get("payment_code_file_id") == null ? null : ((Number) row.get("payment_code_file_id")).longValue();
             User u = new User();
             u.setUsername(username);
             u.setSellerStatus("PENDING");
-            u.setPaymentCodeFileId(paymentCodeFileId);
-            if (paymentCodeFileId != null) {
-                u.setPaymentCodeUrl("/book-api/files/" + paymentCodeFileId + "/raw");
-            }
             res.add(u);
         }
         return res;

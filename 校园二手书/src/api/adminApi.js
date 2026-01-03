@@ -82,9 +82,11 @@ export const setUserRole = (username, role) => {
  * URL: /admin/users/{username}
  * Output: Promise<Object> - Response result
  */
+/*
 export const deleteUser = (username) => {
   return request({ url: `/admin/users/${username}`, method: 'delete', headers: { token: localStorage.getItem('token') } })
 }
+*/
 
 /**
  * Function: getUserDetail

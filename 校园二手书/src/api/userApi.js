@@ -190,3 +190,34 @@ export const deleteAddress = (id) => {
         }
     })
 }
+
+/**
+ * Function: deleteAccount
+ * Description: Deletes the current user's account.
+ * Method: DELETE /user/account
+ */
+export const deleteAccount = () => {
+    return request({
+        url: '/user/account',
+        method: 'delete',
+        headers: {
+            token: localStorage.getItem('token')
+        }
+    })
+}
+
+/**
+ * Function: verifyIdentity
+ * Description: Verifies user identity.
+ * Method: POST /user/verify-identity
+ */
+export const verifyIdentity = (data) => {
+    return request({
+        url: '/user/verify-identity',
+        method: 'post',
+        data,
+        headers: {
+            token: localStorage.getItem('token')
+        }
+    })
+}

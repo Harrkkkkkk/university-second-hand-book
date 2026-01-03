@@ -1,3 +1,17 @@
+<!--
+ * Copyright (C), 2024-2025, WiseBookPal Tech. Co., Ltd.
+ * File name: Register.vue
+ * Author: WiseBookPal Team Version: 1.0 Date: 2026-01-02
+ * Description: User registration page.
+ *              Allows new users to create an account with username and password.
+ * History:
+ * 1. Date: 2026-01-02
+ *    Author: WiseBookPal Team
+ *    Modification: Initial implementation
+ * 2. Date: 2026-01-02
+ *    Author: WiseBookPal Team
+ *    Modification: Added validation rules for username and password.
+-->
 <template>
   <div class="register-page">
     <el-card class="register-card" shadow="hover">
@@ -21,15 +35,22 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { register } from '@/api/userApi'
 
 const router = useRouter()
 const formRef = ref(null)
 const form = ref({ username: '', password: '' })
 const rules = ref({
-  username: [{ required: true, message: '请输入账号', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
+  username: [
+    { required: true, message: '请输入账号', trigger: ['blur', 'change'] },
+    { max: 16, message: '账号长度不得超过16个字符', trigger: ['blur', 'change'] }
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: ['blur', 'change'] },
+    { min: 6, max: 25, message: '密码长度必须在6-25个字符之间', trigger: ['blur', 'change'] },
+    { pattern: /^(?=.*[a-zA-Z])(?=.*[0-9]).*$/, message: '密码必须同时包含字母和数字', trigger: ['blur', 'change'] }
+  ]
 })
 
 /**
@@ -41,10 +62,25 @@ const submit = async () => {
     await formRef.value.validate()
     const res = await register({ username: form.value.username, password: form.value.password, roles: ['buyer'] })
     if (!res || res.success !== true) throw new Error('注册失败')
-    ElMessage.success('注册成功！请登录')
-    router.push('/login')
+    
+    ElMessageBox.confirm(
+      '注册成功！是否立即前往登录并进行实名认证？',
+      '提示',
+      {
+        confirmButtonText: '去认证',
+        cancelButtonText: '跳过',
+        type: 'success'
+      }
+    ).then(() => {
+      router.push('/login?redirect=/verify-identity')
+    }).catch(() => {
+      router.push('/login')
+    })
+    
   } catch (e) {
-    ElMessage.error('注册失败')
+    if (e !== 'cancel') {
+        ElMessage.error(e.message || '注册失败')
+    }
   }
 }
 

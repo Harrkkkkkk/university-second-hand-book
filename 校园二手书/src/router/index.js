@@ -16,6 +16,7 @@ import { ElMessage } from 'element-plus'
 // 登录页（核心：默认跳转页）
 import Login from '@/pages/Login.vue'
 import Register from '@/pages/Register.vue'
+import IdentityVerify from '@/pages/IdentityVerify.vue'
 
 // 买家专属页面
 import BuyerHome from '@/pages/buyer/Home.vue'
@@ -48,6 +49,7 @@ const routes = [
     // 登录页
     { path: '/login', name: 'Login', component: Login },
     { path: '/register', name: 'Register', component: Register },
+    { path: '/verify-identity', name: 'IdentityVerify', component: IdentityVerify, meta: { requireAuth: true, roles: ['buyer', 'seller', 'admin'] } },
 
     // ---------------------- 买家专属路由 ----------------------
     {
