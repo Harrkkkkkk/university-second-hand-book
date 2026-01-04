@@ -54,6 +54,11 @@
           >
             <i class="el-icon-plus"></i>
           </el-upload>
+          <div style="margin-top: 10px;" v-if="currentFile">
+            <el-button type="success" size="small" @click="recognizeBookInfo" :loading="recognizing">
+              智能识别封面文字
+            </el-button>
+          </div>
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="submitPublish">发布教材</el-button>
@@ -70,12 +75,15 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
 import { addBook, uploadFile } from '@/api/bookApi'
+import { recognizeText } from '@/api/ocrApi'
 
 const router = useRouter()
 const goBack = () => router.back()
 const publishFormRef = ref(null)
 const fileList = ref([])
 const uploadingCover = ref(false)
+const currentFile = ref(null)
+const recognizing = ref(false)
 
 // 发布表单
 const publishForm = ref({
@@ -107,6 +115,7 @@ const publishRules = ref({
 const handleFileChange = async (file) => {
   const raw = file?.raw
   if (!raw) return
+  currentFile.value = raw
   uploadingCover.value = true
   try {
     const res = await uploadFile(raw)
@@ -120,6 +129,42 @@ const handleFileChange = async (file) => {
     ElMessage.error('封面上传失败')
   } finally {
     uploadingCover.value = false
+  }
+}
+
+/**
+ * Function: recognizeBookInfo
+ * Description: Uses OCR to recognize text from the uploaded cover image.
+ */
+const recognizeBookInfo = async () => {
+  if (!currentFile.value) {
+    ElMessage.warning('请先上传封面图片')
+    return
+  }
+  recognizing.value = true
+  try {
+    const res = await recognizeText(currentFile.value)
+    if (res && res.lines && res.lines.length > 0) {
+      // Simple heuristic: First line is title if empty
+      if (!publishForm.value.bookName) {
+        publishForm.value.bookName = res.lines[0]
+      }
+      // Concatenate all lines to description
+      const fullText = res.lines.join('\n')
+      if (!publishForm.value.description) {
+        publishForm.value.description = '识别到的封面信息：\n' + fullText
+      } else {
+        publishForm.value.description += '\n\n识别到的封面信息：\n' + fullText
+      }
+      ElMessage.success('识别成功，已自动填充信息')
+    } else {
+      ElMessage.info('未识别到文字')
+    }
+  } catch (e) {
+    console.error(e)
+    ElMessage.error('识别失败')
+  } finally {
+    recognizing.value = false
   }
 }
 
