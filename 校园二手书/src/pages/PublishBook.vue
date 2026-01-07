@@ -15,6 +15,11 @@
     </page-header>
 
     <el-card>
+      <div style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center;">
+        <el-input v-model="isbnInput" placeholder="输入ISBN码获取书籍信息" style="width: 200px;" clearable />
+        <el-button type="primary" @click="fetchBookByIsbn" :loading="fetchingIsbn">获取信息</el-button>
+      </div>
+
       <el-form :model="publishForm" :rules="publishRules" ref="publishFormRef" label-width="100px">
         <el-form-item label="教材名称" prop="bookName">
           <el-input v-model="publishForm.bookName" placeholder="请输入教材名称"></el-input>
@@ -46,10 +51,12 @@
         </el-form-item>
         <el-form-item label="教材封面">
           <el-upload
+              v-model:file-list="fileList"
               action="#"
               list-type="picture-card"
               :auto-upload="false"
               :on-change="handleFileChange"
+              :on-remove="handleRemove"
               :disabled="uploadingCover"
           >
             <i class="el-icon-plus"></i>
@@ -76,6 +83,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
 import { addBook, uploadFile } from '@/api/bookApi'
 import { recognizeText } from '@/api/ocrApi'
+import { getBookInfoByIsbn } from '@/api/isbnApi'
 
 const router = useRouter()
 const goBack = () => router.back()
@@ -84,6 +92,8 @@ const fileList = ref([])
 const uploadingCover = ref(false)
 const currentFile = ref(null)
 const recognizing = ref(false)
+const fetchingIsbn = ref(false)
+const isbnInput = ref('')
 
 // 发布表单
 const publishForm = ref({
@@ -133,6 +143,15 @@ const handleFileChange = async (file) => {
 }
 
 /**
+ * Function: handleRemove
+ * Description: Handles removal of the cover image.
+ */
+const handleRemove = () => {
+  publishForm.value.coverUrl = ''
+  currentFile.value = null
+}
+
+/**
  * Function: recognizeBookInfo
  * Description: Uses OCR to recognize text from the uploaded cover image.
  */
@@ -169,6 +188,66 @@ const recognizeBookInfo = async () => {
 }
 
 /**
+ * Function: fetchBookByIsbn
+ * Description: Fetches book info by ISBN.
+ */
+const fetchBookByIsbn = async () => {
+  if (!isbnInput.value) {
+    ElMessage.warning('请输入ISBN码')
+    return
+  }
+  fetchingIsbn.value = true
+  try {
+    const res = await getBookInfoByIsbn(isbnInput.value)
+    if (res) {
+      let hasInfo = false
+      if (res.bookName) {
+        publishForm.value.bookName = res.bookName
+        hasInfo = true
+      }
+      if (res.author) {
+         publishForm.value.author = res.author
+         hasInfo = true
+       }
+       if (res.coverUrl && !publishForm.value.coverUrl) {
+           publishForm.value.coverUrl = res.coverUrl
+           fileList.value = [{ name: 'ISBN Cover', url: res.coverUrl }]
+           hasInfo = true
+         }
+        if (res.price) {
+          // Parse price string to number, removing currency symbols if any
+          const priceNum = parseFloat(res.price.replace(/[^\d.]/g, ''))
+          if (!isNaN(priceNum)) {
+            publishForm.value.originalPrice = priceNum
+            hasInfo = true
+          }
+        }
+        if (res.description) {
+         if (publishForm.value.description) {
+             publishForm.value.description += '\n\n' + res.description
+         } else {
+             publishForm.value.description = res.description
+         }
+         hasInfo = true
+      }
+      
+      if (hasInfo) {
+        ElMessage.success('获取成功，已填充信息')
+      } else {
+        ElMessage.warning('获取到的书籍信息为空，请手动填写')
+      }
+    } else {
+      ElMessage.info('未找到该书籍信息')
+    }
+  } catch (e) {
+    console.error(e)
+    ElMessage.error('获取信息失败')
+  } finally {
+    fetchingIsbn.value = false
+  }
+}
+
+/**
  * Function: showConditionStandard
  * Description: Displays a dialog explaining book condition standards.
  */
@@ -187,6 +266,13 @@ const showConditionStandard = async () => {
 const submitPublish = async () => {
   try {
     await publishFormRef.value.validate()
+    
+    // Check if cover is uploaded
+    if (!publishForm.value.coverUrl) {
+      ElMessage.warning('请上传教材封面')
+      return
+    }
+
     const res = await addBook(publishForm.value)
     if (!res || !res.id) {
       ElMessage.error('发布失败')
@@ -194,6 +280,10 @@ const submitPublish = async () => {
     }
     ElMessage.success('教材发布成功！')
     publishFormRef.value.resetFields()
+    // Also reset other states
+    fileList.value = []
+    currentFile.value = null
+    isbnInput.value = ''
   } catch (error) {
     ElMessage.error('发布失败，请检查表单！')
   }
