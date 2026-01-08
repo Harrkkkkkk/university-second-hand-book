@@ -52,14 +52,21 @@
               <!-- 1. Basic Info -->
               <h3 class="section-title">基本信息</h3>
               <el-row :gutter="20">
-                <el-col :span="12">
+                <el-col :span="24">
                   <el-form-item label="教材名称" prop="bookName">
                     <el-input v-model="publishForm.bookName" placeholder="请输入完整书名" />
                   </el-form-item>
                 </el-col>
+              </el-row>
+              <el-row :gutter="20">
                 <el-col :span="12">
                   <el-form-item label="作者" prop="author">
                     <el-input v-model="publishForm.author" placeholder="请输入作者姓名" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="出版社" prop="publisher">
+                    <el-input v-model="publishForm.publisher" placeholder="请输入出版社" />
                   </el-form-item>
                 </el-col>
               </el-row>
@@ -263,12 +270,14 @@ const cropperRef = ref(null)
 const publishForm = ref({
   bookName: '',
   author: '',
+  publisher: '',
   originalPrice: undefined,
   sellPrice: undefined,
   description: '',
   conditionLevel: '九成新',
   stock: 1,
-  coverUrl: ''
+  coverUrl: '',
+  isbn: ''
 })
 
 const publishRules = {
@@ -343,8 +352,10 @@ const fetchBookByIsbn = async () => {
   try {
     const res = await getBookInfoByIsbn(isbnInput.value)
     if (res) {
+      publishForm.value.isbn = isbnInput.value
       if (res.bookName) publishForm.value.bookName = res.bookName
       if (res.author) publishForm.value.author = res.author
+      if (res.publisher) publishForm.value.publisher = res.publisher
       if (res.price) {
         const p = parseFloat(res.price.replace(/[^\d.]/g, ''))
         if (!isNaN(p)) publishForm.value.originalPrice = p

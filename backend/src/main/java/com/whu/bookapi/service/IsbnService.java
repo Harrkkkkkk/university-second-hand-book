@@ -96,7 +96,7 @@ public class IsbnService {
                 if (dataNode.has("summary")) result.put("description", dataNode.get("summary").asText());
                 else if (dataNode.has("catalog")) result.put("description", dataNode.get("catalog").asText());
                 
-                if (dataNode.has("publisher")) result.put("publishing", dataNode.get("publisher").asText());
+                if (dataNode.has("publisher")) result.put("publisher", dataNode.get("publisher").asText());
                 
                 if (dataNode.has("price")) result.put("price", dataNode.get("price").asText());
 
