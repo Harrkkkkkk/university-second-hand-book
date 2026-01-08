@@ -208,8 +208,9 @@ export const deleteAccount = () => {
 
 /**
  * Function: verifyIdentity
- * Description: Verifies user identity.
+ * Description: Verifies user identity (Real Name Authentication).
  * Method: POST /user/verify-identity
+ * Input: data (Object) - { name, studentId }
  */
 export const verifyIdentity = (data) => {
     return request({
@@ -221,3 +222,4 @@ export const verifyIdentity = (data) => {
         }
     })
 }
+

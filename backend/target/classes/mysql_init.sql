@@ -101,6 +101,13 @@ PREPARE stmt_users_status FROM @users_status_sql;
 EXECUTE stmt_users_status;
 DEALLOCATE PREPARE stmt_users_status;
 
+-- Add balance column for settlement (idempotent)
+SET @users_has_balance := (SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'balance');
+SET @users_balance_sql := IF(@users_has_balance = 0, 'ALTER TABLE users ADD COLUMN balance DOUBLE NOT NULL DEFAULT 0', 'SELECT 1');
+PREPARE stmt_users_balance FROM @users_balance_sql;
+EXECUTE stmt_users_balance;
+DEALLOCATE PREPARE stmt_users_balance;
+
 SET @users_has_last_audit_time := (SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'last_audit_time');
 SET @users_last_audit_time_sql := IF(@users_has_last_audit_time = 0, 'ALTER TABLE users ADD COLUMN last_audit_time BIGINT', 'SELECT 1');
 PREPARE stmt_users_last_audit_time FROM @users_last_audit_time_sql;
@@ -253,6 +260,21 @@ SET @reviews_status_sql := IF(@reviews_has_status = 0, 'ALTER TABLE reviews ADD 
 PREPARE stmt_reviews_status FROM @reviews_status_sql;
 EXECUTE stmt_reviews_status;
 DEALLOCATE PREPARE stmt_reviews_status;
+
+-- Funds settlement ledger
+CREATE TABLE IF NOT EXISTS funds_settlement (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  order_id BIGINT NOT NULL,
+  seller_name VARCHAR(64) NOT NULL,
+  amount DOUBLE NOT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'settled',
+  settle_time BIGINT NOT NULL,
+  created_time BIGINT NOT NULL,
+  INDEX idx_funds_seller (seller_name, settle_time),
+  INDEX idx_funds_order (order_id),
+  CONSTRAINT fk_funds_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+  CONSTRAINT fk_funds_seller FOREIGN KEY (seller_name) REFERENCES users(username) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS review_draft (
   username VARCHAR(64) NOT NULL,

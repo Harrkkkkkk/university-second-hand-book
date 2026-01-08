@@ -100,3 +100,20 @@ export const announce = async (data) => {
     headers: { token: localStorage.getItem('token') }
   })
 }
+
+export const listSettlements = async () => {
+  return await request({
+    url: '/notifications/settlements',
+    method: 'get',
+    headers: { token: localStorage.getItem('token') }
+  })
+}
+
+export const exportSettlements = async () => {
+  return await request({
+    url: '/notifications/settlements/export',
+    method: 'get',
+    headers: { token: localStorage.getItem('token') },
+    responseType: 'text'
+  })
+}

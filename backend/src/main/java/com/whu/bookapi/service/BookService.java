@@ -530,7 +530,8 @@ public class BookService {
      */
     public boolean approve(Long id) {
         if (id == null) return false;
-        int updated = jdbcTemplate.update("UPDATE books SET status = 'on_sale' WHERE id = ?", id);
+        long now = System.currentTimeMillis();
+        int updated = jdbcTemplate.update("UPDATE books SET status = 'on_sale', audit_reason = NULL, audit_time = ? WHERE id = ?", now, id);
         return updated > 0;
     }
 
@@ -546,7 +547,36 @@ public class BookService {
      */
     public boolean reject(Long id) {
         if (id == null) return false;
-        int updated = jdbcTemplate.update("UPDATE books SET status = 'rejected' WHERE id = ?", id);
+        long now = System.currentTimeMillis();
+        int updated = jdbcTemplate.update("UPDATE books SET status = 'rejected', audit_time = ? WHERE id = ?", now, id);
+        return updated > 0;
+    }
+
+    /**
+     * Function: setAuditReason
+     * Description: Updates audit reason for a book.
+     * Input: id, reason
+     * Return: boolean
+     */
+    public boolean setAuditReason(Long id, String reason) {
+        if (id == null) return false;
+        jdbcTemplate.update("UPDATE books SET audit_reason = ? WHERE id = ?", reason, id);
+        return true;
+    }
+
+    /**
+     * Function: undoAudit
+     * Description: Reverts a book audit decision if within 24 hours.
+     * Return: boolean
+     */
+    public boolean undoAudit(Long id) {
+        if (id == null) return false;
+        long now = System.currentTimeMillis();
+        long limit = now - 24L * 60 * 60 * 1000;
+        int updated = jdbcTemplate.update(
+                "UPDATE books SET status = 'under_review', audit_reason = NULL, audit_time = NULL WHERE id = ? AND audit_time IS NOT NULL AND audit_time >= ?",
+                id, limit
+        );
         return updated > 0;
     }
 }

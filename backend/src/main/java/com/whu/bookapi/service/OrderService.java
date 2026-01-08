@@ -203,6 +203,30 @@ public class OrderService {
     }
 
     /**
+     * Function: settleToSeller
+     * Description: Immediately settles order amount to seller and records funds ledger.
+     * Called By: OrderController.receive
+     * Table Accessed: orders, users
+     * Table Updated: users (balance), funds_settlement
+     * Input: o (Order) - order to settle
+     * Output: boolean - success status
+     * Return: boolean
+     * Others:
+     */
+    public boolean settleToSeller(Order o) {
+        if (o == null || o.getId() == null || o.getSellerName() == null || o.getPrice() == null) return false;
+        // Credit seller balance
+        int u = jdbcTemplate.update("UPDATE users SET balance = balance + ? WHERE username = ?", o.getPrice(), o.getSellerName());
+        if (u <= 0) return false;
+        long now = System.currentTimeMillis();
+        jdbcTemplate.update(
+                "INSERT INTO funds_settlement (order_id, seller_name, amount, status, settle_time, created_time) VALUES (?, ?, ?, 'settled', ?, ?)",
+                o.getId(), o.getSellerName(), o.getPrice(), now, now
+        );
+        return true;
+    }
+
+    /**
      * Function: listAll
      * Description: Retrieves all orders in the system.
      *              Used for administrative purposes.

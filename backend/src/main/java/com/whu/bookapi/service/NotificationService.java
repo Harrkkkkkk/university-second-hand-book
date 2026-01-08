@@ -233,4 +233,27 @@ public class NotificationService {
                 System.currentTimeMillis()
         );
     }
+
+    public Notification addSettlementVoucher(String username, Long orderId, String bookName, double amount, double receivedAmount, long settlementTime) {
+        String title = "结算完成";
+        String content = "订单#" + orderId + "（" + (bookName == null ? "-" : bookName) + "）结算完成\n" +
+                "交易金额: " + String.format(java.util.Locale.US, "%.2f", amount) + "\n" +
+                "到账金额: " + String.format(java.util.Locale.US, "%.2f", receivedAmount) + "\n" +
+                "结算时间: " + java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(
+                        java.time.Instant.ofEpochMilli(settlementTime).atZone(java.time.ZoneId.systemDefault())
+                ) + "\n" +
+                "凭证号: SET-" + orderId + "-" + settlementTime;
+        return addToUser(username, "settlement", title, content);
+    }
+
+    public boolean hasSettlementRecord(String username, Long orderId) {
+        if (username == null || orderId == null) return false;
+        Integer cnt = jdbcTemplate.queryForObject(
+                "SELECT COUNT(1) FROM notifications WHERE to_user = ? AND type = 'settlement' AND content LIKE ?",
+                Integer.class,
+                username,
+                "订单#" + orderId + "%"
+        );
+        return cnt != null && cnt > 0;
+    }
 }

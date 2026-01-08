@@ -78,6 +78,20 @@
             </template>
           </el-dialog>
         </el-tab-pane>
+        <el-tab-pane label="结算记录" name="settlements">
+          <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom:12px;">
+            <div></div>
+            <el-button type="primary" @click="onExportSettlements">导出Excel</el-button>
+          </div>
+          <el-table :data="settlementList" border>
+            <el-table-column prop="orderId" label="订单号" width="120"></el-table-column>
+            <el-table-column prop="bookName" label="教材名称"></el-table-column>
+            <el-table-column prop="amount" label="交易金额" width="120"></el-table-column>
+            <el-table-column prop="received" label="到账金额" width="120"></el-table-column>
+            <el-table-column prop="time" label="结算时间" width="180"></el-table-column>
+            <el-table-column prop="voucher" label="凭证号" width="220"></el-table-column>
+          </el-table>
+        </el-tab-pane>
         <el-tab-pane label="我的订单" name="myOrders">
           <el-table :data="orderList" border>
             <el-table-column prop="id" label="订单ID" width="100"></el-table-column>
@@ -132,6 +146,7 @@ import { listReceivedReviews, getGoodRate } from '@/api/reviewApi'
 import { listReceivedComplaints } from '@/api/complaintApi'
 import { listSellerOrders } from '@/api/orderApi'
 import { uploadFile } from '@/api/bookApi'
+import { listSettlements, exportSettlements } from '@/api/notificationApi'
 
 const router = useRouter()
 // 退出登录
@@ -148,6 +163,7 @@ const receivedComplaints = ref([])
 const goodRate = ref({})
 const orderList = ref([])
 const uploadingCover = ref(false)
+const settlementList = ref([])
 
 /**
  * Function: loadMyBooks
@@ -292,6 +308,52 @@ const toPublish = () => {
   router.push('/publish')
 }
 
+const parseField = (text, startToken, endToken) => {
+  if (!text || !startToken) return ''
+  const s = text.indexOf(startToken)
+  if (s < 0) return ''
+  const start = s + startToken.length
+  if (!endToken) return text.substring(start).trim()
+  const e = text.indexOf(endToken, start)
+  return (e < 0 ? text.substring(start) : text.substring(start, e)).trim()
+}
+
+const loadSettlements = async () => {
+  try {
+    const res = await listSettlements()
+    const list = Array.isArray(res) ? res : []
+    settlementList.value = list.map(it => {
+      const content = it.content || ''
+      const orderId = parseField(content, '订单#', '（')
+      const bookName = parseField(content, '（', '）')
+      const amount = parseField(content, '交易金额: ', '\n')
+      const received = parseField(content, '到账金额: ', '\n')
+      const time = parseField(content, '结算时间: ', '\n')
+      const voucher = parseField(content, '凭证号: ', null)
+      return { id: it.id, orderId, bookName, amount, received, time, voucher, rawCreateTime: it.createTime }
+    })
+  } catch (e) {
+    ElMessage.error('加载结算记录失败')
+  }
+}
+
+const onExportSettlements = async () => {
+  try {
+    const text = await exportSettlements()
+    const blob = new Blob([text || ''], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'settlement_vouchers.csv'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    ElMessage.success('导出成功')
+  } catch (e) {
+    ElMessage.error('导出失败')
+  }
+}
 
 import { onMounted } from 'vue'
 onMounted(() => {
@@ -299,11 +361,13 @@ onMounted(() => {
   listReceivedReviews().then(res => { receivedReviews.value = res || [] }).catch(() => {})
   listReceivedComplaints().then(res => { receivedComplaints.value = res || [] }).catch(() => {})
   getGoodRate().then(res => { goodRate.value = res || {} }).catch(() => {})
+  loadSettlements().catch(() => {})
 })
 
 watch(activeTab, (v) => {
   if (v === 'myBooks') loadMyBooks()
   if (v === 'myOrders') loadMyOrders()
+  if (v === 'settlements') loadSettlements()
 })
 </script>
 

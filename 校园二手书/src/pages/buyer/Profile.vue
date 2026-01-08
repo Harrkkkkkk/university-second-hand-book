@@ -11,164 +11,299 @@
 -->
 <template>
   <div class="buyer-profile">
-    <div class="page-header">
-      <h2>个人中心</h2>
-      <el-button type="text" @click="goBack" style="color: #409eff;">返回</el-button>
+    <!-- 顶部背景卡片 -->
+    <div class="profile-header-card">
+      <div class="profile-cover">
+        <div class="cover-shapes">
+          <div class="shape shape-1"></div>
+          <div class="shape shape-2"></div>
+        </div>
+      </div>
+      
+      <div class="profile-user-info">
+        <div class="avatar-wrapper">
+          <el-avatar :size="100" :src="userInfo.avatar || 'https://picsum.photos/100/100'" class="user-avatar" @error="() => true">
+            <img src="https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png"/>
+          </el-avatar>
+          <div class="avatar-edit-badge">
+            <el-icon><Camera /></el-icon>
+          </div>
+        </div>
+        
+        <div class="user-meta">
+          <h2 class="username">{{ username }}</h2>
+          <div class="user-tags">
+            <el-tag effect="dark" round size="small" :type="role === 'seller' ? 'success' : 'primary'">
+              {{ roleName }}
+            </el-tag>
+            <el-tag v-if="userInfo.isVerified" effect="plain" round size="small" type="success" class="verify-tag">
+              <el-icon><CircleCheckFilled /></el-icon> 已实名
+            </el-tag>
+            <el-tag v-else effect="plain" round size="small" type="info" class="verify-tag" @click="goToVerify" style="cursor: pointer">
+              <el-icon><Warning /></el-icon> 未实名
+            </el-tag>
+          </div>
+          <p class="user-bio">暂无个性签名</p>
+        </div>
+
+        <div class="user-stats">
+          <div class="stat-item">
+            <span class="stat-value">0</span>
+            <span class="stat-label">购买</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <span class="stat-value">0</span>
+            <span class="stat-label">发布</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <span class="stat-value">0</span>
+            <span class="stat-label">收藏</span>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <el-row :gutter="20">
-      <!-- 左侧侧边栏 -->
-      <el-col :span="6">
-        <el-card shadow="hover" class="profile-sidebar">
-          <div class="avatar-box">
-            <img src="https://picsum.photos/100/100" alt="头像" class="avatar">
-            <h3 class="username">{{ username }}</h3>
-            <p class="role-tag">{{ roleName }}</p>
-          </div>
-          <el-menu
-              default-active="1"
-              class="profile-menu"
+    <div class="profile-body">
+      <el-row :gutter="24">
+        <!-- 左侧导航菜单 -->
+        <el-col :span="6" :xs="24">
+          <el-card shadow="hover" class="menu-card" :body-style="{ padding: '10px 0' }">
+            <el-menu
+              :default-active="activeTab"
+              class="profile-menu-vertical"
               @select="handleMenuSelect"
-          >
-            <el-menu-item index="1">
-              <i class="el-icon-user"></i>
-              <span>个人信息</span>
-            </el-menu-item>
-            <el-menu-item index="2">
-              <i class="el-icon-location"></i>
-              <span>我的地址</span>
-            </el-menu-item>
-            <el-menu-item index="3">
-              <i class="el-icon-lock"></i>
-              <span>账户安全</span>
-            </el-menu-item>
-            <el-menu-item index="4">
-              <i class="el-icon-star-on"></i>
-              <span>我的收藏</span>
-            </el-menu-item>
-            <el-menu-item index="5">
-              <i class="el-icon-s-check"></i>
-              <span>实名认证</span>
-            </el-menu-item>
-          </el-menu>
-        </el-card>
-      </el-col>
+            >
+              <el-menu-item index="1">
+                <el-icon><User /></el-icon>
+                <span>个人资料</span>
+              </el-menu-item>
+              <el-menu-item index="2">
+                <el-icon><Location /></el-icon>
+                <span>收货地址</span>
+              </el-menu-item>
+              <el-menu-item index="3">
+                <el-icon><Lock /></el-icon>
+                <span>账号安全</span>
+              </el-menu-item>
+              <el-menu-item index="5">
+                <el-icon><Postcard /></el-icon>
+                <span>实名认证</span>
+              </el-menu-item>
+              <el-menu-item index="4" @click="goToCollect">
+                <el-icon><Star /></el-icon>
+                <span>我的收藏</span>
+                <el-icon class="external-link-icon"><ArrowRight /></el-icon>
+              </el-menu-item>
+            </el-menu>
+          </el-card>
+        </el-col>
 
-      <!-- 右侧内容区 -->
-      <el-col :span="18">
-        <el-card shadow="hover" class="profile-content">
-          <!-- 个人信息（默认显示） -->
-          <div v-if="activeTab === '1'" class="info-form">
-            <el-form :model="userInfo" label-width="120px">
-              <el-form-item label="用户名">
-                <el-input v-model="userInfo.username" disabled></el-input>
-              </el-form-item>
-              <el-form-item label="手机号">
-                <el-input v-model="userInfo.phone" placeholder="请输入手机号"></el-input>
-              </el-form-item>
-              <el-form-item label="邮箱">
-                <el-input v-model="userInfo.email" placeholder="请输入邮箱"></el-input>
-              </el-form-item>
-              <el-form-item label="性别">
-                <el-radio-group v-model="userInfo.gender">
-                  <el-radio label="male">男</el-radio>
-                  <el-radio label="female">女</el-radio>
-                  <el-radio label="secret">保密</el-radio>
-                </el-radio-group>
-              </el-form-item>
-              <el-form-item>
-                <el-button type="primary" @click="saveInfo">保存信息</el-button>
-              </el-form-item>
-            </el-form>
-          </div>
-
-          <!-- 我的地址 -->
-          <div v-if="activeTab === '2'" class="address-list">
-            <el-button type="primary" size="small" @click="addAddress" style="margin-bottom: 10px;">
-              <i class="el-icon-plus"></i> 添加地址
-            </el-button>
-            <el-table v-if="addressList.length" :data="addressList" border style="width: 100%;">
-              <el-table-column prop="name" label="收货人" width="120"></el-table-column>
-              <el-table-column prop="phone" label="手机号" width="150"></el-table-column>
-              <el-table-column prop="address" label="地址"></el-table-column>
-              <el-table-column prop="isDefault" label="默认地址" width="100">
-                <template #default="scope">
-                  <el-tag v-if="scope.row.isDefault">是</el-tag>
-                  <span v-else>否</span>
+        <!-- 右侧内容区域 -->
+        <el-col :span="18" :xs="24">
+          <div class="content-wrapper">
+            <!-- 个人资料面板 -->
+            <transition name="fade-slide" mode="out-in">
+              <el-card v-if="activeTab === '1'" shadow="hover" class="content-card">
+                <template #header>
+                  <div class="card-header">
+                    <span class="header-title">基本信息</span>
+                    <el-button type="primary" plain round size="small" @click="saveInfo" :loading="loadingUserInfo">保存修改</el-button>
+                  </div>
                 </template>
-              </el-table-column>
-              <el-table-column label="操作" width="120">
-                <template #default="scope">
-                  <el-button type="text" size="small" @click="editAddress(scope.row)">编辑</el-button>
-                  <el-button type="text" size="small" @click="deleteAddress(scope.row)" style="color: #f56c6c;">删除</el-button>
+                
+                <el-form :model="userInfo" label-width="100px" class="premium-form" label-position="top">
+                  <el-row :gutter="24">
+                    <el-col :span="12" :xs="24">
+                      <el-form-item label="用户名">
+                        <el-input v-model="userInfo.username" disabled prefix-icon="User"></el-input>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="12" :xs="24">
+                      <el-form-item label="手机号码">
+                        <el-input v-model="userInfo.phone" placeholder="未绑定手机号" prefix-icon="Iphone"></el-input>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="12" :xs="24">
+                      <el-form-item label="电子邮箱">
+                        <el-input v-model="userInfo.email" placeholder="未绑定邮箱" prefix-icon="Message"></el-input>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="12" :xs="24">
+                      <el-form-item label="性别">
+                        <el-radio-group v-model="userInfo.gender" class="gender-radio">
+                          <el-radio-button label="male">
+                            <el-icon><Male /></el-icon> 男
+                          </el-radio-button>
+                          <el-radio-button label="female">
+                            <el-icon><Female /></el-icon> 女
+                          </el-radio-button>
+                          <el-radio-button label="secret">
+                            <el-icon><Lock /></el-icon> 保密
+                          </el-radio-button>
+                        </el-radio-group>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                </el-form>
+              </el-card>
+
+              <!-- 地址管理面板 -->
+              <el-card v-else-if="activeTab === '2'" shadow="hover" class="content-card">
+                <template #header>
+                  <div class="card-header">
+                    <span class="header-title">收货地址</span>
+                    <el-button type="primary" icon="Plus" round size="small" @click="addAddress">新增地址</el-button>
+                  </div>
                 </template>
-              </el-table-column>
-            </el-table>
-            <el-empty v-else description="暂无地址" />
-          </div>
 
-          <!-- 账户安全 -->
-          <div v-if="activeTab === '3'" class="security-setting">
-            <el-form label-width="120px">
-              <el-form-item label="修改密码">
-                <el-button type="primary" @click="changePassword">修改密码</el-button>
-              </el-form-item>
-              <el-form-item label="绑定微信">
-                <el-button type="success" @click="bindWechat">立即绑定</el-button>
-              </el-form-item>
-              <el-form-item label="绑定QQ">
-                <el-button type="info" @click="bindQQ">立即绑定</el-button>
-              </el-form-item>
-              <el-form-item label="账号管理">
-                <el-button type="danger" @click="handleDeleteAccount">注销账号</el-button>
-                <span class="tips" style="margin-left: 10px; color: #909399; font-size: 12px;">注销后无法恢复，请谨慎操作</span>
-              </el-form-item>
-            </el-form>
-          </div>
+                <div v-loading="addressLoading" class="address-grid">
+                  <el-empty v-if="addressList.length === 0" description="暂无收货地址" />
+                  
+                  <div 
+                    v-else
+                    v-for="item in addressList" 
+                    :key="item.id" 
+                    class="address-card"
+                    :class="{ 'is-default': item.isDefault }"
+                  >
+                    <div class="address-card-header">
+                      <span class="name">{{ item.name }}</span>
+                      <span class="phone">{{ item.phone }}</span>
+                      <el-tag v-if="item.isDefault" size="small" type="danger" effect="dark" class="default-tag">默认</el-tag>
+                    </div>
+                    <div class="address-body">
+                      <p>{{ item.address }}</p>
+                    </div>
+                    <div class="address-actions">
+                      <el-button type="primary" link icon="Edit" @click="editAddress(item)">编辑</el-button>
+                      <el-button type="danger" link icon="Delete" @click="deleteAddress(item)">删除</el-button>
+                    </div>
+                  </div>
+                </div>
+              </el-card>
 
-          <!-- 实名认证 -->
-          <div v-if="activeTab === '5'" class="identity-verify">
-             <el-result icon="success" title="已认证" sub-title="您已完成实名认证" v-if="userInfo.isVerified">
-                <template #extra>
-                  <p>真实姓名：{{ userInfo.realName }}</p>
+              <!-- 账号安全面板 -->
+              <el-card v-else-if="activeTab === '3'" shadow="hover" class="content-card">
+                <template #header>
+                  <div class="card-header">
+                    <span class="header-title">账号安全</span>
+                  </div>
                 </template>
-             </el-result>
-             <el-result icon="warning" title="未认证" sub-title="您尚未完成实名认证" v-else>
-                <template #extra>
-                  <el-button type="primary" @click="goToVerify">去认证</el-button>
+
+                <div class="security-list">
+                  <div class="security-item">
+                    <div class="security-icon"><el-icon><Key /></el-icon></div>
+                    <div class="security-info">
+                      <h3>登录密码</h3>
+                      <p>建议定期修改密码以保护账号安全</p>
+                    </div>
+                    <el-button round @click="changePassword">修改</el-button>
+                  </div>
+
+                  <div class="security-item">
+                    <div class="security-icon wechat"><el-icon><ChatDotRound /></el-icon></div>
+                    <div class="security-info">
+                      <h3>微信绑定</h3>
+                      <p>绑定微信可用于快捷登录</p>
+                    </div>
+                    <el-button type="success" plain round @click="bindWechat">已绑定</el-button>
+                  </div>
+                  
+                  <div class="security-item">
+                    <div class="security-icon danger"><el-icon><SwitchButton /></el-icon></div>
+                    <div class="security-info">
+                      <h3>注销账号</h3>
+                      <p>注销后无法恢复，请谨慎操作</p>
+                    </div>
+                    <el-button type="danger" plain round @click="handleDeleteAccount">注销</el-button>
+                  </div>
+                </div>
+              </el-card>
+              
+              <!-- 实名认证面板 -->
+              <el-card v-else-if="activeTab === '5'" shadow="hover" class="content-card">
+                <template #header>
+                  <div class="card-header">
+                    <span class="header-title">实名认证</span>
+                  </div>
                 </template>
-             </el-result>
+                
+                <div class="verify-container">
+                  <div v-if="userInfo.isVerified" class="verify-status success">
+                     <el-icon class="status-icon"><CircleCheckFilled /></el-icon>
+                     <h3>已通过实名认证</h3>
+                     <p class="verify-detail">真实姓名：{{ formatName(userInfo.realName) }}</p>
+                     <p class="verify-detail">证件号码：{{ '******************' }}</p>
+                  </div>
+                  <div v-else class="verify-status pending">
+                     <div class="verify-illustration">
+                        <el-icon class="illustration-icon"><Postcard /></el-icon>
+                     </div>
+                     <h3>尚未完成实名认证</h3>
+                     <p>实名认证后可发布商品，提高账号可信度</p>
+                     <el-button type="primary" size="large" round @click="goToVerify" class="verify-btn">立即认证</el-button>
+                  </div>
+                </div>
+              </el-card>
+            </transition>
           </div>
+        </el-col>
+      </el-row>
+    </div>
 
-        </el-card>
-      </el-col>
-    </el-row>
-
-    <el-dialog v-model="addressDialogVisible" :title="addressDialogMode === 'edit' ? '编辑地址' : '添加地址'" width="520px">
-      <el-form ref="addressFormRef" :model="addressForm" :rules="addressRules" label-width="90px">
-        <el-form-item label="收货人" prop="name">
-          <el-input v-model="addressForm.name" placeholder="请输入收货人" />
+    <!-- 地址弹窗 -->
+    <el-dialog 
+      v-model="addressDialogVisible" 
+      :title="addressDialogMode === 'edit' ? '编辑地址' : '新增地址'" 
+      width="500px"
+      align-center
+      class="premium-dialog"
+    >
+      <el-form ref="addressFormRef" :model="addressForm" :rules="addressRules" label-width="80px" label-position="top">
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="收货人" prop="name">
+              <el-input v-model="addressForm.name" placeholder="请填写收货人姓名" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="手机号码" prop="phone">
+              <el-input v-model="addressForm.phone" placeholder="请填写手机号码" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item label="详细地址" prop="address">
+          <el-input 
+            v-model="addressForm.address" 
+            type="textarea" 
+            :rows="3" 
+            placeholder="街道、楼牌号等" 
+            resize="none"
+          />
         </el-form-item>
-        <el-form-item label="手机号" prop="phone">
-          <el-input v-model="addressForm.phone" placeholder="请输入手机号" />
-        </el-form-item>
-        <el-form-item label="地址" prop="address">
-          <el-input v-model="addressForm.address" type="textarea" :rows="3" placeholder="请输入收货地址" />
-        </el-form-item>
-        <el-form-item label="默认地址">
-          <el-switch v-model="addressForm.isDefault" />
+        <el-form-item>
+          <el-checkbox v-model="addressForm.isDefault" label="设为默认收货地址" border />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="addressDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="addressSaving" @click="submitAddress">保存</el-button>
+        <el-button @click="addressDialogVisible = false" round>取消</el-button>
+        <el-button type="primary" :loading="addressSaving" @click="submitAddress" round>保存</el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="passwordDialogVisible" title="修改密码" width="460px">
-      <el-form ref="passwordFormRef" :model="passwordForm" :rules="passwordRules" label-width="100px">
-        <el-form-item label="旧密码" prop="oldPassword">
-          <el-input v-model="passwordForm.oldPassword" type="password" show-password placeholder="请输入旧密码" />
+    <!-- 密码弹窗 -->
+    <el-dialog 
+      v-model="passwordDialogVisible" 
+      title="修改登录密码" 
+      width="420px"
+      align-center
+      class="premium-dialog"
+    >
+      <el-form ref="passwordFormRef" :model="passwordForm" :rules="passwordRules" label-position="top">
+        <el-form-item label="当前密码" prop="oldPassword">
+          <el-input v-model="passwordForm.oldPassword" type="password" show-password placeholder="请输入当前密码" />
         </el-form-item>
         <el-form-item label="新密码" prop="newPassword">
           <el-input v-model="passwordForm.newPassword" type="password" show-password placeholder="请输入新密码" />
@@ -178,8 +313,8 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="passwordDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="passwordSaving" @click="submitPassword">确认修改</el-button>
+        <el-button @click="passwordDialogVisible = false" round>取消</el-button>
+        <el-button type="primary" :loading="passwordSaving" @click="submitPassword" round>确认修改</el-button>
       </template>
     </el-dialog>
   </div>
@@ -189,6 +324,13 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { 
+  User, Location, Lock, Postcard, Star, 
+  Camera, CircleCheckFilled, Warning, 
+  Male, Female, Plus, Edit, Delete,
+  Key, ChatDotRound, SwitchButton,
+  Iphone, Message, ArrowRight
+} from '@element-plus/icons-vue'
 import { getUserInfo, updateUserProfile, listAddresses, addAddress as apiAddAddress, updateAddress as apiUpdateAddress, deleteAddress as apiDeleteAddress, changePassword as apiChangePassword, deleteAccount } from '@/api/userApi'
 
 const router = useRouter()
@@ -213,7 +355,10 @@ const userInfo = ref({
   username: username.value,
   phone: '',
   email: '',
-  gender: 'secret'
+  gender: 'secret',
+  realName: '',
+  isVerified: false,
+  avatar: ''
 })
 
 const addressList = ref([])
@@ -232,6 +377,7 @@ const addressForm = ref({
 })
 const addressRules = {
   name: [{ required: true, message: '请输入收货人', trigger: 'blur' }],
+  phone: [{ required: true, message: '请输入手机号', trigger: 'blur' }],
   address: [{ required: true, message: '请输入收货地址', trigger: 'blur' }]
 }
 
@@ -261,15 +407,19 @@ const passwordRules = {
 // 侧边栏菜单切换
 const handleMenuSelect = (key) => {
   if (key === '4') {
-    router.push('/buyer/collect')
+    // Collect is handled by click event
     return
   }
   activeTab.value = key
 }
 
-// 返回上一页
-const goBack = () => {
-  router.back()
+const goToCollect = () => {
+  router.push('/buyer/collect')
+}
+
+const formatName = (name) => {
+  if (!name) return ''
+  return name.length > 1 ? '*' + name.substring(1) : name
 }
 
 /**
@@ -494,8 +644,6 @@ const handleDeleteAccount = () => {
   })
 }
 
-
-
 watch(activeTab, (tab) => {
   if (tab === '2') loadAddresses()
 })
@@ -511,53 +659,423 @@ onMounted(async () => {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+  min-height: 80vh;
 }
 
-/* 页面头部 */
-.page-header {
+/* 顶部卡片 */
+.profile-header-card {
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.profile-cover {
+  height: 160px;
+  background: linear-gradient(135deg, #409eff 0%, #36d1dc 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.cover-shapes .shape {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+}
+.cover-shapes .shape-1 {
+  width: 300px;
+  height: 300px;
+  top: -100px;
+  right: -50px;
+}
+.cover-shapes .shape-2 {
+  width: 200px;
+  height: 200px;
+  bottom: -50px;
+  left: 50px;
+}
+
+.profile-user-info {
+  padding: 0 30px 30px;
+  display: flex;
+  align-items: flex-end;
+  position: relative;
+  margin-top: -50px;
+}
+
+.avatar-wrapper {
+  position: relative;
+  padding: 4px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.user-avatar {
+  border: 2px solid #fff;
+}
+
+.avatar-edit-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: #409eff;
+  color: #fff;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fff;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.avatar-edit-badge:hover {
+  transform: scale(1.1);
+  background: #66b1ff;
+}
+
+.user-meta {
+  margin-left: 24px;
+  flex: 1;
+  padding-bottom: 10px;
+}
+
+.username {
+  font-size: 24px;
+  font-weight: 700;
+  color: #303133;
+  margin: 0 0 8px;
+}
+
+.user-tags {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.user-bio {
+  color: #909399;
+  font-size: 14px;
+  margin: 0;
+}
+
+.user-stats {
+  display: flex;
+  align-items: center;
+  padding-bottom: 15px;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 0 20px;
+}
+
+.stat-value {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+  color: #303133;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #909399;
+}
+
+.stat-divider {
+  width: 1px;
+  height: 24px;
+  background: #e4e7ed;
+}
+
+/* 侧边菜单 */
+.menu-card {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  margin-bottom: 20px;
+}
+
+.profile-menu-vertical {
+  border-right: none;
+}
+
+.profile-menu-vertical :deep(.el-menu-item) {
+  height: 56px;
+  line-height: 56px;
+  margin: 4px 12px;
+  border-radius: 8px;
+  color: #606266;
+}
+
+.profile-menu-vertical :deep(.el-menu-item.is-active) {
+  background-color: #ecf5ff;
+  color: #409eff;
+  font-weight: 600;
+}
+
+.profile-menu-vertical :deep(.el-menu-item:hover) {
+  background-color: #f5f7fa;
+}
+
+.external-link-icon {
+  margin-left: auto;
+  font-size: 14px;
+  color: #c0c4cc;
+}
+
+/* 内容卡片 */
+.content-card {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  min-height: 500px;
+}
+
+.card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.header-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+  position: relative;
+  padding-left: 12px;
+}
+
+.header-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 16px;
+  background: #409eff;
+  border-radius: 2px;
+}
+
+/* 表单样式 */
+.premium-form {
+  padding: 20px 0;
+}
+
+.gender-radio :deep(.el-radio-button__inner) {
+  padding: 10px 20px;
+}
+
+/* 地址卡片 */
+.address-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  padding: 10px 0;
+}
+
+.address-card {
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  padding: 16px;
+  transition: all 0.3s;
+  position: relative;
+  cursor: default;
+}
+
+.address-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: #c6e2ff;
+}
+
+.address-card.is-default {
+  border-color: #409eff;
+  background: #f0f9eb;
+}
+
+.address-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.address-card-header .name {
+  font-weight: 600;
+  font-size: 16px;
+  color: #303133;
+}
+
+.address-card-header .phone {
+  color: #606266;
+}
+
+.address-body {
+  color: #606266;
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 16px;
+  min-height: 42px;
+}
+
+.address-actions {
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid #ebeef5;
+  padding-top: 10px;
+}
+
+/* 安全设置 */
+.security-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 10px 0;
+}
+
+.security-item {
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  border-radius: 12px;
+  background: #f8f9fa;
+  transition: all 0.3s;
+}
+
+.security-item:hover {
+  background: #f0f2f5;
+  transform: translateY(-2px);
+}
+
+.security-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: #ecf5ff;
+  color: #409eff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  margin-right: 20px;
+}
+
+.security-icon.wechat {
+  background: #e1f3d8;
+  color: #67c23a;
+}
+
+.security-icon.danger {
+  background: #fef0f0;
+  color: #f56c6c;
+}
+
+.security-info {
+  flex: 1;
+}
+
+.security-info h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.security-info p {
+  margin: 0;
+  color: #909399;
+  font-size: 13px;
+}
+
+/* 实名认证 */
+.verify-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+}
+
+.verify-status {
+  text-align: center;
+}
+
+.status-icon {
+  font-size: 64px;
+  color: #67c23a;
   margin-bottom: 20px;
 }
-.page-header h2 {
-  margin: 0;
-  color: #333;
+
+.illustration-icon {
+  font-size: 80px;
+  color: #dcdfe6;
+  margin-bottom: 20px;
 }
 
-/* 侧边栏样式 */
-.profile-sidebar {
-  height: 100%;
-}
-.avatar-box {
-  text-align: center;
-  padding: 20px 0;
-  border-bottom: 1px solid #eee;
-}
-.avatar {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  margin-bottom: 10px;
-}
-.username {
-  margin: 0 0 5px 0;
+.verify-detail {
   font-size: 16px;
-}
-.role-tag {
-  color: #409eff;
-  font-size: 14px;
-}
-.profile-menu {
-  border-right: none;
-  margin-top: 10px;
+  color: #606266;
+  margin: 8px 0;
 }
 
-/* 内容区样式 */
-.profile-content {
-  min-height: 500px;
+.verify-btn {
+  margin-top: 20px;
+  width: 200px;
 }
-.info-form, .address-list, .security-setting, .collect-redirect {
-  padding: 20px;
+
+/* 过渡动画 */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.3s ease;
+}
+
+.fade-slide-enter-from {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+/* 响应式适配 */
+@media (max-width: 768px) {
+  .profile-user-info {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-top: -60px;
+  }
+
+  .user-meta {
+    margin-left: 0;
+    margin-top: 16px;
+    margin-bottom: 20px;
+  }
+  
+  .user-tags {
+    justify-content: center;
+  }
+
+  .profile-menu-vertical {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 10px;
+  }
+
+  .profile-menu-vertical :deep(.el-menu-item) {
+    flex: 0 0 auto;
+    margin: 0 4px;
+  }
+  
+  .address-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -1130,4 +1130,19 @@ public class UserService {
         }
         return res;
     }
+
+    public boolean isSellerAccountHealthy(String username) {
+        if (username == null) return false;
+        java.util.List<java.util.Map<String, Object>> rows = jdbcTemplate.queryForList(
+                "SELECT seller_status, status FROM users WHERE username = ?",
+                username
+        );
+        if (rows.isEmpty()) return false;
+        java.util.Map<String, Object> row = rows.get(0);
+        String sellerStatus = (String) row.get("seller_status");
+        String status = (String) row.get("status");
+        boolean sellerApproved = "APPROVED".equals(sellerStatus);
+        boolean accountNormal = status == null || "normal".equals(status);
+        return sellerApproved && accountNormal;
+    }
 }

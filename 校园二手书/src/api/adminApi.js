@@ -44,8 +44,8 @@ export const approveBook = (id) => {
  * URL: /admin/review/books/{id}/reject
  * Output: Promise<Object> - Response result
  */
-export const rejectBook = (id) => {
-  return request({ url: `/admin/review/books/${id}/reject`, method: 'post', headers: { token: localStorage.getItem('token') } })
+export const rejectBook = (id, reason) => {
+  return request({ url: `/admin/review/books/${id}/reject`, method: 'post', data: { reason }, headers: { token: localStorage.getItem('token') } })
 }
 
 /**
@@ -188,8 +188,64 @@ export const approveComplaint = (id) => {
  * URL: /admin/complaints/{id}/reject
  * Output: Promise<Object> - Response result
  */
-export const rejectComplaint = (id) => {
-  return request({ url: `/admin/complaints/${id}/reject`, method: 'post', headers: { token: localStorage.getItem('token') } })
+export const rejectComplaint = (id, reason) => {
+  return request({ url: `/admin/complaints/${id}/reject`, method: 'post', data: { reason }, headers: { token: localStorage.getItem('token') } })
+}
+
+/**
+ * Function: undoBookAudit
+ * Description: Undo a book audit within 24 hours.
+ * Input: id (Number) - Book ID
+ * Method: POST
+ * URL: /admin/review/books/{id}/undo
+ */
+export const undoBookAudit = (id) => {
+  return request({ url: `/admin/review/books/${id}/undo`, method: 'post', headers: { token: localStorage.getItem('token') } })
+}
+
+/**
+ * Function: undoComplaintAudit
+ * Description: Undo a complaint audit within 24 hours.
+ * Input: id (Number) - Complaint ID
+ * Method: POST
+ * URL: /admin/complaints/{id}/undo
+ */
+export const undoComplaintAudit = (id) => {
+  return request({ url: `/admin/complaints/${id}/undo`, method: 'post', headers: { token: localStorage.getItem('token') } })
+}
+
+/**
+ * Function: listPendingReviews
+ * Description: Lists reviews pending moderation.
+ * Method: GET
+ * URL: /admin/reviews/pending
+ */
+export const listPendingReviews = () => {
+  return request({ url: '/admin/reviews/pending', method: 'get', headers: { token: localStorage.getItem('token') } })
+}
+
+/**
+ * Function: auditReview
+ * Description: Approves or rejects a review with optional reason.
+ * Input: id (Number) - Review ID
+ *        status (String) - 'approved' or 'rejected'
+ *        reason (String) - optional reason
+ * Method: POST
+ * URL: /admin/reviews/{id}/audit
+ */
+export const auditReview = (id, status, reason) => {
+  return request({ url: `/admin/reviews/${id}/audit`, method: 'post', data: { status, reason }, headers: { token: localStorage.getItem('token') } })
+}
+
+/**
+ * Function: undoReviewAudit
+ * Description: Undo a review audit within 24 hours.
+ * Input: id (Number) - Review ID
+ * Method: POST
+ * URL: /admin/reviews/{id}/undo
+ */
+export const undoReviewAudit = (id) => {
+  return request({ url: `/admin/reviews/${id}/undo`, method: 'post', headers: { token: localStorage.getItem('token') } })
 }
 
 /**

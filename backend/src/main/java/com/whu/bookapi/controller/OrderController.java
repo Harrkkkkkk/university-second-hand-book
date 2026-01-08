@@ -225,11 +225,19 @@ public class OrderController {
         }
         Order o = orderService.setStatus(id, "received");
         if (o == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        notificationService.addToUser(
+        // 收货后立即结算到卖家账户并记录资金结算
+        boolean settled = orderService.settleToSeller(o);
+        if (!settled) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(java.util.Map.of("message", "结算失败"));
+        }
+        // 生成结算凭证通知（供卖家中心“结算记录”展示与导出）
+        notificationService.addSettlementVoucher(
                 o.getSellerName(),
-                "order",
-                "买家已确认收货",
-                "订单#" + o.getId() + "（" + o.getBookName() + "）买家已确认收货，金额已打入您的账户，请注意查收"
+                o.getId(),
+                o.getBookName(),
+                o.getPrice() == null ? 0.0 : o.getPrice(),
+                o.getPrice() == null ? 0.0 : o.getPrice(),
+                System.currentTimeMillis()
         );
         return ResponseEntity.ok(o);
     }

@@ -31,7 +31,7 @@
           <el-input v-model="form.comment" type="textarea" rows="4" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="submit">提交评价</el-button>
+          <el-button type="primary" :loading="submitting" :disabled="submitting || hasSubmitted" @click="submit">提交评价</el-button>
           <el-button @click="saveDraft" style="margin-left:8px;">保存草稿</el-button>
         </el-form-item>
       </el-form>
@@ -51,6 +51,8 @@ const goBack = () => router.back()
 const logout = () => logoutAndBackToLogin()
 const form = ref({ orderId: '', scoreCondition: 5, scoreService: 5, comment: '', tags: [] })
 const tagOptions = ['书籍很新','笔记实用','发货快','沟通顺畅']
+const submitting = ref(false)
+const hasSubmitted = ref(false)
 
 import request from '@/api/request'
 
@@ -60,10 +62,20 @@ import request from '@/api/request'
  */
 const submit = async () => {
   try {
+    if (submitting.value || hasSubmitted.value) return
+    submitting.value = true
     const res = await request({ url: '/reviews/add', method: 'post', data: form.value, headers: { token: localStorage.getItem('token') } })
     if (!res || !res.id) throw new Error('失败')
     ElMessage.success('评价提交成功')
+    hasSubmitted.value = true
+    // 自动返回到订单页面，避免重复提交
+    setTimeout(() => {
+      router.push({ path: '/buyer/order' })
+    }, 800)
   } catch { ElMessage.error('提交失败') }
+  finally {
+    submitting.value = false
+  }
 }
 
 /**

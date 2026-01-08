@@ -11,24 +11,55 @@
 -->
 <template>
   <div class="login-page">
-    <el-card class="login-card" shadow="hover">
-      <h2 class="login-title">校园二手教材交易平台</h2>
-
-      <!-- 登录表单 -->
-  <el-form :model="loginForm" :rules="loginRules" ref="loginFormRef" label-width="80px">
-        <el-form-item label="账号" prop="username">
-          <el-input v-model="loginForm.username" placeholder="请输入账号"></el-input>
-        </el-form-item>
-        <el-form-item label="密码" prop="password">
-          <el-input v-model="loginForm.password" type="password" placeholder="请输入密码"></el-input>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" class="login-btn" @click="submitLogin">登录</el-button>
-          <el-button type="text" @click="useTestAccount">使用测试账号</el-button>
-          <el-button type="text" @click="toRegister">没有账号？去注册</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
+    <div class="login-container">
+      <el-card class="login-card" :body-style="{ padding: '40px' }">
+        <div class="header">
+          <h2 class="title">欢迎回来</h2>
+          <p class="subtitle">校园二手书交易平台</p>
+        </div>
+        <el-form
+          :model="loginForm"
+          :rules="loginRules"
+          ref="loginFormRef"
+          label-position="top"
+          size="large"
+          class="login-form"
+        >
+          <el-form-item label="账号" prop="username">
+            <el-input
+              v-model="loginForm.username"
+              placeholder="请输入账号"
+              :prefix-icon="User"
+              clearable
+            />
+          </el-form-item>
+          <el-form-item label="密码" prop="password">
+            <el-input
+              v-model="loginForm.password"
+              type="password"
+              placeholder="请输入密码"
+              :prefix-icon="Lock"
+              show-password
+              clearable
+            />
+          </el-form-item>
+          <el-form-item>
+            <el-button
+              type="primary"
+              class="full-width-btn submit-btn"
+              @click="submitLogin"
+              round
+            >
+              登录
+            </el-button>
+            <div class="links">
+              <el-button type="primary" link @click="useTestAccount">使用测试账号</el-button>
+              <el-button type="primary" link @click="toRegister">没有账号？去注册</el-button>
+            </div>
+          </el-form-item>
+        </el-form>
+      </el-card>
+    </div>
   </div>
 </template>
 
@@ -36,6 +67,7 @@
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter, useRoute } from 'vue-router'
+import { User, Lock } from '@element-plus/icons-vue'
 import { login as apiLogin } from '@/api/userApi'
 
 const router = useRouter()
@@ -55,19 +87,10 @@ const loginRules = ref({
 })
 
 // 测试账号（模拟数据）
-/**
- * Function: useTestAccount
- * Description: Fills the form with a test account credentials.
- */
 const useTestAccount = () => {
   loginForm.value = { username: 'buyer1', password: '123456' }
 }
 
-/**
- * Function: submitLogin
- * Description: Validates form and submits login request.
- *              Redirects user based on role (admin or buyer).
- */
 const submitLogin = async () => {
   try {
     await loginFormRef.value.validate()
@@ -114,10 +137,6 @@ const submitLogin = async () => {
   }
 }
 
-/**
- * Function: toRegister
- * Description: Navigates to the registration page.
- */
 const toRegister = () => {
   router.push('/register')
 }
@@ -125,28 +144,62 @@ const toRegister = () => {
 
 <style scoped>
 .login-page {
-  min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #f5f7fa;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 20px;
+}
+.login-container {
+  width: 100%;
+  max-width: 500px;
 }
 .login-card {
-  width: 400px;
-  padding: 30px;
+  border-radius: 16px;
+  border: none;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  overflow: hidden;
 }
-.login-title {
+.header {
   text-align: center;
-  margin-bottom: 20px;
-  color: #409eff;
+  margin-bottom: 30px;
 }
-.role-group {
-  margin-bottom: 20px;
-  display: flex;
-  justify-content: center;
-  gap: 20px;
+.title {
+  margin: 0;
+  font-size: 28px;
+  color: #303133;
+  font-weight: 600;
+  letter-spacing: 1px;
 }
-.login-btn {
+.subtitle {
+  margin: 10px 0 0;
+  color: #909399;
+  font-size: 14px;
+}
+.login-form .el-form-item {
+  margin-bottom: 24px;
+}
+.full-width-btn {
   width: 100%;
+  height: 44px;
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+.submit-btn {
+  background: linear-gradient(90deg, #409eff 0%, #3a8ee6 100%);
+  border: none;
+  transition: all 0.3s ease;
+}
+.submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.4);
+}
+.links {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
 }
 </style>

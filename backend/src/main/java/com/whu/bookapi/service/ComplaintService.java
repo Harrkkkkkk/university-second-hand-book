@@ -100,7 +100,7 @@ public class ComplaintService {
      */
     public List<Complaint> listAll() {
         return jdbcTemplate.query(
-                "SELECT id, order_id, username, type, detail, create_time, status FROM complaints ORDER BY create_time DESC",
+                "SELECT id, order_id, username, type, detail, create_time, status, audit_reason, audit_time FROM complaints ORDER BY create_time DESC",
                 (rs, rowNum) -> {
                     Complaint c = new Complaint();
                     c.setId(rs.getLong("id"));
@@ -110,6 +110,8 @@ public class ComplaintService {
                     c.setDetail(rs.getString("detail"));
                     c.setCreateTime(rs.getLong("create_time"));
                     c.setStatus(rs.getString("status"));
+                    c.setAuditReason(rs.getString("audit_reason"));
+                    c.setAuditTime(rs.getObject("audit_time") == null ? null : rs.getLong("audit_time"));
                     return c;
                 }
         );
@@ -129,6 +131,48 @@ public class ComplaintService {
     public boolean setStatus(Long id, String status) {
         if (id == null || status == null) return false;
         int updated = jdbcTemplate.update("UPDATE complaints SET status = ? WHERE id = ?", status, id);
+        return updated > 0;
+    }
+
+    public boolean hasPendingComplaint(Long orderId) {
+        if (orderId == null) return false;
+        Integer cnt = jdbcTemplate.queryForObject(
+                "SELECT COUNT(1) FROM complaints WHERE order_id = ? AND status <> 'resolved'",
+                Integer.class,
+                orderId
+        );
+        return cnt != null && cnt > 0;
+    }
+
+    /**
+     * Function: audit
+     * Description: Updates complaint status with audit metadata.
+     * Input: id, status, reason
+     * Return: boolean
+     */
+    public boolean audit(Long id, String status, String reason) {
+        if (id == null || status == null) return false;
+        long now = System.currentTimeMillis();
+        int updated = jdbcTemplate.update(
+                "UPDATE complaints SET status = ?, audit_reason = ?, audit_time = ? WHERE id = ?",
+                status, reason, now, id
+        );
+        return updated > 0;
+    }
+
+    /**
+     * Function: undoAudit
+     * Description: Reverts complaint audit within 24 hours.
+     * Return: boolean
+     */
+    public boolean undoAudit(Long id) {
+        if (id == null) return false;
+        long now = System.currentTimeMillis();
+        long limit = now - 24L * 60 * 60 * 1000;
+        int updated = jdbcTemplate.update(
+                "UPDATE complaints SET status = 'pending', audit_reason = NULL, audit_time = NULL WHERE id = ? AND audit_time IS NOT NULL AND audit_time >= ?",
+                id, limit
+        );
         return updated > 0;
     }
 }

@@ -211,14 +211,20 @@ public class AdminController {
      */
     @PostMapping("/review/books/{id}/reject")
     public ResponseEntity<?> reject(@RequestHeader(value = "token", required = false) String token,
-                                    @PathVariable("id") Long id) {
+                                    @PathVariable("id") Long id,
+                                    @RequestBody(required = false) java.util.Map<String, String> body) {
         User u = userService.getByToken(token);
         if (!isAdmin(u)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         boolean ok = bookService.reject(id);
         if (!ok) return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        String reason = body == null ? null : body.get("reason");
+        if (reason != null && !reason.isBlank()) {
+            bookService.setAuditReason(id, reason);
+        }
         com.whu.bookapi.model.Book b = bookService.get(id);
         if (b != null) {
-            notificationService.addToUser(b.getSellerName(), "audit", "教材审核未通过", "您的教材《" + b.getBookName() + "》未通过审核");
+            String content = "您的教材《" + b.getBookName() + "》未通过审核" + (reason == null ? "" : "，原因：" + reason);
+            notificationService.addToUser(b.getSellerName(), "audit", "教材审核未通过", content);
         }
         return ResponseEntity.ok().build();
     }
@@ -469,7 +475,7 @@ public class AdminController {
                                               @PathVariable("id") Long id) {
         User u = userService.getByToken(token);
         if (!isAdmin(u)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        boolean ok = complaintService.setStatus(id, "approved");
+        boolean ok = complaintService.audit(id, "approved", null);
         if (!ok) return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         Complaint c = null;
         for (Complaint cc : complaintService.listAll()) if (cc.getId().equals(id)) { c = cc; break; }
@@ -490,16 +496,47 @@ public class AdminController {
      */
     @PostMapping("/complaints/{id}/reject")
     public ResponseEntity<?> rejectComplaint(@RequestHeader(value = "token", required = false) String token,
-                                             @PathVariable("id") Long id) {
+                                             @PathVariable("id") Long id,
+                                             @RequestBody(required = false) java.util.Map<String, String> body) {
         User u = userService.getByToken(token);
         if (!isAdmin(u)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        boolean ok = complaintService.setStatus(id, "rejected");
+        String reason = body == null ? null : body.get("reason");
+        boolean ok = complaintService.audit(id, "rejected", reason);
         if (!ok) return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         Complaint c = null;
         for (Complaint cc : complaintService.listAll()) if (cc.getId().equals(id)) { c = cc; break; }
         if (c != null) {
-            notificationService.addToUser(c.getUsername(), "complaint", "投诉审核未通过", "您对订单" + c.getOrderId() + "的投诉未通过");
+            String content = "您对订单" + c.getOrderId() + "的投诉未通过" + (reason == null ? "" : "，原因：" + reason);
+            notificationService.addToUser(c.getUsername(), "complaint", "投诉审核未通过", content);
         }
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Function: undoBookAudit
+     * Description: Reverts a book audit decision within 24 hours.
+     */
+    @PostMapping("/review/books/{id}/undo")
+    public ResponseEntity<?> undoBookAudit(@RequestHeader(value = "token", required = false) String token,
+                                           @PathVariable("id") Long id) {
+        User u = userService.getByToken(token);
+        if (!isAdmin(u)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        boolean ok = bookService.undoAudit(id);
+        if (!ok) return ResponseEntity.badRequest().body("Undo failed");
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Function: undoComplaintAudit
+     * Description: Reverts a complaint audit decision within 24 hours.
+     */
+    @PostMapping("/complaints/{id}/undo")
+    public ResponseEntity<?> undoComplaintAudit(@RequestHeader(value = "token", required = false) String token,
+                                                @PathVariable("id") Long id) {
+        User u = userService.getByToken(token);
+        if (!isAdmin(u)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        boolean ok = complaintService.undoAudit(id);
+        if (!ok) return ResponseEntity.badRequest().body("Undo failed");
         return ResponseEntity.ok().build();
     }
 

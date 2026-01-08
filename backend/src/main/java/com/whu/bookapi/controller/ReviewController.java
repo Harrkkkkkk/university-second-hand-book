@@ -182,4 +182,41 @@ public class ReviewController {
         }
         return ResponseEntity.ok(res);
     }
+
+    /**
+     * Function: goodRate
+     * Description: Calculates seller good review rate where average score >= 4 (4/5 stars).
+     * Calls: UserService.getByToken, ReviewService.listAll, OrderService.get
+     * Called By: Frontend Seller Center
+     * Table Accessed: user_token, users, reviews, orders
+     * Table Updated: None
+     * Input: token (String)
+     * Output: Map - { goodRate, totalReviews, positiveReviews }
+     * Return: ResponseEntity<?>
+     * Others:
+     */
+    @GetMapping("/stats/good-rate")
+    public ResponseEntity<?> goodRate(@RequestHeader(value = "token", required = false) String token) {
+        User u = userService.getByToken(token);
+        if (u == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        List<Review> all = reviewService.listAll();
+        int total = 0;
+        int positive = 0;
+        for (Review r : all) {
+            if (!"approved".equals(r.getStatus())) continue;
+            if (r.getOrderId() == null) continue;
+            Order o = orderService.get(r.getOrderId());
+            if (o == null) continue;
+            if (!u.getUsername().equals(o.getSellerName())) continue;
+            total++;
+            double avg = (r.getScoreCondition() + r.getScoreService()) / 2.0;
+            if (avg >= 4.0) positive++;
+        }
+        double rate = total == 0 ? 0.0 : (positive * 100.0 / total);
+        Map<String, Object> res = new HashMap<>();
+        res.put("goodRate", Math.round(rate * 10.0) / 10.0);
+        res.put("totalReviews", total);
+        res.put("positiveReviews", positive);
+        return ResponseEntity.ok(res);
+    }
 }

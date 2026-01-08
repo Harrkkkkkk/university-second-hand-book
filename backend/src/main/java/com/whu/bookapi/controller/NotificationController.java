@@ -6,6 +6,7 @@ import com.whu.bookapi.service.NotificationService;
 import com.whu.bookapi.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -166,5 +167,74 @@ public class NotificationController {
         if (u == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         notificationService.markAllRead(u.getUsername());
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/settlements")
+    public ResponseEntity<?> listSettlements(@RequestHeader(value = "token", required = false) String token) {
+        User u = userService.getByToken(token);
+        if (u == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        List<Notification> list = notificationService.listByUser(u.getUsername());
+        List<Map<String, Object>> res = new java.util.ArrayList<>();
+        for (Notification n : list) {
+            if (!"settlement".equals(n.getType())) continue;
+            Map<String, Object> m = new java.util.HashMap<>();
+            m.put("id", n.getId());
+            m.put("title", n.getTitle());
+            m.put("content", n.getContent());
+            m.put("createTime", n.getCreateTime());
+            res.add(m);
+        }
+        return ResponseEntity.ok(res);
+    }
+
+    @GetMapping(value = "/settlements/export", produces = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<String> exportSettlements(@RequestHeader(value = "token", required = false) String token) {
+        User u = userService.getByToken(token);
+        if (u == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        List<Notification> list = notificationService.listByUser(u.getUsername());
+        StringBuilder sb = new StringBuilder();
+        sb.append("订单号,书名,交易金额,到账金额,结算时间,凭证号\n");
+        for (Notification n : list) {
+            if (!"settlement".equals(n.getType())) continue;
+            String content = n.getContent() == null ? "" : n.getContent();
+            String orderId = extract(content, "订单#", "（");
+            String bookName = extract(content, "（", "）");
+            String amount = extract(content, "交易金额: ", "\n");
+            String received = extract(content, "到账金额: ", "\n");
+            String time = extract(content, "结算时间: ", "\n");
+            String voucher = extract(content, "凭证号: ", null);
+            sb.append(safeCsv(orderId)).append(',')
+              .append(safeCsv(bookName)).append(',')
+              .append(safeCsv(amount)).append(',')
+              .append(safeCsv(received)).append(',')
+              .append(safeCsv(time)).append(',')
+              .append(safeCsv(voucher)).append('\n');
+        }
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"settlement_vouchers.csv\"")
+                .contentType(MediaType.TEXT_PLAIN)
+                .body(sb.toString());
+    }
+
+    private static String extract(String text, String startToken, String endToken) {
+        if (text == null || startToken == null) return "";
+        int s = text.indexOf(startToken);
+        if (s < 0) return "";
+        s += startToken.length();
+        if (endToken == null) {
+            return text.substring(s).trim();
+        }
+        int e = text.indexOf(endToken, s);
+        if (e < 0) e = text.length();
+        return text.substring(s, e).trim();
+    }
+
+    private static String safeCsv(String s) {
+        if (s == null) return "";
+        String t = s.replace("\"", "\"\"");
+        if (t.contains(",") || t.contains("\n")) {
+            return "\"" + t + "\"";
+        }
+        return t;
     }
 }

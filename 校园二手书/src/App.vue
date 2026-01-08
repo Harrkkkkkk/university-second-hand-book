@@ -1,64 +1,84 @@
 <template>
   <div id="app">
-    <!-- 导航栏：仅登录后显示 -->
-    <el-header v-if="token" style="text-align: center; font-size: 20px; background-color: #409eff; color: white;">
-      <div class="header-content">
-        <div>
-          <span class="role-tag">当前角色：{{ roleName }}</span>
-          <span class="username-tag">欢迎：{{ username }}</span>
+    <!-- Navigation Bar -->
+    <el-header v-if="token" class="app-header">
+      <div class="header-inner">
+        <!-- Logo Area -->
+        <div class="logo-area" @click="toBuyerHome">
+          <div class="logo-icon-bg">
+            <el-icon><Reading /></el-icon>
+          </div>
+          <span class="logo-text">WiseBookPal</span>
         </div>
+
+        <!-- Main Navigation -->
         <el-menu
             :default-active="activeIndex"
             mode="horizontal"
-            background-color="#409eff"
-            text-color="white"
-            active-text-color="#ffd04b"
-            border="false"
+            class="nav-menu"
+            :ellipsis="false"
         >
-          <!-- 买家功能（对所有人开放，除管理员外） -->
-          <el-menu-item v-if="role !== 'admin'" index="1" @click="toBuyerHome">教材选购</el-menu-item>
-          <el-menu-item v-if="role !== 'admin'" index="2" @click="toBuyerOrder">我的订单</el-menu-item>
-          <el-menu-item v-if="role !== 'admin'" index="3" @click="toBuyerCollect">我的收藏</el-menu-item>
-          <el-menu-item v-if="role !== 'admin'" index="4" @click="toBuyerCart">我的购物车</el-menu-item>
+          <!-- Buyer -->
+          <template v-if="role !== 'admin'">
+            <el-menu-item index="1" @click="toBuyerHome">教材选购</el-menu-item>
+            <el-menu-item index="2" @click="toBuyerOrder">我的订单</el-menu-item>
+            <el-menu-item index="3" @click="toBuyerCollect">我的收藏</el-menu-item>
+            <el-menu-item index="4" @click="toBuyerCart">购物车</el-menu-item>
+          </template>
 
-          <!-- 卖家专属菜单（仅通过审核的卖家显示） -->
-          <el-menu-item v-if="role !== 'admin' && sellerStatus === 'APPROVED'" index="5" @click="toSellerCenter">卖家中心</el-menu-item>
-          <el-menu-item v-if="role !== 'admin' && sellerStatus === 'APPROVED'" index="6" @click="toPublish">发布教材</el-menu-item>
-          <el-menu-item v-if="role !== 'admin' && (sellerStatus === 'NONE' || sellerStatus === 'REJECTED')" index="7" @click="toSellerApply">申请成为卖家</el-menu-item>
-          <el-menu-item v-if="role !== 'admin' && sellerStatus === 'PENDING'" index="7" disabled>卖家资质审核中</el-menu-item>
+          <!-- Seller -->
+          <template v-if="role !== 'admin'">
+             <el-sub-menu index="seller-menu">
+               <template #title>卖家中心</template>
+               <el-menu-item v-if="sellerStatus === 'APPROVED'" index="5" @click="toSellerCenter">数据看板</el-menu-item>
+               <el-menu-item v-if="sellerStatus === 'APPROVED'" index="6" @click="toPublish">发布教材</el-menu-item>
+               <el-menu-item v-if="sellerStatus === 'NONE' || sellerStatus === 'REJECTED'" index="7" @click="toSellerApply">申请成为卖家</el-menu-item>
+               <el-menu-item v-if="sellerStatus === 'PENDING'" index="7" disabled>审核中</el-menu-item>
+             </el-sub-menu>
+          </template>
 
-          <!-- 管理员专属菜单 -->
-          <el-menu-item v-if="role === 'admin'" index="1" @click="toAdminDashboard">后台管理</el-menu-item>
-
-          <!-- 三个点下拉菜单（还原为 el-sub-menu，悬停展开显示选项） -->
-          <el-menu
-              index="99"
-              popper-class="user-dropdown-menu"
-              :popper-append-to-body="true"
-              style="display: inline-block; padding: 0 60px; line-height: 60px;"
-          >
-            <template #title>
-              <div style="display: flex; align-items: center; height: 100%;">
-                <el-badge :is-dot="unreadCount > 0" class="item">
-                  <i class="el-icon-more" style="font-size: 30px; color: white;"></i>
-                </el-badge>
-              </div>
-            </template>
-            <el-menu-item index="99-1" @click="toUserCenter">个人中心</el-menu-item>
-            <el-menu-item index="99-3" @click="toMessageCenter">
-              消息中心
-              <el-badge v-if="unreadCount > 0" :value="unreadCount" class="mark" type="danger" />
-            </el-menu-item>
-            <el-menu-item index="99-2" @click="handleLogout">退出登录</el-menu-item>
-          </el-menu>
+          <!-- Admin -->
+          <el-menu-item v-if="role === 'admin'" index="admin" @click="toAdminDashboard">后台管理</el-menu-item>
         </el-menu>
+
+        <!-- Right User Actions -->
+        <div class="user-actions">
+           <el-dropdown trigger="click" @command="handleUserCommand">
+              <div class="user-profile">
+                 <el-badge :is-dot="unreadCount > 0" class="avatar-badge">
+                   <el-avatar :size="36" class="user-avatar" :style="{background: role === 'admin' ? '#F56C6C' : '#409EFF'}">
+                     {{ username ? username.charAt(0).toUpperCase() : 'U' }}
+                   </el-avatar>
+                 </el-badge>
+                 <span class="username">{{ username }}</span>
+                 <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+              </div>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="profile">个人中心</el-dropdown-item>
+                  <el-dropdown-item command="message">
+                    消息中心
+                    <el-badge v-if="unreadCount > 0" :value="unreadCount" type="danger" />
+                  </el-dropdown-item>
+                  <el-dropdown-item divided command="logout" style="color: #F56C6C;">退出登录</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+           </el-dropdown>
+        </div>
       </div>
     </el-header>
 
-    <!-- 页面内容区域 -->
+    <!-- Main Content -->
     <el-main>
-      <router-view></router-view>
+      <router-view v-slot="{ Component }">
+        <transition name="fade-slide" mode="out-in">
+          <component :is="Component" />
+        </transition>
+      </router-view>
     </el-main>
+
+    <!-- Footer -->
+    <page-footer v-if="token" />
   </div>
 </template>
 
@@ -69,6 +89,8 @@ import { ElMessage } from 'element-plus'
 import { logoutAndBackToLogin } from '@/utils/auth.js'
 import { getUnreadCount } from '@/api/notificationApi'
 import { getUserInfo } from '@/api/userApi'
+import { ArrowDown, Reading } from '@element-plus/icons-vue'
+import PageFooter from '@/components/PageFooter.vue'
 
 // 路由实例
 const router = useRouter()
@@ -141,7 +163,7 @@ watch(
       updateStatus()
     },
     { immediate: true }
-)
+  )
 
 onMounted(() => {
   updateStatus()
@@ -182,8 +204,14 @@ const toAdminDashboard = () => {
   activeIndex.value = '1'
 }
 
-const toMessageCenter = () => {
-  router.push('/messages')
+const handleUserCommand = (command) => {
+  if (command === 'profile') {
+    toUserCenter()
+  } else if (command === 'message') {
+    router.push('/messages')
+  } else if (command === 'logout') {
+    handleLogout()
+  }
 }
 
 // 个人中心
@@ -202,78 +230,125 @@ const handleLogout = () => {
 </script>
 
 <style scoped>
-/* 全局样式 */
+/* 全局重置 */
 #app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color: #2c3e50;
+  background-color: #f5f7fa;
+  min-height: 100vh;
+}
+
+/* Header Styles */
+.app-header {
   background-color: white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding: 0;
+  height: 64px;
 }
 
-/* 导航栏容器 */
-:deep(.el-header) {
-  padding: 0 !important;
-  margin: 0 !important;
-  border: none !important;
-  box-shadow: none !important;
-  background-color: #409eff !important;
-}
-
-/* 头部内容布局 */
-.header-content {
+.header-inner {
+  max-width: 1440px;
+  margin: 0 auto;
+  height: 100%;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 0 20px;
-  height: 60px;
+  padding: 0 24px;
 }
 
-/* 用户信息标签 */
-.role-tag, .username-tag {
-  font-size: 14px;
-  background-color: #fff;
-  color: #409eff;
-  padding: 2px 8px;
-  border-radius: 4px;
-  margin-right: 10px;
+/* Logo */
+.logo-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  margin-right: 40px;
+  user-select: none;
 }
 
-/* 隐藏下拉箭头 */
-:deep(.el-sub-menu__icon-arrow) {
-  display: none !important;
+.logo-icon-bg {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #409EFF 0%, #36cfc9 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 24px;
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
 }
 
-/* 水平导航菜单通用样式 */
-:deep(.el-menu) {
-  border: none !important;
-  background-color: transparent !important;
+.logo-text {
+  font-size: 20px;
+  font-weight: 700;
+  color: #303133;
+  letter-spacing: 1px;
 }
 
-:deep(.el-menu--horizontal) {
+/* Menu */
+.nav-menu {
+  flex: 1;
   border-bottom: none !important;
+  background: transparent;
 }
 
 :deep(.el-menu-item) {
-  border: none !important;
-  background-color: transparent !important;
-  --el-menu-item-hover-bg-color: transparent !important;
+  font-size: 15px;
+  font-weight: 500;
+  color: #606266;
 }
 
 :deep(.el-menu-item.is-active) {
-  border-bottom: 2px solid #ffd04b !important;
+  color: #409EFF;
+  font-weight: 600;
+  border-bottom-width: 3px;
 }
 
-/* 三个点图标 */
-:deep(.el-icon-more) {
-  display: inline-block !important;
-  font-size: 20px;
-  color: white;
+:deep(.el-sub-menu__title) {
+  font-size: 15px;
+  font-weight: 500;
 }
 
-/* 主内容区 */
+/* User Actions */
+.user-actions {
+  margin-left: 20px;
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 20px;
+  transition: background-color 0.3s;
+}
+
+.user-profile:hover {
+  background-color: #f5f7fa;
+}
+
+.user-avatar {
+  border: 2px solid white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.username {
+  font-size: 14px;
+  color: #303133;
+  font-weight: 500;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .el-main {
-  padding: 20px;
-  background-color: white;
+  padding: 0; /* Remove default padding to allow hero to span full width */
 }
 </style>

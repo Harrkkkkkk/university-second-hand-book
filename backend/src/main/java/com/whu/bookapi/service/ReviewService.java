@@ -108,6 +108,14 @@ public class ReviewService {
      */
     public Review add(Review r) {
         if (r == null || r.getOrderId() == null || r.getUsername() == null) return null;
+        // 防重复：同一订单同一用户仅允许一条评价
+        Long exists = jdbcTemplate.queryForObject(
+                "SELECT COUNT(1) FROM reviews WHERE order_id = ? AND username = ?",
+                Long.class, r.getOrderId(), r.getUsername()
+        );
+        if (exists != null && exists > 0) {
+            return null;
+        }
         r.setCreateTime(System.currentTimeMillis());
         r.setComment(filter(r.getComment()));
         String tags = tagsToText(r.getTags());

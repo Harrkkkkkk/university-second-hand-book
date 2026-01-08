@@ -1,124 +1,175 @@
 <template>
-  <div class="book-detail">
-    <page-header title="商品详情" :goBack="goBack"></page-header>
-    
-    <!-- Status Alert -->
-    <el-alert
-      v-if="book.status && book.status !== 'on_sale'"
-      :title="book.status === 'sold' ? '该商品已售出' : '该商品已下架'"
-      type="warning"
-      show-icon
-      :closable="false"
-      style="margin-bottom: 20px;"
-    />
-
-    <div v-if="loading" class="loading-container" style="padding: 40px;">
-       <el-skeleton :rows="10" animated />
-    </div>
-    
-    <div v-else-if="error" class="error-container">
-       <el-empty description="数据加载失败">
-          <el-button type="primary" @click="loadData">刷新页面</el-button>
-       </el-empty>
-    </div>
-
-    <el-row v-else :gutter="24">
-      <!-- Left: Cover -->
-      <el-col :span="8">
-         <el-card shadow="hover">
-            <el-image 
-               :src="book.coverUrl || 'https://picsum.photos/300/420'" 
-               class="book-cover" 
-               :preview-src-list="[book.coverUrl || 'https://picsum.photos/300/420']"
-               fit="cover">
-               <template #placeholder>
-                 <div class="image-slot" style="display: flex; justify-content: center; align-items: center; height: 100%; background: #f5f7fa; color: #909399;">
-                    Loading...
-                 </div>
-               </template>
-            </el-image>
-         </el-card>
-      </el-col>
+  <div class="book-detail-page">
+    <div class="detail-container">
+      <div class="breadcrumb-nav">
+         <el-breadcrumb separator="/">
+           <el-breadcrumb-item :to="{ path: '/buyer/home' }">首页</el-breadcrumb-item>
+           <el-breadcrumb-item>教材详情</el-breadcrumb-item>
+           <el-breadcrumb-item>{{ book.bookName }}</el-breadcrumb-item>
+         </el-breadcrumb>
+      </div>
       
-      <!-- Right: Info -->
-      <el-col :span="16">
-         <!-- Basic Info -->
-         <el-card shadow="hover" class="info-card">
-            <template #header>
-               <div class="card-header">
-                 <span style="font-weight: bold; font-size: 16px;">教材基础信息</span>
-               </div>
-            </template>
-            <h1 class="book-title">{{ book.bookName }}</h1>
-            <el-descriptions :column="2" border>
-               <el-descriptions-item label="作者">{{ book.author }}</el-descriptions-item>
-               <el-descriptions-item label="出版社">{{ book.publisher || '-' }}</el-descriptions-item>
-               <el-descriptions-item label="出版日期">{{ book.publishDate || '-' }}</el-descriptions-item>
-               <el-descriptions-item label="ISBN">{{ book.isbn || '-' }}</el-descriptions-item>
-            </el-descriptions>
-         </el-card>
+      <el-alert
+        v-if="book.status && book.status !== 'on_sale'"
+        :title="book.status === 'sold' ? '该商品已售出' : '该商品已下架'"
+        type="warning"
+        show-icon
+        :closable="false"
+        class="status-alert"
+      />
 
-         <!-- Transaction Info -->
-         <el-card shadow="hover" class="info-card" style="margin-top: 20px;">
-            <template #header>
-               <div class="card-header">
-                 <span style="font-weight: bold; font-size: 16px;">交易信息</span>
-               </div>
-            </template>
-            <div class="price-section" style="margin-bottom: 15px;">
-               <span class="sell-price">¥{{ book.sellPrice }}</span>
-               <span class="original-price">原价 ¥{{ book.originalPrice }}</span>
+      <div v-if="loading" class="loading-container">
+         <el-skeleton :rows="10" animated />
+      </div>
+      
+      <div v-else-if="error" class="error-container">
+         <el-empty description="数据加载失败">
+            <el-button type="primary" @click="loadData">刷新页面</el-button>
+         </el-empty>
+      </div>
+
+      <div class="content-wrapper" v-else>
+         <div class="left-column">
+            <div class="cover-card">
+               <el-image 
+                 :src="book.coverUrl || 'https://picsum.photos/300/420'" 
+                 class="main-cover" 
+                 :preview-src-list="[book.coverUrl || 'https://picsum.photos/300/420']"
+                 fit="cover"
+                 :z-index="9999"
+                 :preview-teleported="true"
+               >
+                 <template #placeholder>
+                   <div class="image-placeholder">
+                     <el-icon class="is-loading"><Loading /></el-icon>
+                   </div>
+                 </template>
+               </el-image>
             </div>
-            <el-descriptions :column="2" border>
-               <el-descriptions-item label="成色等级">{{ book.conditionLevel || '无' }}</el-descriptions-item>
-               <el-descriptions-item label="库存数量">{{ book.stock }}</el-descriptions-item>
-               <el-descriptions-item label="成色描述" :span="2">{{ book.description || '暂无描述' }}</el-descriptions-item>
-            </el-descriptions>
-         </el-card>
-
-         <!-- Seller Info -->
-         <el-card shadow="hover" class="info-card" style="margin-top: 20px;">
-            <template #header>
-               <div class="card-header">
-                 <span style="font-weight: bold; font-size: 16px;">卖家信息</span>
-               </div>
-            </template>
-            <div class="seller-info" style="display: flex; align-items: center;">
-               <el-avatar :size="50" icon="el-icon-user-solid" style="background: #409EFF;">{{ book.sellerName ? book.sellerName.charAt(0).toUpperCase() : 'U' }}</el-avatar>
-               <div class="seller-details" style="margin-left: 15px; flex: 1;">
-                  <div class="seller-name" style="font-size: 18px; font-weight: bold; margin-bottom: 5px;">
-                     {{ book.sellerName }}
-                     <el-tag size="small" type="success" style="margin-left: 10px;">{{ book.sellerType === 'teacher' ? '教师' : '学生' }}</el-tag>
-                  </div>
-                  <div class="seller-stats" style="font-size: 14px; color: #666;">
-                     <span>交易评分: <span style="color: #ff9900; font-weight: bold;">{{ sellerStats.score || '5.0' }}</span></span>
-                     <span style="margin-left: 20px;">已售: {{ sellerStats.soldCount || 0 }}本</span>
-                  </div>
-               </div>
-               <!-- <el-button type="text" @click="toSellerDetail(book.sellerName)">查看更多</el-button> -->
-            </div>
-         </el-card>
-
-         <!-- Actions -->
-         <div class="actions-bar" style="margin-top: 30px; display: flex; gap: 15px;">
-            <el-button type="primary" size="large" @click="buyNow" :disabled="book.status !== 'on_sale' || isOwnBook || book.stock <= 0">
-              {{ isOwnBook ? '本人发布' : (book.stock <= 0 ? '已售罄' : '立即购买') }}
-            </el-button>
-            <el-button type="warning" size="large" @click="addToCart" :disabled="book.status !== 'on_sale' || isOwnBook || book.stock <= 0">
-              加入购物车
-            </el-button>
-            <el-button type="info" size="large" @click="chat" :disabled="isOwnBook">在线沟通</el-button>
-            <el-button 
-               :type="isCollected ? 'default' : 'warning'" 
-               :icon="isCollected ? 'el-icon-star-on' : 'el-icon-star-off'" 
-               circle
-               size="large"
-               @click="toggleCollect"
-               :title="isCollected ? '取消收藏' : '收藏商品'"
-            ></el-button>
          </div>
-      </el-col>
-    </el-row>
+
+         <div class="middle-column">
+            <h1 class="detail-title">{{ book.bookName }}</h1>
+            <div class="book-meta-grid">
+              <div class="meta-item">
+                <span class="label">作者</span>
+                <span class="value">{{ book.author || '-' }}</span>
+              </div>
+              <div class="meta-item">
+                <span class="label">出版社</span>
+                <span class="value">{{ book.publisher || '未知' }}</span>
+              </div>
+              <div class="meta-item">
+                <span class="label">ISBN</span>
+                <span class="value">{{ book.isbn || '-' }}</span>
+              </div>
+              <div class="meta-item">
+                <span class="label">成色</span>
+                <span class="value">{{ book.conditionLevel || '-' }}</span>
+              </div>
+            </div>
+
+            <div class="description-section">
+               <h3 class="section-title">商品详情</h3>
+               <p class="desc-text">{{ book.description || '卖家暂无详细描述...' }}</p>
+            </div>
+         </div>
+
+         <div class="right-column">
+           <div class="buy-card">
+             <div class="price-section">
+               <div class="price-row">
+                 <span class="currency">¥</span>
+                 <span class="current-price">{{ book.sellPrice }}</span>
+               </div>
+               <div class="original-price">原价 ¥{{ book.originalPrice }}</div>
+             </div>
+
+             <div class="tags-container">
+               <el-tag effect="dark" type="danger" v-if="book.conditionLevel === '全新'">全新</el-tag>
+               <el-tag effect="plain" type="warning" v-else>{{ book.conditionLevel }}</el-tag>
+               <el-tag effect="plain" type="info">库存 {{ book.stock }}</el-tag>
+             </div>
+
+             <div class="action-area">
+               <el-button
+                 type="primary"
+                 size="large"
+                 class="action-btn buy-btn"
+                 @click="buyNow"
+                 :disabled="!canTrade"
+               >
+                 {{ isOwnBook ? '本人发布' : (Number(book.stock || 0) <= 0 ? '已售罄' : '立即购买') }}
+               </el-button>
+
+               <el-button
+                 type="success"
+                 size="large"
+                 class="action-btn"
+                 @click="addToCart"
+                 :disabled="!canTrade"
+               >
+                 加入购物车
+               </el-button>
+
+               <div class="secondary-actions">
+                 <el-button
+                   size="small"
+                   round
+                   @click="toSellerDetail"
+                   :disabled="!book.sellerName"
+                 >
+                   查看卖家
+                 </el-button>
+                 <el-button
+                   size="small"
+                   circle
+                   :type="isCollected ? 'warning' : 'default'"
+                   :plain="!isCollected"
+                   :icon="isCollected ? StarFilled : Star"
+                   @click="toggleCollect"
+                   title="收藏"
+                 />
+               </div>
+             </div>
+
+             <div class="seller-info">
+               <div class="seller-header">
+                 <el-avatar :size="44" :style="{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }">
+                   {{ book.sellerName ? book.sellerName.charAt(0).toUpperCase() : 'U' }}
+                 </el-avatar>
+                 <div class="seller-details">
+                   <div class="seller-name">
+                     {{ book.sellerName || '-' }}
+                     <el-tag
+                       v-if="book.sellerType"
+                       size="small"
+                       type="success"
+                       effect="plain"
+                       class="seller-tag"
+                     >
+                       {{ book.sellerType === 'teacher' ? '教师' : '学生' }}
+                     </el-tag>
+                   </div>
+                   <div class="seller-sub">
+                     信誉评分 <span class="score-val">{{ sellerStats.score || '5.0' }}</span>
+                     · 已售 {{ sellerStats.soldCount || 0 }}
+                   </div>
+                 </div>
+               </div>
+
+               <el-button class="contact-btn" round @click="chat" :disabled="isOwnBook">
+                 联系卖家
+               </el-button>
+
+               <div class="safety-tip">
+                 请优先使用平台内沟通与支付，线下交易注意核验身份与商品状态。
+               </div>
+             </div>
+           </div>
+         </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -126,7 +177,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import PageHeader from '@/components/PageHeader.vue'
+import { Loading, Star, StarFilled } from '@element-plus/icons-vue'
 import { getBookDetail } from '@/api/bookApi'
 import { createOrder } from '@/api/orderApi'
 import { addFavorite, removeFavorite, checkFavorite } from '@/api/collectApi'
@@ -147,22 +198,11 @@ const isOwnBook = computed(() => {
   return book.value.sellerName && currentUsername && book.value.sellerName === currentUsername
 })
 
-const goBack = () => {
-  router.back()
-}
+const canTrade = computed(() => {
+  const stock = Number(book.value.stock || 0)
+  return book.value.status === 'on_sale' && !isOwnBook.value && stock > 0
+})
 
-const toSellerDetail = (name) => {
-  if (name) {
-    // router.push({ name: 'SellerDetail', params: { name } })
-    ElMessage.info('卖家详情页开发中')
-  }
-}
-
-/**
- * Function: loadData
- * Description: Loads book details, seller stats, and collection status.
- *              Handles 404 errors and displays loading state.
- */
 const loadData = async () => {
   loading.value = true
   error.value = false
@@ -172,7 +212,6 @@ const loadData = async () => {
     if (!res) throw new Error('Not found')
     book.value = res
     
-    // Fetch seller stats
     if (book.value.sellerName) {
        try {
           const stats = await getSellerStats(book.value.sellerName)
@@ -182,8 +221,7 @@ const loadData = async () => {
        }
     }
 
-    // Check collect status
-    checkCollectStatus(bookId)
+    await checkCollectStatus(bookId)
   } catch (e) {
     console.error(e)
     error.value = true
@@ -262,19 +300,15 @@ const toggleCollect = async () => {
   }
 }
 
-/**
- * Function: chat
- * Description: Navigates to the chat page with the seller.
- */
 const chat = () => {
   router.push({ path: '/chat', query: { peer: book.value.sellerName } })
 }
 
-/**
- * Function: checkCollectStatus
- * Description: Checks if the current user has collected this book.
- * Input: id (Number)
- */
+const toSellerDetail = () => {
+  if (!book.value.sellerName) return
+  router.push(`/seller/detail/${encodeURIComponent(book.value.sellerName)}`)
+}
+
 const checkCollectStatus = async (id) => {
   try {
     const res = await checkFavorite(id)
@@ -294,34 +328,257 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.book-detail {
+.book-detail-page {
+  min-height: calc(100vh - var(--nav-height));
+  background: var(--bg-color);
+  padding-bottom: 60px;
+}
+
+.detail-container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
 }
-.book-cover {
+
+.breadcrumb-nav {
+  margin-bottom: 24px;
+}
+
+.status-alert {
+  margin-bottom: 20px;
+}
+
+.content-wrapper {
+  display: grid;
+  grid-template-columns: 320px 1fr 340px;
+  gap: 32px;
+  align-items: start;
+}
+
+.left-column {
+  position: sticky;
+  top: 84px;
+}
+
+.cover-card {
+  background: white;
+  padding: 12px;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.main-cover {
   width: 100%;
-  height: 420px;
-  border-radius: 4px;
+  border-radius: 8px;
+  display: block;
+  aspect-ratio: 3/4;
 }
-.book-title {
-  font-size: 24px;
-  margin: 0 0 20px 0;
-  color: #303133;
+
+.image-placeholder {
+  height: 100%;
+  min-height: 420px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
 }
-.sell-price {
+
+.middle-column {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+  min-height: 500px;
+}
+
+.detail-title {
   font-size: 28px;
-  color: #f56c6c;
-  font-weight: bold;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 24px 0;
+  line-height: 1.4;
 }
+
+.book-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 30px;
+  background: #f7f9ff;
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.meta-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.meta-item .label {
+  font-size: 12px;
+  color: #909399;
+  margin-bottom: 4px;
+}
+
+.meta-item .value {
+  font-size: 15px;
+  color: #303133;
+  font-weight: 500;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0 0 12px 0;
+}
+
+.desc-text {
+  font-size: 16px;
+  color: #4a4a4a;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+.tags-container {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.right-column {
+  position: sticky;
+  top: 84px;
+}
+
+.buy-card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  border: 1px solid #ebeef5;
+}
+
+.price-section {
+  margin-bottom: 16px;
+}
+
+.price-row {
+  display: flex;
+  align-items: baseline;
+  color: #f56c6c;
+  font-weight: 700;
+}
+
+.currency {
+  font-size: 20px;
+  margin-right: 4px;
+}
+
+.current-price {
+  font-size: 36px;
+  line-height: 1;
+}
+
 .original-price {
-  font-size: 14px;
+  font-size: 13px;
   color: #909399;
   text-decoration: line-through;
-  margin-left: 15px;
+  margin-top: 4px;
 }
-.info-card :deep(.el-card__header) {
-  padding: 15px 20px;
-  background-color: #f5f7fa;
+
+.action-area {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.action-btn {
+  width: 100%;
+  height: 48px;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 !important;
+}
+
+.buy-btn {
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+}
+
+.secondary-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 4px;
+}
+
+.seller-info {
+  margin-top: 10px;
+}
+
+.seller-header {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.seller-details {
+  flex: 1;
+}
+
+.seller-name {
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.seller-tag {
+  transform: scale(0.92);
+}
+
+.seller-sub {
+  font-size: 12px;
+  color: #909399;
+}
+
+.score-val {
+  font-weight: 700;
+  color: #303133;
+}
+
+.contact-btn {
+  width: 100%;
+}
+
+.safety-tip {
+  margin-top: 16px;
+  background: #fdf6ec;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #e6a23c;
+  line-height: 1.4;
+}
+
+@media (max-width: 992px) {
+  .content-wrapper {
+    grid-template-columns: 1fr;
+  }
+  
+  .left-column, .right-column {
+    position: static;
+  }
+  
+  .middle-column {
+    min-height: auto;
+  }
 }
 </style>

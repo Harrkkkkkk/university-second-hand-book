@@ -178,7 +178,12 @@
           Function: Review and approve/reject book listings.
         -->
         <el-tab-pane label="教材审核" name="bookAudit">
-          <el-table :data="bookAuditList" border>
+          <div style="margin-bottom:10px;">
+            <el-button type="primary" size="small" @click="batchApproveBooks" :disabled="selectedBooks.length===0">批量通过</el-button>
+            <el-button size="small" @click="openRejectDialog('book', null, true)" :disabled="selectedBooks.length===0">批量驳回</el-button>
+          </div>
+          <el-table :data="bookAuditList" border @selection-change="selectedBooks = $event" row-key="id">
+            <el-table-column type="selection" width="50" />
             <el-table-column type="expand">
               <template #default="scope">
                 <div class="book-audit-expand">
@@ -208,7 +213,38 @@
             <el-table-column label="操作" width="150">
               <template #default="scope">
                 <el-button type="success" size="small" @click="approveBook(scope.row.id)">通过</el-button>
-                <el-button type="danger" size="small" @click="rejectBook(scope.row.id)">驳回</el-button>
+                <el-button type="danger" size="small" @click="openRejectDialog('book', scope.row.id)">驳回</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+
+        <!-- 
+          Tab: Review Audit
+          Function: Review and approve/reject user reviews.
+        -->
+        <el-tab-pane label="评价审核" name="reviewAudit">
+          <div style="margin-bottom:10px;">
+            <el-button type="primary" size="small" @click="batchApproveReviews" :disabled="selectedReviews.length===0">批量通过</el-button>
+            <el-button size="small" @click="openRejectDialog('review', null, true)" :disabled="selectedReviews.length===0">批量驳回</el-button>
+          </div>
+          <el-table :data="reviewsPending" border @selection-change="selectedReviews = $event" row-key="id" v-loading="loadingReviews">
+            <el-table-column type="selection" width="50" />
+            <el-table-column prop="id" label="ID" width="80" />
+            <el-table-column prop="orderId" label="订单ID" width="120" />
+            <el-table-column prop="username" label="用户" width="160" />
+            <el-table-column label="评论" min-width="260">
+              <template #default="scope">
+                <span style="white-space: pre-wrap;">{{ scope.row.comment }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="时间" width="160">
+              <template #default="scope">{{ formatDate(scope.row.createTime) }}</template>
+            </el-table-column>
+            <el-table-column label="操作" width="200">
+              <template #default="scope">
+                <el-button type="success" size="small" @click="approveReview(scope.row.id)">通过</el-button>
+                <el-button type="danger" size="small" @click="openRejectDialog('review', scope.row.id)">驳回</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -219,7 +255,12 @@
           Function: Review and resolve user complaints.
         -->
         <el-tab-pane label="投诉审核" name="complaintAudit">
-          <el-table :data="complaints" border>
+          <div style="margin-bottom:10px;">
+            <el-button type="primary" size="small" @click="batchApproveComplaints" :disabled="selectedComplaints.length===0">批量通过</el-button>
+            <el-button size="small" @click="openRejectDialog('complaint', null, true)" :disabled="selectedComplaints.length===0">批量驳回</el-button>
+          </div>
+          <el-table :data="complaints" border @selection-change="selectedComplaints = $event" row-key="id">
+            <el-table-column type="selection" width="50" />
             <el-table-column prop="id" label="ID" width="80" />
             <el-table-column prop="orderId" label="订单ID" width="120" />
             <el-table-column prop="username" label="投诉人" width="160" />
@@ -229,7 +270,8 @@
             <el-table-column label="操作" width="200">
               <template #default="scope">
                 <el-button type="success" size="small" @click="approveComplaint(scope.row.id)">通过</el-button>
-                <el-button type="danger" size="small" @click="rejectComplaint(scope.row.id)">驳回</el-button>
+                <el-button type="danger" size="small" @click="openRejectDialog('complaint', scope.row.id)">驳回</el-button>
+                <el-button size="small" @click="undoComplaint(scope.row)" :disabled="!canUndoComplaint(scope.row)">撤销审核</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -276,6 +318,14 @@
       </el-tabs>
     </el-card>
 
+    <el-dialog v-model="rejectDialogVisible" title="填写驳回原因" width="500px">
+      <el-input type="textarea" v-model="rejectDialog.reason" rows="4" placeholder="请输入驳回原因（将同步给对应用户）" />
+      <template #footer>
+        <el-button @click="rejectDialogVisible = false">取消</el-button>
+        <el-button type="danger" @click="submitReject">确认驳回</el-button>
+      </template>
+    </el-dialog>
+
   </div>
 </template>
 
@@ -284,7 +334,7 @@ import { ref, onMounted } from 'vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { logoutAndBackToLogin } from '@/utils/auth.js'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { listUsers, setUserRole, listUnderReviewBooks, approveBook as apiApproveBook, rejectBook as apiRejectBook, listComplaints, approveComplaint as apiApproveComplaint, rejectComplaint as apiRejectComplaint, listSellerApplications, approveSeller, rejectSeller, updateUserStatus, updateUserInfo, getOperationLogs, getUserDetail } from '@/api/adminApi'
+import { listUsers, setUserRole, listUnderReviewBooks, approveBook as apiApproveBook, rejectBook as apiRejectBook, listComplaints, approveComplaint as apiApproveComplaint, rejectComplaint as apiRejectComplaint, listSellerApplications, approveSeller, rejectSeller, updateUserStatus, updateUserInfo, getOperationLogs, getUserDetail, undoBookAudit as apiUndoBookAudit, undoComplaintAudit as apiUndoComplaintAudit, listPendingReviews, auditReview as apiAuditReview, undoReviewAudit as apiUndoReviewAudit } from '@/api/adminApi'
 import { announce } from '@/api/notificationApi'
 
 // 退出登录
@@ -437,6 +487,11 @@ const formatDate = (ts) => {
 const bookAuditList = ref([])
 const complaints = ref([])
 const sellerApplications = ref([])
+const reviewsPending = ref([])
+const loadingReviews = ref(false)
+const selectedBooks = ref([])
+const selectedComplaints = ref([])
+const selectedReviews = ref([])
 
 /**
  * Function: resolveCoverUrl
@@ -576,13 +631,16 @@ const approveBook = async (id) => {
   try { await apiApproveBook(id); ElMessage.success('已通过'); loadBooks() } catch { ElMessage.error('操作失败') }
 }
 
-/**
- * Function: rejectBook
- * Description: Rejects a book listing.
- * Input: id (Number) - Book ID
- */
-const rejectBook = async (id) => {
-  try { await apiRejectBook(id); ElMessage.success('已驳回'); loadBooks() } catch { ElMessage.error('操作失败') }
+// 批量通过（教材）
+const batchApproveBooks = async () => {
+  if (selectedBooks.value.length === 0) return
+  let fail = 0
+  for (const row of selectedBooks.value) {
+    try { await apiApproveBook(row.id) } catch { fail++ }
+  }
+  if (fail > 0) ElMessage.warning('部分内容加载异常，已跳过，可尝试重新审核')
+  else ElMessage.success('批量通过完成')
+  loadBooks()
 }
 
 /**
@@ -602,13 +660,94 @@ const approveComplaint = async (id) => {
   try { await apiApproveComplaint(id); ElMessage.success('投诉已处理（通过）'); loadComplaints() } catch { ElMessage.error('操作失败') }
 }
 
-/**
- * Function: rejectComplaint
- * Description: Marks a complaint as rejected (invalid).
- * Input: id (Number) - Complaint ID
- */
-const rejectComplaint = async (id) => {
-  try { await apiRejectComplaint(id); ElMessage.success('投诉已处理（驳回）'); loadComplaints() } catch { ElMessage.error('操作失败') }
+// 撤销投诉审核（24小时内）
+const undoComplaint = async (row) => {
+  try { await apiUndoComplaintAudit(row.id); ElMessage.success('已撤销审核'); loadComplaints() } catch { ElMessage.error('撤销失败或超过时间限制') }
+}
+const canUndoComplaint = (row) => {
+  if (!row || !row.auditTime) return false
+  return (Date.now() - Number(row.auditTime)) <= 24 * 60 * 60 * 1000 && row.status !== 'pending'
+}
+
+// 批量通过（投诉）
+const batchApproveComplaints = async () => {
+  if (selectedComplaints.value.length === 0) return
+  let fail = 0
+  for (const row of selectedComplaints.value) {
+    try { await apiApproveComplaint(row.id) } catch { fail++ }
+  }
+  if (fail > 0) ElMessage.warning('部分内容加载异常，已跳过，可尝试重新审核')
+  else ElMessage.success('批量通过完成')
+  loadComplaints()
+}
+
+// 评价审核加载
+const loadReviews = async () => {
+  loadingReviews.value = true
+  try { reviewsPending.value = await listPendingReviews() || [] } catch { ElMessage.warning('部分内容加载异常，已跳过，可尝试重新审核') } finally { loadingReviews.value = false }
+}
+
+// 评价审核单条通过
+const approveReview = async (id) => {
+  try { await apiAuditReview(id, 'approved', null); ElMessage.success('已通过'); loadReviews() } catch { ElMessage.error('操作失败') }
+}
+
+// 批量通过（评价）
+const batchApproveReviews = async () => {
+  if (selectedReviews.value.length === 0) return
+  let fail = 0
+  for (const row of selectedReviews.value) {
+    try { await apiAuditReview(row.id, 'approved', null) } catch { fail++ }
+  }
+  if (fail > 0) ElMessage.warning('部分内容加载异常，已跳过，可尝试重新审核')
+  else ElMessage.success('批量通过完成')
+  loadReviews()
+}
+
+// 驳回原因弹窗
+const rejectDialogVisible = ref(false)
+const rejectDialog = ref({ type: '', id: null, reason: '', isBatch: false })
+const openRejectDialog = (type, id, isBatch = false) => {
+  rejectDialog.value = { type, id, reason: '', isBatch }
+  rejectDialogVisible.value = true
+}
+const submitReject = async () => {
+  const { type, id, reason, isBatch } = rejectDialog.value
+  if (!reason) { ElMessage.warning('请输入驳回原因'); return }
+  try {
+    if (type === 'book') {
+      if (isBatch) {
+        let fail = 0
+        for (const row of selectedBooks.value) { try { await apiRejectBook(row.id, reason) } catch { fail++ } }
+        if (fail > 0) ElMessage.warning('部分内容加载异常，已跳过，可尝试重新审核'); else ElMessage.success('批量驳回完成')
+        loadBooks()
+      } else {
+        await apiRejectBook(id, reason); ElMessage.success('已驳回'); loadBooks()
+      }
+    } else if (type === 'complaint') {
+      if (isBatch) {
+        let fail = 0
+        for (const row of selectedComplaints.value) { try { await apiRejectComplaint(row.id, reason) } catch { fail++ } }
+        if (fail > 0) ElMessage.warning('部分内容加载异常，已跳过，可尝试重新审核'); else ElMessage.success('批量驳回完成')
+        loadComplaints()
+      } else {
+        await apiRejectComplaint(id, reason); ElMessage.success('已驳回'); loadComplaints()
+      }
+    } else if (type === 'review') {
+      if (isBatch) {
+        let fail = 0
+        for (const row of selectedReviews.value) { try { await apiAuditReview(row.id, 'rejected', reason) } catch { fail++ } }
+        if (fail > 0) ElMessage.warning('部分内容加载异常，已跳过，可尝试重新审核'); else ElMessage.success('批量驳回完成')
+        loadReviews()
+      } else {
+        await apiAuditReview(id, 'rejected', reason); ElMessage.success('已驳回'); loadReviews()
+      }
+    }
+  } catch {
+    ElMessage.error('操作失败')
+  } finally {
+    rejectDialogVisible.value = false
+  }
 }
 
 /**
@@ -642,6 +781,7 @@ import { watch } from 'vue'
 watch(activeTab, (val) => {
   if (val === 'userManage') loadUsers()
   if (val === 'bookAudit') loadBooks()
+  if (val === 'reviewAudit') loadReviews()
   if (val === 'complaintAudit') loadComplaints()
   if (val === 'sellerAudit') loadSellerApps()
 })
@@ -649,6 +789,7 @@ watch(activeTab, (val) => {
 onMounted(() => {
   loadUsers()
   loadBooks()
+  loadReviews()
   loadComplaints()
   loadSellerApps()
 })
