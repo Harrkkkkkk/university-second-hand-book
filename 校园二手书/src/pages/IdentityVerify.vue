@@ -14,7 +14,7 @@
         </el-form-item>
         
         <div class="actions">
-          <el-button @click="goBack">返回</el-button>
+          <el-button @click="goBack" :icon="ArrowLeft">返回</el-button>
           <el-button type="primary" :loading="loading" @click="submitVerify">提交认证</el-button>
         </div>
       </el-form>

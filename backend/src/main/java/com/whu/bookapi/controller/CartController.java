@@ -69,6 +69,7 @@ public class CartController {
                 m.put("sellPrice", b.getSellPrice());
                 m.put("coverUrl", b.getCoverUrl());
                 m.put("sellerName", b.getSellerName());
+                m.put("stock", b.getStock());
             }
             view.add(m);
         }

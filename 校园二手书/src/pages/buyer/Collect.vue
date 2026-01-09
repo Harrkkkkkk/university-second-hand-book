@@ -21,7 +21,7 @@
         <p class="page-subtitle">这里保存了您感兴趣的教材，快去看看有没有降价吧</p>
       </div>
       <div class="header-actions">
-        <el-button @click="router.push('/buyer/home')">返回首页</el-button>
+        <el-button @click="router.push('/buyer/home')" :icon="ArrowLeft">返回首页</el-button>
       </div>
     </div>
 

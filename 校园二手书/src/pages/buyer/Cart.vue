@@ -11,58 +11,87 @@
 -->
 <template>
   <div class="buyer-cart">
-    <div class="page-header-card">
-       <h2 class="page-title">我的购物车</h2>
-       <p class="page-subtitle">管理您的待购教材</p>
+    <div class="cart-header">
+      <div class="header-content">
+        <h2 class="title">我的购物车</h2>
+        <span class="subtitle">共 {{ items.length }} 件待购商品</span>
+      </div>
+      <el-button 
+        type="danger" 
+        plain 
+        round
+        :icon="Delete" 
+        @click="clear" 
+        v-if="items.length > 0"
+        class="clear-btn"
+      >
+        清空购物车
+      </el-button>
     </div>
 
-    <div class="cart-container">
-      <el-card class="cart-card" shadow="hover">
-        <template #header>
-           <div class="card-header">
-             <span>共 {{ items.length }} 件商品</span>
-             <el-button type="danger" link @click="clear" v-if="items.length > 0">清空购物车</el-button>
-           </div>
-        </template>
-        
-        <el-table :data="items" style="width: 100%" :header-cell-style="{background:'#f5f7fa', color:'#606266'}">
-          <el-table-column label="教材信息" min-width="300">
-            <template #default="scope">
-                  <div class="book-info-cell">
-                  <div class="book-icon-wrapper">
-                    <el-icon><Reading /></el-icon>
-                  </div>
-                  <div class="book-meta">
-                    <span class="book-name" @click="toDetail(scope.row.bookId)">{{ scope.row.bookName }}</span>
-                    <span class="book-id">ID: {{ scope.row.bookId }}</span>
-                  </div>
-               </div>
-            </template>
-          </el-table-column>
-          <el-table-column prop="sellPrice" label="单价" width="150">
-             <template #default="scope">
-               <span class="price-text">¥{{ scope.row.sellPrice }}</span>
-             </template>
-          </el-table-column>
-          <el-table-column prop="quantity" label="数量" width="120" align="center" />
-          <el-table-column label="操作" width="250" fixed="right">
-            <template #default="scope">
-              <div class="action-buttons">
-                <el-button type="primary" size="small" round @click="orderAndPay(scope.row.bookId)">
-                  <el-icon><CreditCard /></el-icon> 下单
-                </el-button>
-                <el-button type="danger" size="small" circle :icon="Delete" @click="removeItem(scope.row)" plain></el-button>
+    <div class="cart-list" v-loading="loading">
+      <transition-group name="list">
+        <div v-for="item in items" :key="item.bookId" class="cart-item">
+          <!-- Checkbox placeholder for future batch select -->
+          <!-- <el-checkbox v-model="item.checked" class="item-checkbox" /> -->
+          
+          <div class="item-cover" @click="toDetail(item.bookId)">
+            <img :src="item.coverUrl || `https://picsum.photos/seed/${item.bookId}/180/240`" alt="cover" loading="lazy" />
+          </div>
+          
+          <div class="item-info">
+            <div class="info-main">
+              <h3 class="book-title" @click="toDetail(item.bookId)">{{ item.bookName }}</h3>
+              <div class="book-tags">
+                <el-tag size="small" type="info" effect="plain">ID: {{ item.bookId }}</el-tag>
+                <el-tag size="small" type="success" effect="plain" v-if="item.stock > 0">有货</el-tag>
+                <el-tag size="small" type="danger" effect="plain" v-else>暂时无货</el-tag>
               </div>
-            </template>
-          </el-table-column>
-        </el-table>
-        
-        <div class="cart-empty" v-if="items.length === 0">
-           <el-empty description="购物车空空如也，快去选购吧！">
-             <el-button type="primary" @click="$router.push('/buyer/home')">去逛逛</el-button>
-           </el-empty>
+            </div>
+            
+            <div class="info-price">
+              <span class="currency">¥</span>
+              <span class="amount">{{ item.sellPrice }}</span>
+            </div>
+          </div>
+
+          <div class="item-actions">
+            <div class="quantity-box">
+              <span class="qty-label">数量</span>
+              <span class="qty-val">x{{ item.quantity }}</span>
+            </div>
+            
+            <div class="btn-group">
+              <el-button 
+                type="primary" 
+                round 
+                class="buy-btn"
+                @click="orderAndPay(item.bookId)"
+              >
+                立即购买
+              </el-button>
+              <el-button 
+                type="danger" 
+                circle 
+                plain
+                :icon="Delete" 
+                class="del-btn"
+                @click="removeItem(item)" 
+              />
+            </div>
+          </div>
         </div>
-      </el-card>
+      </transition-group>
+
+      <div class="empty-state" v-if="items.length === 0 && !loading">
+         <el-empty description="购物车空空如也" :image-size="200">
+           <template #extra>
+             <el-button type="primary" size="large" round @click="$router.push('/buyer/home')">
+               去选购心仪教材
+             </el-button>
+           </template>
+         </el-empty>
+      </div>
     </div>
   </div>
 </template>
@@ -74,9 +103,10 @@ import { useRouter } from 'vue-router'
 import { logoutAndBackToLogin } from '@/utils/auth.js'
 import { listCart, removeFromCart, clearCart } from '@/api/cartApi'
 import { createOrder, payOrder } from '@/api/orderApi'
-import { CreditCard, Delete, Reading } from '@element-plus/icons-vue'
+import { Delete } from '@element-plus/icons-vue'
 
 const items = ref([])
+const loading = ref(false)
 const router = useRouter()
 const logout = () => logoutAndBackToLogin()
 
@@ -85,7 +115,10 @@ const logout = () => logoutAndBackToLogin()
  * Description: Fetches current user's cart items.
  */
 const load = async () => {
-  try { items.value = await listCart() || [] } catch { ElMessage.error('加载购物车失败') }
+  loading.value = true
+  try { items.value = await listCart() || [] } 
+  catch { ElMessage.error('加载购物车失败') }
+  finally { loading.value = false }
 }
 
 const toDetail = (bookId) => {
@@ -102,9 +135,24 @@ const removeItem = async (row) => {
   const bookId = row?.bookId
   const qty = Number(row?.quantity || 0)
   if (!bookId) return
+  
+  const confirmRemove = async (count = null) => {
+    try {
+      if (count !== null) {
+        await removeFromCart(bookId, count)
+      } else {
+        await removeFromCart(bookId)
+      }
+      ElMessage.success('移除成功')
+      load()
+    } catch {
+      ElMessage.error('移除失败')
+    }
+  }
+
   if (qty > 1) {
     try {
-      const { value } = await ElMessageBox.prompt('请输入要移除的数量', '移除教材数量', {
+      const { value } = await ElMessageBox.prompt('请输入要移除的数量', '移除教材', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         inputType: 'number',
@@ -117,19 +165,16 @@ const removeItem = async (row) => {
           return true
         }
       })
-      const count = Number(value)
-      await removeFromCart(bookId, count)
-      ElMessage.success('移除成功')
-      load()
+      confirmRemove(Number(value))
     } catch {}
-    return
-  }
-  try {
-    await removeFromCart(bookId)
-    ElMessage.success('移除成功')
-    load()
-  } catch {
-    ElMessage.error('移除失败')
+  } else {
+    ElMessageBox.confirm('确定要移除这本教材吗？', '提示', {
+      confirmButtonText: '移除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }).then(() => {
+      confirmRemove()
+    }).catch(() => {})
   }
 }
 
@@ -138,7 +183,13 @@ const removeItem = async (row) => {
  * Description: Removes all items from the cart.
  */
 const clear = async () => {
-  try { await clearCart(); ElMessage.success('已清空'); load() } catch { ElMessage.error('清空失败') }
+  ElMessageBox.confirm('确定要清空购物车吗？', '警告', {
+    confirmButtonText: '清空',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(async () => {
+    try { await clearCart(); ElMessage.success('已清空'); load() } catch { ElMessage.error('清空失败') }
+  }).catch(() => {})
 }
 
 /**
@@ -181,97 +232,195 @@ onMounted(load)
 
 <style scoped>
 .buyer-cart {
-  min-height: calc(100vh - 64px);
-  background-color: #f5f7fa;
+  max-width: 1000px;
+  margin: 0 auto;
   padding: 20px;
+  min-height: 80vh;
 }
 
-.page-header-card {
-  background: linear-gradient(135deg, #409EFF 0%, #3a8ee6 100%);
-  border-radius: 12px;
-  padding: 30px;
-  color: white;
+.cart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
   margin-bottom: 24px;
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+  padding: 0 10px;
 }
 
-.page-title {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 700;
+.header-content .title {
+  font-size: 28px;
+  color: #303133;
+  margin: 0 0 4px 0;
+  font-weight: 600;
 }
 
-.page-subtitle {
-  margin: 8px 0 0;
-  opacity: 0.9;
+.header-content .subtitle {
+  color: #909399;
   font-size: 14px;
 }
 
-.cart-container {
-  max-width: 1200px;
-  margin: 0 auto;
+.cart-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.cart-card {
-  border-radius: 12px;
-  border: none;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+.cart-item {
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid transparent;
 }
 
-.card-header {
+.cart-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  border-color: #ecf5ff;
+}
+
+.item-cover {
+  width: 90px;
+  height: 120px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.item-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s;
+}
+
+.item-cover:hover img {
+  transform: scale(1.08);
+}
+
+.item-info {
+  flex: 1;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-right: 20px;
 }
 
-.book-info-cell {
+.info-main {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.book-title {
+  margin: 0;
+  font-size: 18px;
+  color: #303133;
+  cursor: pointer;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.book-title:hover {
+  color: #409EFF;
+}
+
+.book-tags {
+  display: flex;
+  gap: 8px;
+}
+
+.info-price {
+  text-align: right;
+  color: #f56c6c;
+  font-weight: 700;
+}
+
+.info-price .currency {
+  font-size: 14px;
+  margin-right: 2px;
+}
+
+.info-price .amount {
+  font-size: 24px;
+}
+
+.item-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 16px;
+  padding-left: 24px;
+  border-left: 1px solid #f0f0f0;
+}
+
+.quantity-box {
+  color: #909399;
+  font-size: 14px;
+}
+
+.btn-group {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.book-icon-wrapper {
-  width: 40px;
-  height: 40px;
-  background-color: #ecf5ff;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #409EFF;
-  font-size: 20px;
-}
-
-.book-meta {
-  display: flex;
-  flex-direction: column;
-}
-
-.book-name {
+.buy-btn {
+  padding: 10px 24px;
   font-weight: 600;
-  color: #303133;
-  cursor: pointer;
-  transition: color 0.2s;
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+  transition: all 0.3s;
 }
 
-.book-name:hover {
-  color: #409EFF;
+.buy-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(64, 158, 255, 0.4);
 }
 
-.book-id {
-  font-size: 12px;
-  color: #909399;
-}
-
-.price-text {
-  color: #F56C6C;
-  font-weight: 700;
+.del-btn {
   font-size: 16px;
 }
 
-.action-buttons {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.list-enter-active,
+.list-leave-active {
+  transition: all 0.4s ease;
+}
+
+.list-enter-from,
+.list-leave-to {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+@media (max-width: 768px) {
+  .cart-item {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px;
+  }
+  
+  .item-info {
+    width: 100%;
+    margin: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .item-actions {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding-left: 0;
+    border-left: none;
+    border-top: 1px solid #f0f0f0;
+    padding-top: 12px;
+  }
 }
 </style>

@@ -204,15 +204,15 @@ const toBuyerCart = () => {
 }
 const toSellerCenter = () => {
   router.push('/seller/center')
-  activeIndex.value = '1'
+  activeIndex.value = '5'
 }
 const toPublish = () => {
   router.push('/publish')
-  activeIndex.value = '2'
+  activeIndex.value = '6'
 }
 const toAdminDashboard = () => {
   router.push('/admin/dashboard')
-  activeIndex.value = '1'
+  activeIndex.value = 'admin'
 }
 
 const handleUserCommand = (command) => {
