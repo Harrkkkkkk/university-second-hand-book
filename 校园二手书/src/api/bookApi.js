@@ -24,7 +24,7 @@ export const addBook = (data) => {
         method: 'post',
         data,
         headers: {
-            token: localStorage.getItem('token')
+            token: sessionStorage.getItem('token')
         }
     })
 }
@@ -99,7 +99,7 @@ export const uploadFile = (file) => {
         method: 'post',
         data: formData,
         headers: {
-            token: localStorage.getItem('token')
+            token: sessionStorage.getItem('token')
         }
     })
 }

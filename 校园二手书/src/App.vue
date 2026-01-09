@@ -96,11 +96,11 @@ import PageFooter from '@/components/PageFooter.vue'
 const router = useRouter()
 const route = useRoute()
 
-// 登录状态（从 localStorage 读取）
-const token = ref(localStorage.getItem('token') || '')
-const role = ref(localStorage.getItem('role') || '')
-const username = ref(localStorage.getItem('username') || '')
-const sellerStatus = ref(localStorage.getItem('sellerStatus') || 'NONE')
+// 登录状态（从 sessionStorage 读取）
+const token = ref(sessionStorage.getItem('token') || '')
+const role = ref(sessionStorage.getItem('role') || '')
+const username = ref(sessionStorage.getItem('username') || '')
+const sellerStatus = ref(sessionStorage.getItem('sellerStatus') || 'NONE')
 const activeIndex = ref('1')
 const unreadCount = ref(0)
 let timer = null
@@ -123,11 +123,11 @@ const updateStatus = async () => {
       const userInfo = await getUserInfo()
       if (userInfo) {
         if (userInfo.role && userInfo.role !== role.value) {
-            localStorage.setItem('role', userInfo.role)
+            sessionStorage.setItem('role', userInfo.role)
             role.value = userInfo.role
         }
         if (userInfo.sellerStatus && userInfo.sellerStatus !== sellerStatus.value) {
-            localStorage.setItem('sellerStatus', userInfo.sellerStatus)
+            sessionStorage.setItem('sellerStatus', userInfo.sellerStatus)
             sellerStatus.value = userInfo.sellerStatus
         }
         // 更新显示名称
@@ -147,19 +147,30 @@ const toSellerApply = () => {
   router.push('/seller/apply')
 }
 
-// 监听路由变化，同步登录状态
+// 监听路由变化，同步登录状态和导航栏高亮
 watch(
     () => route.path,
-    () => {
-      token.value = localStorage.getItem('token') || ''
-      role.value = localStorage.getItem('role') || ''
-      username.value = localStorage.getItem('username') || ''
-      sellerStatus.value = localStorage.getItem('sellerStatus') || 'NONE'
+    (path) => {
+      token.value = sessionStorage.getItem('token') || ''
+      role.value = sessionStorage.getItem('role') || ''
+      username.value = sessionStorage.getItem('username') || ''
+      sellerStatus.value = sessionStorage.getItem('sellerStatus') || 'NONE'
       roleName.value = {
         buyer: '买家',
         seller: '卖家',
         admin: '管理员'
       }[role.value] || '买家'
+      
+      // 更新导航栏高亮
+      if (path.includes('/buyer/home') || path.includes('/seller/detail')) activeIndex.value = '1'
+      else if (path.includes('/buyer/order')) activeIndex.value = '2'
+      else if (path.includes('/buyer/collect')) activeIndex.value = '3'
+      else if (path.includes('/buyer/cart')) activeIndex.value = '4'
+      else if (path.includes('/seller/center')) activeIndex.value = '5'
+      else if (path.includes('/publish')) activeIndex.value = '6'
+      else if (path.includes('/seller/apply')) activeIndex.value = '7'
+      else if (path.includes('/admin')) activeIndex.value = 'admin'
+      
       updateStatus()
     },
     { immediate: true }

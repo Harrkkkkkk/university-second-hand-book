@@ -13,7 +13,11 @@
   <div class="message-center-container">
     <!-- Header Area -->
     <div class="header-section">
-      <page-header title="消息中心" :goBack="goBack" />
+      <el-page-header @back="goBack">
+        <template #content>
+          <span class="text-large font-600 mr-3"> 消息中心 </span>
+        </template>
+      </el-page-header>
     </div>
 
     <div class="main-content">
@@ -153,7 +157,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import PageHeader from '@/components/PageHeader.vue'
 import { logoutAndBackToLogin } from '@/utils/auth.js'
 import { ElMessage } from 'element-plus'
 import { listNotifications, announce, markRead, markAllRead } from '@/api/notificationApi'
@@ -167,7 +170,7 @@ const router = useRouter()
 const goBack = () => router.back()
 const logout = () => logoutAndBackToLogin()
 
-const role = localStorage.getItem('role') || ''
+const role = sessionStorage.getItem('role') || ''
 const notifications = ref([])
 const threads = ref([])
 const peer = ref('')
@@ -295,6 +298,51 @@ onMounted(load)
 
 .header-section {
   margin-bottom: 20px;
+}
+
+.custom-page-header {
+  padding: 8px 0;
+}
+
+.custom-page-header :deep(.el-page-header__left) {
+  margin-right: 16px;
+}
+
+.back-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #fff;
+  border: 1px solid #e4e7ed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #606266;
+  font-size: 18px;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.back-icon-btn:hover {
+  background-color: #ecf5ff;
+  border-color: #409eff;
+  color: #409eff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+}
+
+.back-icon-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(64, 158, 255, 0.2);
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #303133;
+  letter-spacing: 0.5px;
+  line-height: 36px;
 }
 
 /* Custom Tabs */

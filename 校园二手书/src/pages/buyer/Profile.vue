@@ -336,9 +336,9 @@ import { getUserInfo, updateUserProfile, listAddresses, addAddress as apiAddAddr
 const router = useRouter()
 // 当前激活的标签页
 const activeTab = ref('1')
-// 用户名（从localStorage读取）
-const username = ref(localStorage.getItem('username') || '买家用户')
-const role = ref(localStorage.getItem('role') || 'buyer')
+// 用户名（从sessionStorage读取）
+const username = ref(sessionStorage.getItem('username') || '买家用户')
+const role = ref(sessionStorage.getItem('role') || 'buyer')
 
 const roleName = computed(() => {
   const map = {
@@ -433,11 +433,11 @@ const loadUser = async () => {
     if (res && res.username) {
       username.value = res.username
       userInfo.value.username = res.username
-      localStorage.setItem('username', res.username)
+      sessionStorage.setItem('username', res.username)
     }
     if (res && res.role) {
       role.value = res.role
-      localStorage.setItem('role', res.role)
+      sessionStorage.setItem('role', res.role)
     }
     userInfo.value.phone = res && res.phone ? res.phone : ''
     userInfo.value.email = res && res.email ? res.email : ''
@@ -445,9 +445,9 @@ const loadUser = async () => {
     userInfo.value.realName = res && res.realName ? res.realName : ''
     userInfo.value.isVerified = res && res.isVerified ? true : false
     
-    // Sync to localStorage
-    if (userInfo.value.realName) localStorage.setItem('realName', userInfo.value.realName)
-    localStorage.setItem('isVerified', userInfo.value.isVerified ? '1' : '0')
+    // Sync to sessionStorage
+    if (userInfo.value.realName) sessionStorage.setItem('realName', userInfo.value.realName)
+    sessionStorage.setItem('isVerified', userInfo.value.isVerified ? '1' : '0')
   } catch (e) {
     ElMessage.error('加载个人信息失败')
   } finally {
@@ -634,7 +634,7 @@ const handleDeleteAccount = () => {
     try {
       await deleteAccount()
       ElMessage.success('账号已注销')
-      localStorage.clear()
+      sessionStorage.clear()
       router.push('/login')
     } catch (e) {
       ElMessage.error('注销失败：' + (e.response?.data?.message || e.message))

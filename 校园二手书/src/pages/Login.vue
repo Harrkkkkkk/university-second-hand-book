@@ -14,7 +14,7 @@
     <div class="login-container">
       <el-card class="login-card" :body-style="{ padding: '40px' }">
         <div class="header">
-          <h2 class="title">欢迎回来</h2>
+          <h2 class="title">WiseBookPal</h2>
           <p class="subtitle">校园二手书交易平台</p>
         </div>
         <el-form
@@ -103,12 +103,12 @@ const submitLogin = async () => {
       ElMessage.error('登录失败')
       return
     }
-    localStorage.setItem('token', res.token)
-    localStorage.setItem('role', res.role)
-    localStorage.setItem('username', res.username)
-    if (res.sellerStatus) localStorage.setItem('sellerStatus', res.sellerStatus)
-    if (res.realName) localStorage.setItem('realName', res.realName)
-    localStorage.setItem('isVerified', res.isVerified ? '1' : '0')
+    sessionStorage.setItem('token', res.token)
+    sessionStorage.setItem('role', res.role)
+    sessionStorage.setItem('username', res.username)
+    if (res.sellerStatus) sessionStorage.setItem('sellerStatus', res.sellerStatus)
+    if (res.realName) sessionStorage.setItem('realName', res.realName)
+    sessionStorage.setItem('isVerified', res.isVerified ? '1' : '0')
     
     ElMessage.success('登录成功！')
     

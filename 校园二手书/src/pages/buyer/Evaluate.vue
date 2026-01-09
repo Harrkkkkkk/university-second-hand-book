@@ -64,7 +64,7 @@ const submit = async () => {
   try {
     if (submitting.value || hasSubmitted.value) return
     submitting.value = true
-    const res = await request({ url: '/reviews/add', method: 'post', data: form.value, headers: { token: localStorage.getItem('token') } })
+    const res = await request({ url: '/reviews/add', method: 'post', data: form.value, headers: { token: sessionStorage.getItem('token') } })
     if (!res || !res.id) throw new Error('失败')
     ElMessage.success('评价提交成功')
     hasSubmitted.value = true
@@ -84,7 +84,7 @@ const submit = async () => {
  */
 const saveDraft = async () => {
   try {
-    const res = await request({ url: '/reviews/draft/save', method: 'post', data: form.value, headers: { token: localStorage.getItem('token') } })
+    const res = await request({ url: '/reviews/draft/save', method: 'post', data: form.value, headers: { token: sessionStorage.getItem('token') } })
     if (!res) throw new Error('失败')
     ElMessage.success('草稿已保存')
   } catch { ElMessage.error('保存草稿失败') }
@@ -98,7 +98,7 @@ onMounted(async () => {
   }
   if (form.value.orderId) {
     try {
-      const draft = await request({ url: '/reviews/draft/my', method: 'get', params: { orderId: form.value.orderId }, headers: { token: localStorage.getItem('token') } })
+      const draft = await request({ url: '/reviews/draft/my', method: 'get', params: { orderId: form.value.orderId }, headers: { token: sessionStorage.getItem('token') } })
       if (draft && draft.orderId) {
         form.value.scoreCondition = draft.scoreCondition || form.value.scoreCondition
         form.value.scoreService = draft.scoreService || form.value.scoreService

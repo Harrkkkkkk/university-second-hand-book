@@ -176,9 +176,9 @@ const router = createRouter({
  * 3. If user is logged in and tries to access /login -> Redirect to role-specific home
  */
 router.beforeEach((to, from, next) => {
-    // 从localStorage读取登录状态（强制校验）
-    const token = localStorage.getItem('token') || ''
-    const userRole = localStorage.getItem('role') || ''
+    // 从sessionStorage读取登录状态（强制校验）
+    const token = sessionStorage.getItem('token') || ''
+    const userRole = sessionStorage.getItem('role') || ''
 
     // 规则1：所有需要权限的页面，未登录直接跳登录页
     if (to.meta.requireAuth) {

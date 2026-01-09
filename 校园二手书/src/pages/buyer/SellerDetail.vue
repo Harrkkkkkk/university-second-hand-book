@@ -55,7 +55,7 @@ const goBack = () => {
  * Description: Initiates a chat with the seller.
  */
 const toChat = () => {
-  const currentUsername = localStorage.getItem('username')
+  const currentUsername = sessionStorage.getItem('username')
   if (sellerName.value === currentUsername) {
     ElMessage.warning('无法与自己聊天')
     return

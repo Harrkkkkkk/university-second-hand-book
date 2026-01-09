@@ -148,7 +148,7 @@ const clear = async () => {
  */
 const orderAndPay = async (bookId) => {
   // Check identity
-  const isVerified = localStorage.getItem('isVerified') === '1'
+  const isVerified = sessionStorage.getItem('isVerified') === '1'
   if (!isVerified) {
     ElMessageBox.confirm(
       '下单前需要先完成实名认证，是否前往认证？',

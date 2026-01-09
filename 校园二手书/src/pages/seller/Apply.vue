@@ -112,7 +112,7 @@ const checkCooldown = (lastAuditTime) => {
  */
 const handleApply = async () => {
   // Check if user is verified
-  const isVerified = localStorage.getItem('isVerified') === '1'
+  const isVerified = sessionStorage.getItem('isVerified') === '1'
   if (!isVerified) {
     ElMessageBox.confirm(
       '申请成为卖家需要先完成实名认证，是否前往认证？',
@@ -141,7 +141,7 @@ const handleApply = async () => {
     
     loading.value = true
     await applySeller()
-    localStorage.setItem('sellerStatus', 'PENDING')
+    sessionStorage.setItem('sellerStatus', 'PENDING')
     
     // 使用 ElMessageBox 显示成功信息，用户点击确定后跳转
     await ElMessageBox.alert('您的卖家资格申请已提交，请耐心等待管理员审核。', '提交成功', {

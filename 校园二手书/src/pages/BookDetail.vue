@@ -194,7 +194,7 @@ const loading = ref(true)
 const error = ref(false)
 
 const isOwnBook = computed(() => {
-  const currentUsername = localStorage.getItem('username')
+  const currentUsername = sessionStorage.getItem('username')
   return book.value.sellerName && currentUsername && book.value.sellerName === currentUsername
 })
 
@@ -232,7 +232,7 @@ const loadData = async () => {
 }
 
 const checkIdentity = () => {
-  const isVerified = localStorage.getItem('isVerified') === '1'
+  const isVerified = sessionStorage.getItem('isVerified') === '1'
   if (!isVerified) {
      ElMessageBox.confirm(
        '购买商品前需要先完成实名认证，是否前往认证？',

@@ -23,6 +23,5 @@ import request from './request'
  * Return: Promise
  */
 export const listReceivedComplaints = () => {
-  return request({ url: '/complaints/received', method: 'get', headers: { token: localStorage.getItem('token') } })
+  return request({ url: '/complaints/received', method: 'get', headers: { token: sessionStorage.getItem('token') } })
 }
-

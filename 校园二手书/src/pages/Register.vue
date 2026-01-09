@@ -213,10 +213,10 @@ const handleNextStep = async () => {
     }
     
     // Store token
-    localStorage.setItem('token', loginRes.token)
-    localStorage.setItem('role', loginRes.role)
-    localStorage.setItem('username', loginRes.username)
-    localStorage.setItem('isVerified', '0') // Not verified yet
+    sessionStorage.setItem('token', loginRes.token)
+    sessionStorage.setItem('role', loginRes.role)
+    sessionStorage.setItem('username', loginRes.username)
+    sessionStorage.setItem('isVerified', '0') // Not verified yet
     
     ElMessage.success('账号创建成功，请进行实名认证')
     currentStep.value = 1
@@ -244,9 +244,9 @@ const submitVerification = async () => {
       studentId: verifyForm.studentId
     })
     
-    // Update local storage
-    localStorage.setItem('isVerified', '1')
-    localStorage.setItem('realName', verifyForm.name)
+    // Update session storage
+    sessionStorage.setItem('isVerified', '1')
+    sessionStorage.setItem('realName', verifyForm.name)
     
     ElMessage.success('认证成功，欢迎加入！')
     router.push('/buyer/home')

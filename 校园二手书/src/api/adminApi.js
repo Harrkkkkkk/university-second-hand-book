@@ -21,7 +21,7 @@ import request from './request'
  * Output: Promise<Array<Book>> - List of books under review
  */
 export const listUnderReviewBooks = () => {
-  return request({ url: '/admin/review/books', method: 'get', headers: { token: localStorage.getItem('token') } })
+  return request({ url: '/admin/review/books', method: 'get', headers: { token: sessionStorage.getItem('token') } })
 }
 
 /**
@@ -33,7 +33,7 @@ export const listUnderReviewBooks = () => {
  * Output: Promise<Object> - Response result
  */
 export const approveBook = (id) => {
-  return request({ url: `/admin/review/books/${id}/approve`, method: 'post', headers: { token: localStorage.getItem('token') } })
+  return request({ url: `/admin/review/books/${id}/approve`, method: 'post', headers: { token: sessionStorage.getItem('token') } })
 }
 
 /**
@@ -45,7 +45,7 @@ export const approveBook = (id) => {
  * Output: Promise<Object> - Response result
  */
 export const rejectBook = (id, reason) => {
-  return request({ url: `/admin/review/books/${id}/reject`, method: 'post', data: { reason }, headers: { token: localStorage.getItem('token') } })
+  return request({ url: `/admin/review/books/${id}/reject`, method: 'post', data: { reason }, headers: { token: sessionStorage.getItem('token') } })
 }
 
 /**
@@ -57,7 +57,7 @@ export const rejectBook = (id, reason) => {
  * Output: Promise<Array<User>> - List of matching users
  */
 export const listUsers = (keyword) => {
-  return request({ url: '/admin/users', method: 'get', params: { keyword }, headers: { token: localStorage.getItem('token') } })
+  return request({ url: '/admin/users', method: 'get', params: { keyword }, headers: { token: sessionStorage.getItem('token') } })
 }
 
 /**
@@ -71,7 +71,7 @@ export const listUsers = (keyword) => {
  * Output: Promise<Object> - Response result
  */
 export const setUserRole = (username, role) => {
-  return request({ url: `/admin/users/${username}/role`, method: 'post', params: { role }, headers: { token: localStorage.getItem('token') } })
+  return request({ url: `/admin/users/${username}/role`, method: 'post', params: { role }, headers: { token: sessionStorage.getItem('token') } })
 }
 
 /**
@@ -84,7 +84,7 @@ export const setUserRole = (username, role) => {
  */
 /*
 export const deleteUser = (username) => {
-  return request({ url: `/admin/users/${username}`, method: 'delete', headers: { token: localStorage.getItem('token') } })
+  return request({ url: `/admin/users/${username}`, method: 'delete', headers: { token: sessionStorage.getItem('token') } })
 }
 */
 
@@ -97,7 +97,7 @@ export const deleteUser = (username) => {
  * Output: Promise<User> - User details object
  */
 export const getUserDetail = (username) => {
-  return request({ url: `/admin/users/${username}`, method: 'get', headers: { token: localStorage.getItem('token') } })
+  return request({ url: `/admin/users/${username}`, method: 'get', headers: { token: sessionStorage.getItem('token') } })
 }
 
 /**
@@ -109,12 +109,12 @@ export const getUserDetail = (username) => {
  *   - reason (String): Reason for change
  *   - secondAdmin (String): Username of second approving admin
  *   - secondAdminPwd (String): Password of second approving admin
- * Method: POST
+ *   - Method: POST
  * URL: /admin/users/{username}/status
  * Output: Promise<Object> - Response result
  */
 export const updateUserStatus = (username, status, reason, secondAdmin, secondAdminPwd) => {
-  return request({ url: `/admin/users/${username}/status`, method: 'post', data: { status, reason, secondAdmin, secondAdminPwd }, headers: { token: localStorage.getItem('token') } })
+  return request({ url: `/admin/users/${username}/status`, method: 'post', data: { status, reason, secondAdmin, secondAdminPwd }, headers: { token: sessionStorage.getItem('token') } })
 }
 
 /**
@@ -128,7 +128,7 @@ export const updateUserStatus = (username, status, reason, secondAdmin, secondAd
  * Output: Promise<Object> - Response result
  */
 export const undoBlacklist = (username, reason) => {
-  return request({ url: `/admin/users/${username}/undo-blacklist`, method: 'post', data: { reason }, headers: { token: localStorage.getItem('token') } })
+  return request({ url: `/admin/users/${username}/undo-blacklist`, method: 'post', data: { reason }, headers: { token: sessionStorage.getItem('token') } })
 }
 
 /**
@@ -142,7 +142,7 @@ export const undoBlacklist = (username, reason) => {
  * Output: Promise<Object> - Response result
  */
 export const updateUserInfo = (username, data) => {
-  return request({ url: `/admin/users/${username}/update`, method: 'post', data, headers: { token: localStorage.getItem('token') } })
+  return request({ url: `/admin/users/${username}/update`, method: 'post', data, headers: { token: sessionStorage.getItem('token') } })
 }
 
 /**
@@ -154,7 +154,7 @@ export const updateUserInfo = (username, data) => {
  * Output: Promise<Array<OperationLog>> - List of logs
  */
 export const getOperationLogs = (params) => {
-  return request({ url: '/admin/users/logs', method: 'get', params, headers: { token: localStorage.getItem('token') } })
+  return request({ url: '/admin/users/logs', method: 'get', params, headers: { token: sessionStorage.getItem('token') } })
 }
 
 /**
@@ -165,7 +165,7 @@ export const getOperationLogs = (params) => {
  * Output: Promise<Array<Complaint>> - List of complaints
  */
 export const listComplaints = () => {
-  return request({ url: '/admin/complaints', method: 'get', headers: { token: localStorage.getItem('token') } })
+  return request({ url: '/admin/complaints', method: 'get', headers: { token: sessionStorage.getItem('token') } })
 }
 
 /**
@@ -177,7 +177,7 @@ export const listComplaints = () => {
  * Output: Promise<Object> - Response result
  */
 export const approveComplaint = (id) => {
-  return request({ url: `/admin/complaints/${id}/approve`, method: 'post', headers: { token: localStorage.getItem('token') } })
+  return request({ url: `/admin/complaints/${id}/approve`, method: 'post', headers: { token: sessionStorage.getItem('token') } })
 }
 
 /**
@@ -189,7 +189,7 @@ export const approveComplaint = (id) => {
  * Output: Promise<Object> - Response result
  */
 export const rejectComplaint = (id, reason) => {
-  return request({ url: `/admin/complaints/${id}/reject`, method: 'post', data: { reason }, headers: { token: localStorage.getItem('token') } })
+  return request({ url: `/admin/complaints/${id}/reject`, method: 'post', data: { reason }, headers: { token: sessionStorage.getItem('token') } })
 }
 
 /**
@@ -200,7 +200,7 @@ export const rejectComplaint = (id, reason) => {
  * URL: /admin/review/books/{id}/undo
  */
 export const undoBookAudit = (id) => {
-  return request({ url: `/admin/review/books/${id}/undo`, method: 'post', headers: { token: localStorage.getItem('token') } })
+  return request({ url: `/admin/review/books/${id}/undo`, method: 'post', headers: { token: sessionStorage.getItem('token') } })
 }
 
 /**
@@ -211,7 +211,7 @@ export const undoBookAudit = (id) => {
  * URL: /admin/complaints/{id}/undo
  */
 export const undoComplaintAudit = (id) => {
-  return request({ url: `/admin/complaints/${id}/undo`, method: 'post', headers: { token: localStorage.getItem('token') } })
+  return request({ url: `/admin/complaints/${id}/undo`, method: 'post', headers: { token: sessionStorage.getItem('token') } })
 }
 
 /**
@@ -221,7 +221,7 @@ export const undoComplaintAudit = (id) => {
  * URL: /admin/reviews/pending
  */
 export const listPendingReviews = () => {
-  return request({ url: '/admin/reviews/pending', method: 'get', headers: { token: localStorage.getItem('token') } })
+  return request({ url: '/admin/reviews/pending', method: 'get', headers: { token: sessionStorage.getItem('token') } })
 }
 
 /**
@@ -234,7 +234,7 @@ export const listPendingReviews = () => {
  * URL: /admin/reviews/{id}/audit
  */
 export const auditReview = (id, status, reason) => {
-  return request({ url: `/admin/reviews/${id}/audit`, method: 'post', data: { status, reason }, headers: { token: localStorage.getItem('token') } })
+  return request({ url: `/admin/reviews/${id}/audit`, method: 'post', data: { status, reason }, headers: { token: sessionStorage.getItem('token') } })
 }
 
 /**
@@ -245,7 +245,7 @@ export const auditReview = (id, status, reason) => {
  * URL: /admin/reviews/{id}/undo
  */
 export const undoReviewAudit = (id) => {
-  return request({ url: `/admin/reviews/${id}/undo`, method: 'post', headers: { token: localStorage.getItem('token') } })
+  return request({ url: `/admin/reviews/${id}/undo`, method: 'post', headers: { token: sessionStorage.getItem('token') } })
 }
 
 /**
@@ -256,7 +256,7 @@ export const undoReviewAudit = (id) => {
  * Output: Promise<Array<User>> - List of applicants
  */
 export const listSellerApplications = () => {
-  return request({ url: '/admin/seller-applications', method: 'get', headers: { token: localStorage.getItem('token') } })
+  return request({ url: '/admin/seller-applications', method: 'get', headers: { token: sessionStorage.getItem('token') } })
 }
 
 /**
@@ -268,7 +268,7 @@ export const listSellerApplications = () => {
  * Output: Promise<Object> - Response result
  */
 export const approveSeller = (username) => {
-  return request({ url: `/admin/approve-seller/${username}`, method: 'post', headers: { token: localStorage.getItem('token') } })
+  return request({ url: `/admin/approve-seller/${username}`, method: 'post', headers: { token: sessionStorage.getItem('token') } })
 }
 
 /**
@@ -280,5 +280,5 @@ export const approveSeller = (username) => {
  * Output: Promise<Object> - Response result
  */
 export const rejectSeller = (username) => {
-  return request({ url: `/admin/reject-seller/${username}`, method: 'post', headers: { token: localStorage.getItem('token') } })
+  return request({ url: `/admin/reject-seller/${username}`, method: 'post', headers: { token: sessionStorage.getItem('token') } })
 }

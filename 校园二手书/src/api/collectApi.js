@@ -30,7 +30,7 @@ export const listFavorites = () => {
   return request({
     url: '/favorites/list',
     method: 'get',
-    headers: { token: localStorage.getItem('token') }
+    headers: { token: sessionStorage.getItem('token') }
   })
 }
 
@@ -46,7 +46,7 @@ export const addFavorite = (bookId) => {
   return request({
     url: `/favorites/add/${bookId}`,
     method: 'post',
-    headers: { token: localStorage.getItem('token') }
+    headers: { token: sessionStorage.getItem('token') }
   })
 }
 
@@ -62,7 +62,7 @@ export const removeFavorite = (bookId) => {
   return request({
     url: `/favorites/remove/${bookId}`,
     method: 'delete',
-    headers: { token: localStorage.getItem('token') }
+    headers: { token: sessionStorage.getItem('token') }
   })
 }
 
@@ -78,7 +78,7 @@ export const checkFavorite = (bookId) => {
   return request({
     url: `/favorites/check/${bookId}`,
     method: 'get',
-    headers: { token: localStorage.getItem('token') }
+    headers: { token: sessionStorage.getItem('token') }
   })
 }
 
@@ -95,6 +95,6 @@ export const getCollectedIds = () => {
   return request({
     url: '/favorites/ids',
     method: 'get',
-    headers: { token: localStorage.getItem('token') }
+    headers: { token: sessionStorage.getItem('token') }
   })
 }

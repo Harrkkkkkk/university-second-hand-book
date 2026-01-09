@@ -31,7 +31,7 @@ export const getUnreadCount = async () => {
   const res = await request({
     url: '/notifications/unread-count',
     method: 'get',
-    headers: { token: localStorage.getItem('token') }
+    headers: { token: sessionStorage.getItem('token') }
   })
   return res ? res.count : 0
 }
@@ -48,7 +48,7 @@ export const listNotifications = async () => {
   return await request({
     url: '/notifications/list',
     method: 'get',
-    headers: { token: localStorage.getItem('token') }
+    headers: { token: sessionStorage.getItem('token') }
   })
 }
 
@@ -64,7 +64,7 @@ export const markRead = async (id) => {
   return await request({
     url: `/notifications/read/${id}`,
     method: 'post',
-    headers: { token: localStorage.getItem('token') }
+    headers: { token: sessionStorage.getItem('token') }
   })
 }
 
@@ -80,7 +80,7 @@ export const markAllRead = async () => {
   return await request({
     url: '/notifications/mark-all-read',
     method: 'post',
-    headers: { token: localStorage.getItem('token') }
+    headers: { token: sessionStorage.getItem('token') }
   })
 }
 
@@ -97,7 +97,7 @@ export const announce = async (data) => {
     url: '/notifications/announce',
     method: 'post',
     data,
-    headers: { token: localStorage.getItem('token') }
+    headers: { token: sessionStorage.getItem('token') }
   })
 }
 
@@ -105,7 +105,7 @@ export const listSettlements = async () => {
   return await request({
     url: '/notifications/settlements',
     method: 'get',
-    headers: { token: localStorage.getItem('token') }
+    headers: { token: sessionStorage.getItem('token') }
   })
 }
 
@@ -113,7 +113,7 @@ export const exportSettlements = async () => {
   return await request({
     url: '/notifications/settlements/export',
     method: 'get',
-    headers: { token: localStorage.getItem('token') },
+    headers: { token: sessionStorage.getItem('token') },
     responseType: 'text'
   })
 }

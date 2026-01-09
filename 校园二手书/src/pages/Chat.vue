@@ -141,7 +141,7 @@ import { Plus, Picture, Promotion, ArrowLeft, MoreFilled } from '@element-plus/i
 
 const route = useRoute()
 const router = useRouter()
-const username = localStorage.getItem('username') || '我'
+const username = sessionStorage.getItem('username') || '我'
 
 const goBack = () => router.back()
 

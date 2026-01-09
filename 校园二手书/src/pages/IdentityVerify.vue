@@ -52,9 +52,9 @@ const submitVerify = async () => {
       try {
         await verifyIdentity(form)
         ElMessage.success('实名认证成功')
-        // Update local storage
-        localStorage.setItem('isVerified', '1')
-        localStorage.setItem('realName', form.name)
+        // Update session storage
+        sessionStorage.setItem('isVerified', '1')
+        sessionStorage.setItem('realName', form.name)
         
         // Redirect back to where they came from, or home
         const redirect = route.query.redirect || '/buyer/home'

@@ -149,7 +149,7 @@ const submit = async () => {
       url: '/complaints/add', 
       method: 'post', 
       data: form.value, 
-      headers: { token: localStorage.getItem('token') } 
+      headers: { token: sessionStorage.getItem('token') } 
     })
     
     if (res && (res.id || res.success)) {

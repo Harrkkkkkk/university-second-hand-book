@@ -36,7 +36,7 @@ export const logout = () => {
         url: '/user/logout',
         method: 'post',
         headers: {
-            token: localStorage.getItem('token') // 携带token
+            token: sessionStorage.getItem('token') // 携带token
         }
     })
 }
@@ -51,7 +51,7 @@ export const getUserInfo = () => {
         url: '/user/info',
         method: 'get',
         headers: {
-            token: localStorage.getItem('token')
+            token: sessionStorage.getItem('token')
         }
     })
 }
@@ -80,7 +80,7 @@ export const applySeller = () => {
         url: '/user/apply-seller',
         method: 'post',
         headers: {
-            token: localStorage.getItem('token')
+            token: sessionStorage.getItem('token')
         }
     })
 }
@@ -96,7 +96,7 @@ export const updateUserProfile = (data) => {
         method: 'put',
         data,
         headers: {
-            token: localStorage.getItem('token')
+            token: sessionStorage.getItem('token')
         }
     })
 }
@@ -112,7 +112,7 @@ export const changePassword = (data) => {
         method: 'post',
         data,
         headers: {
-            token: localStorage.getItem('token')
+            token: sessionStorage.getItem('token')
         }
     })
 }
@@ -127,7 +127,7 @@ export const listAddresses = () => {
         url: '/user/addresses',
         method: 'get',
         headers: {
-            token: localStorage.getItem('token')
+            token: sessionStorage.getItem('token')
         }
     })
 }
@@ -143,7 +143,7 @@ export const addAddress = (data) => {
         method: 'post',
         data,
         headers: {
-            token: localStorage.getItem('token')
+            token: sessionStorage.getItem('token')
         }
     })
 }
@@ -159,7 +159,7 @@ export const updateAddress = (id, data) => {
         method: 'put',
         data,
         headers: {
-            token: localStorage.getItem('token')
+            token: sessionStorage.getItem('token')
         }
     })
 }
@@ -186,7 +186,7 @@ export const deleteAddress = (id) => {
         url: `/user/addresses/${id}`,
         method: 'delete',
         headers: {
-            token: localStorage.getItem('token')
+            token: sessionStorage.getItem('token')
         }
     })
 }
@@ -201,7 +201,7 @@ export const deleteAccount = () => {
         url: '/user/account',
         method: 'delete',
         headers: {
-            token: localStorage.getItem('token')
+            token: sessionStorage.getItem('token')
         }
     })
 }
@@ -218,8 +218,7 @@ export const verifyIdentity = (data) => {
         method: 'post',
         data,
         headers: {
-            token: localStorage.getItem('token')
+            token: sessionStorage.getItem('token')
         }
     })
 }
-

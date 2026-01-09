@@ -41,7 +41,7 @@
               <el-icon class="search-icon"><Search /></el-icon>
             </template>
             <template #suffix>
-              <el-button type="primary" round @click="searchBooks" class="search-btn">搜索</el-button>
+              <el-button type="primary" @click="searchBooks" class="search-btn" style="border-radius: 4px; margin-right: -10px;">搜索</el-button>
             </template>
           </el-autocomplete>
         </div>
@@ -105,11 +105,11 @@
             <el-button circle :icon="Search" @click="loadBooks" type="primary" plain></el-button>
           </div>
         </div>
-        
+
         <div class="actions-right">
-          <el-button @click="resetFilter" plain round icon="RefreshRight">重置</el-button>
+          <el-button @click="resetFilter" plain round icon="RefreshRight" size="large" style="padding-left: 0px;">重置</el-button>
           <el-badge :value="selectedIds.length" :hidden="selectedIds.length === 0" type="primary">
-            <el-button type="success" @click="bulkAddToCart" round icon="ShoppingCart" class="bulk-btn">
+            <el-button type="success" @click="bulkAddToCart" round icon="ShoppingCart" class="bulk-btn" size="large" style="padding-left: 0px;">
               批量加购
             </el-button>
           </el-badge>
