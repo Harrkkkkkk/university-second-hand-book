@@ -25,6 +25,8 @@ public class Complaint {
     private String type;
     /** Detailed description of the complaint */
     private String detail;
+    /** Evidence images for the complaint */
+    private java.util.List<String> images;
     /** Timestamp of complaint creation */
     private long createTime;
     /** Resolution status (pending, handling, resolved, rejected) */
@@ -44,6 +46,8 @@ public class Complaint {
     public void setType(String type) { this.type = type; }
     public String getDetail() { return detail; }
     public void setDetail(String detail) { this.detail = detail; }
+    public java.util.List<String> getImages() { return images; }
+    public void setImages(java.util.List<String> images) { this.images = images; }
     public long getCreateTime() { return createTime; }
     public void setCreateTime(long createTime) { this.createTime = createTime; }
     public String getStatus() { return status; }

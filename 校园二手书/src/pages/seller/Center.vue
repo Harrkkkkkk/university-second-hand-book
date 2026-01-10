@@ -118,6 +118,22 @@
                 <el-tag v-for="t in (scope.row.tags || [])" :key="t" style="margin-right:4px;">{{ t }}</el-tag>
               </template>
             </el-table-column>
+            <el-table-column label="图片" width="160">
+              <template #default="scope">
+                <div v-if="scope.row.images && scope.row.images.length">
+                  <el-image 
+                    v-for="(img, idx) in scope.row.images" 
+                    :key="idx" 
+                    :src="resolveCoverUrl(img)" 
+                    :preview-src-list="scope.row.images.map(resolveCoverUrl)"
+                    style="width: 40px; height: 40px; margin-right: 4px;"
+                    fit="cover"
+                    preview-teleported
+                  />
+                </div>
+                <span v-else style="color:#999;font-size:12px;">无图</span>
+              </template>
+            </el-table-column>
             <el-table-column prop="comment" label="评论"></el-table-column>
           </el-table>
         </el-tab-pane>

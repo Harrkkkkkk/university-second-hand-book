@@ -233,9 +233,25 @@
             <el-table-column prop="id" label="ID" width="80" />
             <el-table-column prop="orderId" label="订单ID" width="120" />
             <el-table-column prop="username" label="用户" width="160" />
-            <el-table-column label="评论" min-width="260">
+            <el-table-column label="评论" min-width="200">
               <template #default="scope">
                 <span style="white-space: pre-wrap;">{{ scope.row.comment }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="图片" width="220">
+              <template #default="scope">
+                <div v-if="scope.row.images && scope.row.images.length">
+                  <el-image 
+                    v-for="(img, idx) in scope.row.images" 
+                    :key="idx" 
+                    :src="resolveCoverUrl(img)" 
+                    :preview-src-list="scope.row.images.map(resolveCoverUrl)"
+                    style="width: 50px; height: 50px; margin-right: 5px; border-radius: 4px;"
+                    fit="cover"
+                    preview-teleported
+                  />
+                </div>
+                <span v-else style="color:#999; font-size:12px;">无图片</span>
               </template>
             </el-table-column>
             <el-table-column label="时间" width="160">
@@ -265,7 +281,27 @@
             <el-table-column prop="orderId" label="订单ID" width="120" />
             <el-table-column prop="username" label="投诉人" width="160" />
             <el-table-column prop="type" label="类型" />
-            <el-table-column prop="detail" label="详情" />
+            <el-table-column label="详情" min-width="200">
+              <template #default="scope">
+                <div>{{ scope.row.detail }}</div>
+              </template>
+            </el-table-column>
+            <el-table-column label="图片" width="220">
+              <template #default="scope">
+                <div v-if="scope.row.images && scope.row.images.length">
+                  <el-image 
+                    v-for="(img, idx) in scope.row.images" 
+                    :key="idx" 
+                    :src="resolveCoverUrl(img)" 
+                    :preview-src-list="scope.row.images.map(resolveCoverUrl)"
+                    style="width: 50px; height: 50px; margin-right: 5px; border-radius: 4px;"
+                    fit="cover"
+                    preview-teleported
+                  />
+                </div>
+                <span v-else style="color:#999; font-size:12px;">无图片</span>
+              </template>
+            </el-table-column>
             <el-table-column prop="status" label="状态" width="120" />
             <el-table-column label="操作" width="200">
               <template #default="scope">
@@ -336,6 +372,20 @@ import { logoutAndBackToLogin } from '@/utils/auth.js'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { listUsers, setUserRole, listUnderReviewBooks, approveBook as apiApproveBook, rejectBook as apiRejectBook, listComplaints, approveComplaint as apiApproveComplaint, rejectComplaint as apiRejectComplaint, listSellerApplications, approveSeller, rejectSeller, updateUserStatus, updateUserInfo, getOperationLogs, getUserDetail, undoBookAudit as apiUndoBookAudit, undoComplaintAudit as apiUndoComplaintAudit, listPendingReviews, auditReview as apiAuditReview, undoReviewAudit as apiUndoReviewAudit } from '@/api/adminApi'
 import { announce } from '@/api/notificationApi'
+
+/**
+ * Function: resolveCoverUrl
+ * Description: Resolves the full URL for book covers and images.
+ * Input: url (String)
+ * Return: String (Full URL)
+ */
+const resolveCoverUrl = (url) => {
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://')) return url
+  if (url.startsWith('/book-api/')) return url
+  if (url.startsWith('/files/')) return `/book-api${url}`
+  return url
+}
 
 // 退出登录
 const logout = () => {
@@ -492,21 +542,6 @@ const loadingReviews = ref(false)
 const selectedBooks = ref([])
 const selectedComplaints = ref([])
 const selectedReviews = ref([])
-
-/**
- * Function: resolveCoverUrl
- * Description: Resolves the full URL for a book cover image.
- *              Handles absolute URLs, relative API paths, and file storage paths.
- * Input: url (String)
- * Return: String (Full URL)
- */
-const resolveCoverUrl = (url) => {
-  if (!url) return ''
-  if (url.startsWith('http://') || url.startsWith('https://')) return url
-  if (url.startsWith('/book-api/')) return url
-  if (url.startsWith('/files/')) return `/book-api${url}`
-  return url
-}
 
 // ==========================================
 // Logic: Announcements

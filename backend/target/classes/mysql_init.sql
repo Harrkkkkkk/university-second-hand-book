@@ -261,6 +261,13 @@ PREPARE stmt_reviews_status FROM @reviews_status_sql;
 EXECUTE stmt_reviews_status;
 DEALLOCATE PREPARE stmt_reviews_status;
 
+-- Add images column to reviews (idempotent check)
+SET @reviews_has_images := (SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'reviews' AND COLUMN_NAME = 'images');
+SET @reviews_images_sql := IF(@reviews_has_images = 0, 'ALTER TABLE reviews ADD COLUMN images TEXT', 'SELECT 1');
+PREPARE stmt_reviews_images FROM @reviews_images_sql;
+EXECUTE stmt_reviews_images;
+DEALLOCATE PREPARE stmt_reviews_images;
+
 -- Funds settlement ledger
 CREATE TABLE IF NOT EXISTS funds_settlement (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -283,11 +290,19 @@ CREATE TABLE IF NOT EXISTS review_draft (
   score_service INT NOT NULL,
   comment TEXT,
   tags TEXT,
+  images TEXT,
   create_time BIGINT NOT NULL,
   PRIMARY KEY (username, order_id),
   CONSTRAINT fk_review_draft_user FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE,
   CONSTRAINT fk_review_draft_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Add images column to review_draft (idempotent check)
+SET @review_draft_has_images := (SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'review_draft' AND COLUMN_NAME = 'images');
+SET @review_draft_images_sql := IF(@review_draft_has_images = 0, 'ALTER TABLE review_draft ADD COLUMN images TEXT', 'SELECT 1');
+PREPARE stmt_review_draft_images FROM @review_draft_images_sql;
+EXECUTE stmt_review_draft_images;
+DEALLOCATE PREPARE stmt_review_draft_images;
 
 CREATE TABLE IF NOT EXISTS complaints (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -311,6 +326,13 @@ SET @complaints_audit_reason_sql := IF(@complaints_has_audit_reason = 0, 'ALTER 
 PREPARE stmt_complaints_audit FROM @complaints_audit_reason_sql;
 EXECUTE stmt_complaints_audit;
 DEALLOCATE PREPARE stmt_complaints_audit;
+
+-- Add images column to complaints (idempotent check)
+SET @complaints_has_images := (SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'complaints' AND COLUMN_NAME = 'images');
+SET @complaints_images_sql := IF(@complaints_has_images = 0, 'ALTER TABLE complaints ADD COLUMN images TEXT', 'SELECT 1');
+PREPARE stmt_complaints_images FROM @complaints_images_sql;
+EXECUTE stmt_complaints_images;
+DEALLOCATE PREPARE stmt_complaints_images;
 
 CREATE TABLE IF NOT EXISTS notifications (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,

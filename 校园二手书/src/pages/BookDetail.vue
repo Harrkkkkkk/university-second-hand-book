@@ -73,6 +73,29 @@
                <h3 class="section-title">商品详情</h3>
                <p class="desc-text">{{ book.description || '卖家暂无详细描述...' }}</p>
             </div>
+
+            <div class="reviews-section" v-if="sellerReviews.length">
+               <h3 class="section-title">卖家评价 ({{ sellerReviews.length }})</h3>
+               <div v-for="review in sellerReviews" :key="review.id" class="review-item">
+                 <div class="review-header">
+                   <span class="review-user">{{ review.buyerName }}</span>
+                   <el-rate v-model="review.scoreService" disabled text-color="#ff9900" size="small" />
+                   <span class="review-time">{{ review.createTime }}</span>
+                 </div>
+                 <div class="review-content">{{ review.comment }}</div>
+                 <div class="review-images" v-if="review.images && review.images.length">
+                    <el-image 
+                      v-for="(img, idx) in review.images" 
+                      :key="idx" 
+                      :src="resolveCoverUrl(img)" 
+                      :preview-src-list="review.images.map(resolveCoverUrl)"
+                      class="review-img"
+                      fit="cover"
+                      preview-teleported
+                    />
+                 </div>
+               </div>
+            </div>
          </div>
 
          <div class="right-column">
@@ -183,11 +206,13 @@ import { createOrder } from '@/api/orderApi'
 import { addFavorite, removeFavorite, checkFavorite } from '@/api/collectApi'
 import { addToCart as apiAddToCart } from '@/api/cartApi'
 import { getSellerStats } from '@/api/userApi'
+import { listSellerReviews } from '@/api/reviewApi'
 
 const route = useRoute()
 const router = useRouter()
 
 const book = ref({})
+const sellerReviews = ref([])
 const sellerStats = ref({})
 const isCollected = ref(false)
 const loading = ref(true)
@@ -203,6 +228,14 @@ const canTrade = computed(() => {
   return book.value.status === 'on_sale' && !isOwnBook.value && stock > 0
 })
 
+const resolveCoverUrl = (url) => {
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://')) return url
+  if (url.startsWith('/book-api/')) return url
+  if (url.startsWith('/files/')) return `/book-api${url}`
+  return `/book-api/files/${url}`
+}
+
 const loadData = async () => {
   loading.value = true
   error.value = false
@@ -216,8 +249,11 @@ const loadData = async () => {
        try {
           const stats = await getSellerStats(book.value.sellerName)
           sellerStats.value = stats || {}
+          
+          const reviews = await listSellerReviews(book.value.sellerName)
+          sellerReviews.value = reviews || []
        } catch (e) {
-          console.error('Failed to load seller stats', e)
+          console.error('Failed to load seller info', e)
        }
     }
 
@@ -361,19 +397,72 @@ onMounted(() => {
 }
 
 .cover-card {
-  background: white;
-  padding: 12px;
-  border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-  position: relative;
+  border-radius: 12px;
   overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  background: #fff;
 }
 
 .main-cover {
   width: 100%;
-  border-radius: 8px;
+  height: 420px;
   display: block;
-  aspect-ratio: 3/4;
+  object-fit: cover;
+}
+
+.reviews-section {
+  margin-top: 40px;
+  border-top: 1px solid #eee;
+  padding-top: 20px;
+}
+
+.review-item {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px dashed #eee;
+}
+
+.review-item:last-child {
+  border-bottom: none;
+}
+
+.review-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.review-user {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.review-time {
+  color: #999;
+  font-size: 12px;
+  margin-left: auto;
+}
+
+.review-content {
+  font-size: 14px;
+  color: #333;
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+
+.review-images {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.review-img {
+  width: 60px;
+  height: 60px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid #eee;
 }
 
 .image-placeholder {
@@ -441,6 +530,60 @@ onMounted(() => {
   line-height: 1.8;
   white-space: pre-wrap;
   margin: 0;
+}
+
+.reviews-section {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #ebeef5;
+}
+
+.review-item {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px dashed #f0f2f5;
+}
+
+.review-item:last-child {
+  border-bottom: none;
+}
+
+.review-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.reviewer-name {
+  font-weight: 600;
+  color: #606266;
+}
+
+.review-time {
+  color: #909399;
+  font-size: 12px;
+  margin-left: auto;
+}
+
+.review-content {
+  color: #303133;
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+
+.review-images {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.review-img {
+  width: 60px;
+  height: 60px;
+  border-radius: 4px;
+  border: 1px solid #e4e7ed;
 }
 
 .tags-container {

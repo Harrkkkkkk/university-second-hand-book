@@ -119,8 +119,9 @@ public class ReviewService {
         r.setCreateTime(System.currentTimeMillis());
         r.setComment(filter(r.getComment()));
         String tags = tagsToText(r.getTags());
+        String images = tagsToText(r.getImages());
         KeyHolder keyHolder = new GeneratedKeyHolder();
-        String sql = "INSERT INTO reviews (order_id, username, score_condition, score_service, comment, tags, create_time) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO reviews (order_id, username, score_condition, score_service, comment, tags, images, create_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         jdbcTemplate.update(connection -> {
             var ps = connection.prepareStatement(sql, new String[]{"id"});
             ps.setLong(1, r.getOrderId());
@@ -129,7 +130,8 @@ public class ReviewService {
             ps.setInt(4, r.getScoreService());
             ps.setString(5, r.getComment());
             ps.setString(6, tags);
-            ps.setLong(7, r.getCreateTime());
+            ps.setString(7, images);
+            ps.setLong(8, r.getCreateTime());
             return ps;
         }, keyHolder);
         Number key = keyHolder.getKey();
@@ -150,7 +152,7 @@ public class ReviewService {
     public List<Review> listByUser(String username) {
         if (username == null) return new ArrayList<>();
         return jdbcTemplate.query(
-                "SELECT id, order_id, username, score_condition, score_service, comment, tags, create_time FROM reviews WHERE username = ? ORDER BY create_time DESC",
+                "SELECT id, order_id, username, score_condition, score_service, comment, tags, images, create_time FROM reviews WHERE username = ? ORDER BY create_time DESC",
                 (rs, rowNum) -> {
                     Review r = new Review();
                     r.setId(rs.getLong("id"));
@@ -160,6 +162,7 @@ public class ReviewService {
                     r.setScoreService(rs.getInt("score_service"));
                     r.setComment(rs.getString("comment"));
                     r.setTags(textToTags(rs.getString("tags")));
+                    r.setImages(textToTags(rs.getString("images")));
                     r.setCreateTime(rs.getLong("create_time"));
                     return r;
                 },
@@ -188,15 +191,17 @@ public class ReviewService {
         copy.setScoreService(r.getScoreService());
         copy.setComment(r.getComment());
         copy.setTags(r.getTags());
+        copy.setImages(r.getImages());
         copy.setCreateTime(System.currentTimeMillis());
         jdbcTemplate.update(
-                "INSERT INTO review_draft (username, order_id, score_condition, score_service, comment, tags, create_time) VALUES (?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE score_condition=VALUES(score_condition), score_service=VALUES(score_service), comment=VALUES(comment), tags=VALUES(tags), create_time=VALUES(create_time)",
+                "INSERT INTO review_draft (username, order_id, score_condition, score_service, comment, tags, images, create_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE score_condition=VALUES(score_condition), score_service=VALUES(score_service), comment=VALUES(comment), tags=VALUES(tags), images=VALUES(images), create_time=VALUES(create_time)",
                 username,
                 r.getOrderId(),
                 r.getScoreCondition(),
                 r.getScoreService(),
                 r.getComment(),
                 tagsToText(r.getTags()),
+                tagsToText(r.getImages()),
                 copy.getCreateTime()
         );
         return copy;
@@ -249,7 +254,7 @@ public class ReviewService {
      */
     public java.util.List<Review> listAll() {
         return jdbcTemplate.query(
-                "SELECT id, order_id, username, score_condition, score_service, comment, tags, create_time, status, audit_reason, audit_time FROM reviews ORDER BY create_time DESC",
+                "SELECT id, order_id, username, score_condition, score_service, comment, tags, images, create_time, status, audit_reason, audit_time FROM reviews ORDER BY create_time DESC",
                 (rs, rowNum) -> {
                     Review r = new Review();
                     r.setId(rs.getLong("id"));
@@ -259,6 +264,7 @@ public class ReviewService {
                     r.setScoreService(rs.getInt("score_service"));
                     r.setComment(rs.getString("comment"));
                     r.setTags(textToTags(rs.getString("tags")));
+                    r.setImages(textToTags(rs.getString("images")));
                     r.setCreateTime(rs.getLong("create_time"));
                     r.setStatus(rs.getString("status"));
                     r.setAuditReason(rs.getString("audit_reason"));
@@ -280,7 +286,7 @@ public class ReviewService {
      */
     public List<Review> listPending() {
         return jdbcTemplate.query(
-                "SELECT id, order_id, username, score_condition, score_service, comment, tags, create_time, status FROM reviews WHERE status = 'pending' ORDER BY create_time ASC",
+                "SELECT id, order_id, username, score_condition, score_service, comment, tags, images, create_time, status FROM reviews WHERE status = 'pending' ORDER BY create_time ASC",
                 (rs, rowNum) -> {
                     Review r = new Review();
                     r.setId(rs.getLong("id"));
@@ -290,6 +296,7 @@ public class ReviewService {
                     r.setScoreService(rs.getInt("score_service"));
                     r.setComment(rs.getString("comment"));
                     r.setTags(textToTags(rs.getString("tags")));
+                    r.setImages(textToTags(rs.getString("images")));
                     r.setCreateTime(rs.getLong("create_time"));
                     r.setStatus(rs.getString("status"));
                     return r;

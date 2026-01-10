@@ -141,6 +141,7 @@ public class ReviewController {
                 m.put("comment", r.getComment());
                 m.put("createTime", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(r.getCreateTime())));
                 m.put("tags", r.getTags());
+                m.put("images", r.getImages());
                 res.add(m);
             }
         }
@@ -177,6 +178,7 @@ public class ReviewController {
                 m.put("comment", r.getComment());
                 m.put("createTime", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(r.getCreateTime())));
                 m.put("tags", r.getTags());
+                m.put("images", r.getImages());
                 res.add(m);
             }
         }

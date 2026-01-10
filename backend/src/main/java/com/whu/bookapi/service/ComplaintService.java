@@ -27,6 +27,30 @@ public class ComplaintService {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    private static String listToText(java.util.List<String> list) {
+        if (list == null || list.isEmpty()) return null;
+        java.util.List<String> cleaned = new ArrayList<>();
+        for (String t : list) {
+            if (t == null) continue;
+            String tt = t.trim();
+            if (!tt.isEmpty()) cleaned.add(tt);
+        }
+        if (cleaned.isEmpty()) return null;
+        return String.join(",", cleaned);
+    }
+
+    private static java.util.List<String> textToList(String text) {
+        if (text == null || text.isEmpty()) return null;
+        String[] parts = text.split(",");
+        java.util.List<String> list = new ArrayList<>();
+        for (String p : parts) {
+            if (p == null) continue;
+            String t = p.trim();
+            if (!t.isEmpty()) list.add(t);
+        }
+        return list.isEmpty() ? null : list;
+    }
+
     /**
      * Function: add
      * Description: Submits a new complaint for an order.
@@ -43,15 +67,16 @@ public class ComplaintService {
         c.setCreateTime(System.currentTimeMillis());
         c.setStatus("pending");
         KeyHolder keyHolder = new GeneratedKeyHolder();
-        String sql = "INSERT INTO complaints (order_id, username, type, detail, create_time, status) VALUES (?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO complaints (order_id, username, type, detail, images, create_time, status) VALUES (?, ?, ?, ?, ?, ?, ?)";
         jdbcTemplate.update(connection -> {
             var ps = connection.prepareStatement(sql, new String[]{"id"});
             ps.setLong(1, c.getOrderId());
             ps.setString(2, c.getUsername());
             ps.setString(3, c.getType());
             ps.setString(4, c.getDetail());
-            ps.setLong(5, c.getCreateTime());
-            ps.setString(6, c.getStatus());
+            ps.setString(5, listToText(c.getImages()));
+            ps.setLong(6, c.getCreateTime());
+            ps.setString(7, c.getStatus());
             return ps;
         }, keyHolder);
         Number key = keyHolder.getKey();
@@ -72,7 +97,7 @@ public class ComplaintService {
         List<Complaint> res = new ArrayList<>();
         if (username == null) return res;
         return jdbcTemplate.query(
-                "SELECT id, order_id, username, type, detail, create_time, status FROM complaints WHERE username = ? ORDER BY create_time DESC",
+                "SELECT id, order_id, username, type, detail, images, create_time, status FROM complaints WHERE username = ? ORDER BY create_time DESC",
                 (rs, rowNum) -> {
                     Complaint c = new Complaint();
                     c.setId(rs.getLong("id"));
@@ -80,6 +105,7 @@ public class ComplaintService {
                     c.setUsername(rs.getString("username"));
                     c.setType(rs.getString("type"));
                     c.setDetail(rs.getString("detail"));
+                    c.setImages(textToList(rs.getString("images")));
                     c.setCreateTime(rs.getLong("create_time"));
                     c.setStatus(rs.getString("status"));
                     return c;
@@ -100,7 +126,7 @@ public class ComplaintService {
      */
     public List<Complaint> listAll() {
         return jdbcTemplate.query(
-                "SELECT id, order_id, username, type, detail, create_time, status, audit_reason, audit_time FROM complaints ORDER BY create_time DESC",
+                "SELECT id, order_id, username, type, detail, images, create_time, status, audit_reason, audit_time FROM complaints ORDER BY create_time DESC",
                 (rs, rowNum) -> {
                     Complaint c = new Complaint();
                     c.setId(rs.getLong("id"));
@@ -108,6 +134,7 @@ public class ComplaintService {
                     c.setUsername(rs.getString("username"));
                     c.setType(rs.getString("type"));
                     c.setDetail(rs.getString("detail"));
+                    c.setImages(textToList(rs.getString("images")));
                     c.setCreateTime(rs.getLong("create_time"));
                     c.setStatus(rs.getString("status"));
                     c.setAuditReason(rs.getString("audit_reason"));

@@ -106,6 +106,7 @@ public class ComplaintController {
                 m.put("detail", c.getDetail());
                 m.put("createTime", c.getCreateTime());
                 m.put("status", c.getStatus());
+                m.put("images", c.getImages());
                 res.add(m);
             }
         }

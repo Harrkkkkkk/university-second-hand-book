@@ -58,6 +58,20 @@
                 />
               </el-form-item>
 
+              <el-form-item label="上传凭证（可选，最多3张）">
+                <el-upload
+                  action="/book-api/files/upload"
+                  list-type="picture-card"
+                  :limit="3"
+                  :on-success="handleUploadSuccess"
+                  :on-remove="handleRemove"
+                  :headers="uploadHeaders"
+                  accept=".jpg,.jpeg,.png"
+                >
+                  <el-icon><Plus /></el-icon>
+                </el-upload>
+              </el-form-item>
+
               <el-form-item>
                 <div class="form-actions">
                   <el-button size="large" @click="goBack">取消</el-button>
@@ -108,12 +122,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { 
   WarningFilled, InfoFilled, Lock,
-  DocumentDelete, Timer, CircleClose, Warning, More
+  DocumentDelete, Timer, CircleClose, Warning, More, Plus
 } from '@element-plus/icons-vue'
 import request from '@/api/request'
 
@@ -122,7 +136,8 @@ const route = useRoute()
 const goBack = () => router.back()
 
 const submitting = ref(false)
-const form = ref({ orderId: '', type: '', detail: '' })
+const form = ref({ orderId: '', type: '', detail: '', images: [] })
+const uploadHeaders = computed(() => ({ token: sessionStorage.getItem('token') }))
 
 const complaintTypes = [
   { label: '虚假描述', value: '虚假描述', icon: 'DocumentDelete' },
@@ -131,6 +146,20 @@ const complaintTypes = [
   { label: '恶意骚扰', value: '恶意骚扰', icon: 'Warning' },
   { label: '其他原因', value: '其他', icon: 'More' }
 ]
+
+const handleUploadSuccess = (response, uploadFile, uploadFiles) => {
+  if (response && response.url) {
+    form.value.images.push(response.url)
+  }
+}
+
+const handleRemove = (uploadFile, uploadFiles) => {
+  const url = uploadFile.response ? uploadFile.response.url : uploadFile.url
+  const index = form.value.images.indexOf(url)
+  if (index > -1) {
+    form.value.images.splice(index, 1)
+  }
+}
 
 /**
  * Function: submit

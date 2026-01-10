@@ -26,6 +26,22 @@
             <el-tag v-for="t in (scope.row.tags || [])" :key="t" style="margin-right:4px;">{{ t }}</el-tag>
           </template>
         </el-table-column>
+        <el-table-column label="图片" width="160">
+          <template #default="scope">
+            <div v-if="scope.row.images && scope.row.images.length">
+              <el-image 
+                v-for="(img, idx) in scope.row.images" 
+                :key="idx" 
+                :src="resolveImageUrl(img)" 
+                :preview-src-list="scope.row.images.map(resolveImageUrl)"
+                style="width: 40px; height: 40px; margin-right: 4px;"
+                fit="cover"
+                preview-teleported
+              />
+            </div>
+            <span v-else style="color:#999;font-size:12px;">无图</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="comment" label="评论"></el-table-column>
         <el-table-column prop="createTime" label="时间" width="180"></el-table-column>
       </el-table>
@@ -48,6 +64,14 @@ const reviewList = ref([])
 
 const goBack = () => {
   router.back()
+}
+
+const resolveImageUrl = (url) => {
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://')) return url
+  if (url.startsWith('/book-api/')) return url
+  if (url.startsWith('/files/')) return `/book-api${url}`
+  return url
 }
 
 /**

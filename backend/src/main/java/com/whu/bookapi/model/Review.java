@@ -31,6 +31,8 @@ public class Review {
     private long createTime;
     /** List of tags describing the review */
     private java.util.List<String> tags;
+    /** List of image URLs uploaded with the review */
+    private java.util.List<String> images;
     /** Moderation status (pending, approved, rejected) */
     private String status; 
     /** Reason for moderation decision */
@@ -54,6 +56,8 @@ public class Review {
     public void setCreateTime(long createTime) { this.createTime = createTime; }
     public java.util.List<String> getTags() { return tags; }
     public void setTags(java.util.List<String> tags) { this.tags = tags; }
+    public java.util.List<String> getImages() { return images; }
+    public void setImages(java.util.List<String> images) { this.images = images; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public String getAuditReason() { return auditReason; }
