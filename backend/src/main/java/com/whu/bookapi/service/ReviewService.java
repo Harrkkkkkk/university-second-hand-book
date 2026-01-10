@@ -346,4 +346,39 @@ public class ReviewService {
         );
         return updated > 0;
     }
+
+    /**
+     * Function: listApprovedBySeller
+     * Description: Lists approved reviews for a specific seller.
+     * Calls: textToTags
+     * Called By: ReviewController.listBySeller, ReviewController.received, ReviewController.goodRate
+     * Table Accessed: reviews, orders
+     * Input: sellerName (String) - Seller's username
+     * Output: List<Review> - List of approved reviews
+     * Return: List<Review>
+     */
+    public List<Review> listApprovedBySeller(String sellerName) {
+        if (sellerName == null) return new ArrayList<>();
+        return jdbcTemplate.query(
+                "SELECT r.id, r.order_id, r.username, r.score_condition, r.score_service, r.comment, r.tags, r.images, r.create_time, r.status " +
+                        "FROM reviews r JOIN orders o ON r.order_id = o.id " +
+                        "WHERE o.seller_name = ? AND r.status = 'approved' " +
+                        "ORDER BY r.create_time DESC",
+                (rs, rowNum) -> {
+                    Review r = new Review();
+                    r.setId(rs.getLong("id"));
+                    r.setOrderId(rs.getLong("order_id"));
+                    r.setUsername(rs.getString("username"));
+                    r.setScoreCondition(rs.getInt("score_condition"));
+                    r.setScoreService(rs.getInt("score_service"));
+                    r.setComment(rs.getString("comment"));
+                    r.setTags(textToTags(rs.getString("tags")));
+                    r.setImages(textToTags(rs.getString("images")));
+                    r.setCreateTime(rs.getLong("create_time"));
+                    r.setStatus(rs.getString("status"));
+                    return r;
+                },
+                sellerName
+        );
+    }
 }

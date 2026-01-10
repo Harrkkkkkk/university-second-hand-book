@@ -298,7 +298,7 @@ public class UserController {
     @PutMapping("/addresses/{id}")
     public ResponseEntity<?> updateAddress(@RequestHeader(value = "token", required = false) String token,
                                            @PathVariable("id") Long id,
-                                           @RequestBody(required = false) Map<String, Object> body) {
+                                           @RequestBody Map<String, Object> body) {
         User user = token == null ? null : userService.getByToken(token);
         if (user == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         String name = body == null || body.get("name") == null ? null : body.get("name").toString();

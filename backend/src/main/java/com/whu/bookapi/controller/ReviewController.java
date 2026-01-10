@@ -125,25 +125,20 @@ public class ReviewController {
     public ResponseEntity<?> received(@RequestHeader(value = "token", required = false) String token) {
         User u = userService.getByToken(token);
         if (u == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        List<Review> all = reviewService.listAll();
+        List<Review> reviews = reviewService.listApprovedBySeller(u.getUsername());
         List<Map<String, Object>> res = new ArrayList<>();
-        for (Review r : all) {
-            if (!"approved".equals(r.getStatus())) continue;
-            if (r.getOrderId() == null) continue;
-            Order o = orderService.get(r.getOrderId());
-            if (o != null && u.getUsername().equals(o.getSellerName())) {
-                Map<String, Object> m = new HashMap<>();
-                m.put("id", r.getId());
-                m.put("orderId", r.getOrderId());
-                m.put("buyerName", r.getUsername());
-                m.put("scoreCondition", r.getScoreCondition());
-                m.put("scoreService", r.getScoreService());
-                m.put("comment", r.getComment());
-                m.put("createTime", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(r.getCreateTime())));
-                m.put("tags", r.getTags());
-                m.put("images", r.getImages());
-                res.add(m);
-            }
+        for (Review r : reviews) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", r.getId());
+            m.put("orderId", r.getOrderId());
+            m.put("buyerName", r.getUsername());
+            m.put("scoreCondition", r.getScoreCondition());
+            m.put("scoreService", r.getScoreService());
+            m.put("comment", r.getComment());
+            m.put("createTime", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(r.getCreateTime())));
+            m.put("tags", r.getTags());
+            m.put("images", r.getImages());
+            res.add(m);
         }
         return ResponseEntity.ok(res);
     }
@@ -151,7 +146,7 @@ public class ReviewController {
     /**
      * Function: listBySeller
      * Description: Lists reviews for a specific seller (public view).
-     * Calls: ReviewService.listAll, OrderService.get
+     * Calls: ReviewService.listApprovedBySeller
      * Called By: Frontend Seller Detail Page
      * Table Accessed: reviews, orders
      * Table Updated: None
@@ -161,14 +156,11 @@ public class ReviewController {
      * Others:
      */
     @GetMapping("/seller/{sellerName}")
-    public ResponseEntity<?> listBySeller(@PathVariable String sellerName) {
-        List<Review> all = reviewService.listAll();
-        List<Map<String, Object>> res = new ArrayList<>();
-        for (Review r : all) {
-            if (!"approved".equals(r.getStatus())) continue;
-            if (r.getOrderId() == null) continue;
-            Order o = orderService.get(r.getOrderId());
-            if (o != null && sellerName.equals(o.getSellerName())) {
+    public ResponseEntity<?> listBySeller(@PathVariable("sellerName") String sellerName) {
+        try {
+            List<Review> reviews = reviewService.listApprovedBySeller(sellerName);
+            List<Map<String, Object>> res = new ArrayList<>();
+            for (Review r : reviews) {
                 Map<String, Object> m = new HashMap<>();
                 m.put("id", r.getId());
                 m.put("orderId", r.getOrderId());
@@ -181,8 +173,11 @@ public class ReviewController {
                 m.put("images", r.getImages());
                 res.add(m);
             }
+            return ResponseEntity.ok(res);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Error: " + e.getMessage());
         }
-        return ResponseEntity.ok(res);
     }
 
     /**
@@ -201,16 +196,10 @@ public class ReviewController {
     public ResponseEntity<?> goodRate(@RequestHeader(value = "token", required = false) String token) {
         User u = userService.getByToken(token);
         if (u == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        List<Review> all = reviewService.listAll();
-        int total = 0;
+        List<Review> reviews = reviewService.listApprovedBySeller(u.getUsername());
+        int total = reviews.size();
         int positive = 0;
-        for (Review r : all) {
-            if (!"approved".equals(r.getStatus())) continue;
-            if (r.getOrderId() == null) continue;
-            Order o = orderService.get(r.getOrderId());
-            if (o == null) continue;
-            if (!u.getUsername().equals(o.getSellerName())) continue;
-            total++;
+        for (Review r : reviews) {
             double avg = (r.getScoreCondition() + r.getScoreService()) / 2.0;
             if (avg >= 4.0) positive++;
         }

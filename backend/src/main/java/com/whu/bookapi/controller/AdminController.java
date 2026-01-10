@@ -82,7 +82,7 @@ public class AdminController {
     @GetMapping("/seller-applications")
     public ResponseEntity<?> listSellerApplications(@RequestHeader(value = "token", required = false) String token) {
         User u = userService.getByToken(token);
-        if (u == null || !"admin".equals(u.getRole())) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        if (!isAdmin(u)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         return ResponseEntity.ok(userService.listSellerApplications());
     }
 
@@ -238,16 +238,20 @@ public class AdminController {
      * Table Updated: None
      * Input: token (String) - Admin token
      *        keyword (String) - Search keyword (username/phone/studentId)
+     *        page (Integer) - Page number
+     *        size (Integer) - Page size
      * Output: List<User> - Matching users
      * Return: ResponseEntity<?>
      * Others:
      */
     @GetMapping("/users")
     public ResponseEntity<?> listUsers(@RequestHeader(value = "token", required = false) String token,
-                                       @RequestParam(value = "keyword", required = false) String keyword) {
+                                       @RequestParam(value = "keyword", required = false) String keyword,
+                                       @RequestParam(value = "page", defaultValue = "1") int page,
+                                       @RequestParam(value = "size", defaultValue = "10") int size) {
         User u = userService.getByToken(token);
         if (!isAdmin(u)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        return ResponseEntity.ok(userService.searchUsers(keyword));
+        return ResponseEntity.ok(userService.searchUsers(keyword, page, size));
     }
 
     /**
@@ -411,23 +415,18 @@ public class AdminController {
 
     /**
      * Function: getOperationLogs
-     * Description: Retrieves system operation logs with filters (U14).
+     * Description: Retrieves operation logs with filtering.
      * Calls: UserService.getOperationLogs
      * Called By: Frontend Admin Dashboard
-     * Table Accessed: user_token, users, operation_logs
+     * Table Accessed: operation_logs
      * Table Updated: None
      * Input: token (String) - Admin token
-     *        keyword (String) - Search keyword
-     *        targetUser (String) - Filter by target user
-     *        operator (String) - Filter by operator
-     *        startTime (Long) - Filter by start time
-     *        endTime (Long) - Filter by end time
-     *        action (String) - Filter by action type
+     *        keyword, targetUser, operator, startTime, endTime, action
      * Output: List<OperationLog> - Matching logs
      * Return: ResponseEntity<?>
      * Others:
      */
-    @GetMapping("/users/logs")
+    @GetMapping("/logs")
     public ResponseEntity<?> getOperationLogs(@RequestHeader(value = "token", required = false) String token,
                                               @RequestParam(value = "keyword", required = false) String keyword,
                                               @RequestParam(value = "targetUser", required = false) String targetUser,

@@ -423,12 +423,12 @@ public class UserService {
      * Called By: AdminController.listUsers
      * Table Accessed: users
      * Table Updated: None
-     * Input: keyword (String)
+     * Input: keyword (String), page (int), size (int)
      * Output: List<User>
      * Return: List<User>
      * Others:
      */
-    public List<User> searchUsers(String keyword) {
+    public List<User> searchUsers(String keyword, int page, int size) {
         String sql = "SELECT username, phone, student_id, status, credit_score, created_at, last_login_time FROM users";
         List<Object> params = new ArrayList<>();
         if (keyword != null && !keyword.isBlank()) {
@@ -439,6 +439,14 @@ public class UserService {
             params.add(k);
         }
         sql += " ORDER BY created_at DESC";
+
+        // Pagination
+        if (page < 1) page = 1;
+        if (size < 1) size = 10;
+        int offset = (page - 1) * size;
+        sql += " LIMIT ? OFFSET ?";
+        params.add(size);
+        params.add(offset);
 
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             User u = new User();
@@ -451,6 +459,14 @@ public class UserService {
             u.setLastLoginTime(rs.getLong("last_login_time"));
             return u;
         }, params.toArray());
+    }
+
+    /**
+     * Function: searchUsers
+     * Description: Overload for backward compatibility.
+     */
+    public List<User> searchUsers(String keyword) {
+        return searchUsers(keyword, 1, 100);
     }
 
     /**

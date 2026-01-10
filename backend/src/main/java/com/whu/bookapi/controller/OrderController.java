@@ -128,10 +128,10 @@ public class OrderController {
     /**
      * Function: pay
      * Description: Processes payment for an order.
-     * Calls: UserService.getByToken, OrderService.get, OrderService.setStatus, NotificationService.addToUser
+     * Calls: UserService.getByToken, OrderService.get, OrderService.setStatus, NotificationService.addToUser, BookService.releaseStock
      * Called By: Frontend Payment Page
      * Table Accessed: user_token, users, orders
-     * Table Updated: orders (status, payment_time), notifications
+     * Table Updated: orders (status, payment_time), notifications, books (stock)
      * Input: token (String) - User token
      *        id (Long) - Order ID
      * Output: Order - Updated order
