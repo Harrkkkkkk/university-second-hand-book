@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.UUID;
 import java.util.List;
@@ -60,6 +62,7 @@ public class UserService {
     private final JdbcTemplate jdbcTemplate;
     private final NotificationService notificationService;
     private final OrderService orderService;
+    private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     public UserService(JdbcTemplate jdbcTemplate, @Lazy NotificationService notificationService, @Lazy OrderService orderService) {
         this.jdbcTemplate = jdbcTemplate;
@@ -97,21 +100,52 @@ public class UserService {
     public LoginResponse login(LoginRequest req) {
         if (req == null || req.getUsername() == null || req.getPassword() == null) return null;
         java.util.List<java.util.Map<String, Object>> rows = jdbcTemplate.queryForList(
-                "SELECT username, password, current_role, seller_status, status, real_name, is_verified FROM users WHERE username = ?",
+                "SELECT username, password, current_role, seller_status, status, real_name, is_verified, failed_login_attempts, lockout_end_time FROM users WHERE username = ?",
                 req.getUsername()
         );
         if (rows.isEmpty()) return null;
         java.util.Map<String, Object> row = rows.get(0);
         
         String userStatus = (String) row.get("status");
-        if (userStatus != null && "blacklist".equals(userStatus)) {
+        // Removed blacklist check to allow login for restricted access
+
+        // Check for brute-force lockout
+        Long lockoutEnd = (Long) row.get("lockout_end_time");
+        if (lockoutEnd != null && lockoutEnd > System.currentTimeMillis()) {
             LoginResponse resp = new LoginResponse();
-            resp.setMessage("该账号已被添加至黑名单");
+            resp.setMessage("账户已临时锁定，请10分钟后再试");
             return resp;
         }
         
         String pwd = (String) row.get("password");
-        if (pwd == null || !pwd.equals(req.getPassword())) return null;
+        boolean passwordMatch = false;
+        if (pwd != null) {
+            if (pwd.startsWith("$2a$") || pwd.startsWith("$2b$") || pwd.startsWith("$2y$")) {
+                if (passwordEncoder.matches(req.getPassword(), pwd)) {
+                    passwordMatch = true;
+                }
+            } else {
+                if (pwd.equals(req.getPassword())) {
+                    passwordMatch = true;
+                    // Lazy migration: Update to hash
+                    jdbcTemplate.update("UPDATE users SET password = ? WHERE username = ?",
+                            passwordEncoder.encode(req.getPassword()), req.getUsername());
+                }
+            }
+        }
+
+        if (!passwordMatch) {
+            // Increment failed attempts
+            int failedAttempts = row.get("failed_login_attempts") == null ? 0 : ((Number) row.get("failed_login_attempts")).intValue();
+            failedAttempts++;
+            if (failedAttempts >= 5) {
+                long lockUntil = System.currentTimeMillis() + 10 * 60 * 1000; // 10 minutes
+                jdbcTemplate.update("UPDATE users SET failed_login_attempts = ?, lockout_end_time = ? WHERE username = ?", failedAttempts, lockUntil, req.getUsername());
+            } else {
+                jdbcTemplate.update("UPDATE users SET failed_login_attempts = ? WHERE username = ?", failedAttempts, req.getUsername());
+            }
+            return null;
+        }
         String currentRole = (String) row.get("current_role");
         String sellerStatus = (String) row.get("seller_status");
         
@@ -135,13 +169,15 @@ public class UserService {
                 req.getUsername(),
                 now
         );
-        jdbcTemplate.update("UPDATE users SET last_login_time = ? WHERE username = ?", now, req.getUsername());
+        // Reset failed attempts on successful login
+        jdbcTemplate.update("UPDATE users SET last_login_time = ?, failed_login_attempts = 0, lockout_end_time = NULL WHERE username = ?", now, req.getUsername());
 
         LoginResponse resp = new LoginResponse();
         resp.setToken(token);
         resp.setUsername(req.getUsername());
         resp.setRole(role);
         resp.setSellerStatus(sellerStatus == null ? "NONE" : sellerStatus);
+        resp.setStatus(userStatus == null ? "normal" : userStatus);
         resp.setRealName(realName);
         resp.setIsVerified(isVerified);
         return resp;
@@ -179,7 +215,7 @@ public class UserService {
     public User getByToken(String token) {
         if (token == null) return null;
         java.util.List<java.util.Map<String, Object>> rows = jdbcTemplate.queryForList(
-                "SELECT u.username, u.current_role, u.seller_status, u.phone, u.email, u.gender, u.last_audit_time, u.real_name, u.is_verified FROM user_token t JOIN users u ON t.username = u.username WHERE t.token = ?",
+                "SELECT u.username, u.current_role, u.seller_status, u.phone, u.email, u.gender, u.last_audit_time, u.real_name, u.is_verified, u.status, u.blacklist_reason FROM user_token t JOIN users u ON t.username = u.username WHERE t.token = ?",
                 token
         );
         if (rows.isEmpty()) return null;
@@ -195,6 +231,8 @@ public class UserService {
         String realName = (String) row.get("real_name");
         Object ivObj = row.get("is_verified");
         boolean isVerified = ivObj instanceof Boolean ? (Boolean) ivObj : (ivObj instanceof Number && ((Number) ivObj).intValue() != 0);
+        String status = (String) row.get("status");
+        String blacklistReason = (String) row.get("blacklist_reason");
         
         java.util.Set<String> roles = new java.util.HashSet<>(jdbcTemplate.queryForList(
                 "SELECT role FROM user_roles WHERE username = ?",
@@ -214,6 +252,8 @@ public class UserService {
         u.setLastAuditTime(lastAuditTime);
         u.setRealName(realName);
         u.setIsVerified(isVerified);
+        u.setStatus(status);
+        u.setBlacklistReason(blacklistReason);
         return u;
     }
 
@@ -267,10 +307,18 @@ public class UserService {
         );
         if (pwds.isEmpty()) return false;
         String pwd = pwds.get(0);
-        if (pwd == null || !pwd.equals(oldPassword)) return false;
+        boolean oldMatch = false;
+        if (pwd != null) {
+            if (pwd.startsWith("$2a$") || pwd.startsWith("$2b$") || pwd.startsWith("$2y$")) {
+                if (passwordEncoder.matches(oldPassword, pwd)) oldMatch = true;
+            } else {
+                if (pwd.equals(oldPassword)) oldMatch = true;
+            }
+        }
+        if (!oldMatch) return false;
         int updated = jdbcTemplate.update(
                 "UPDATE users SET password = ? WHERE username = ?",
-                newPassword,
+                passwordEncoder.encode(newPassword),
                 username
         );
         return updated > 0;
@@ -485,7 +533,7 @@ public class UserService {
         if (username == null) return null;
         try {
             return jdbcTemplate.queryForObject(
-                "SELECT username, phone, student_id, status, credit_score, created_at, last_login_time, email, gender, current_role, real_name, is_verified FROM users WHERE username = ?",
+                "SELECT username, phone, student_id, status, credit_score, created_at, last_login_time, email, gender, current_role, real_name, is_verified, blacklist_reason FROM users WHERE username = ?",
                 (rs, rowNum) -> {
                     User u = new User();
                     u.setUsername(rs.getString("username"));
@@ -499,6 +547,7 @@ public class UserService {
                     u.setGender(rs.getString("gender"));
                     u.setRealName(rs.getString("real_name"));
                     u.setIsVerified(rs.getBoolean("is_verified"));
+                    u.setBlacklistReason(rs.getString("blacklist_reason"));
                     // We don't load roles here for simplicity, or we could join
                     return u;
                 },
@@ -558,7 +607,16 @@ public class UserService {
         if (username == null || password == null) return false;
         try {
             String pwd = jdbcTemplate.queryForObject("SELECT password FROM users WHERE username = ?", String.class, username);
-            if (pwd == null || !pwd.equals(password)) return false;
+            if (pwd == null) return false;
+
+            boolean match = false;
+            if (pwd.startsWith("$2a$") || pwd.startsWith("$2b$") || pwd.startsWith("$2y$")) {
+                if (passwordEncoder.matches(password, pwd)) match = true;
+            } else {
+                if (pwd.equals(password)) match = true;
+            }
+            if (!match) return false;
+
             Integer count = jdbcTemplate.queryForObject("SELECT COUNT(1) FROM user_roles WHERE username = ? AND role = 'admin'", Integer.class, username);
             return count != null && count > 0;
         } catch (Exception e) {
@@ -616,7 +674,12 @@ public class UserService {
             }
         }
 
-        jdbcTemplate.update("UPDATE users SET status = ? WHERE username = ?", status, targetUser);
+        if ("blacklist".equals(status)) {
+            jdbcTemplate.update("UPDATE users SET status = ?, blacklist_reason = ?, blacklist_time = ?, blacklist_operator = ? WHERE username = ?", 
+                status, reason, System.currentTimeMillis(), operator, targetUser);
+        } else {
+            jdbcTemplate.update("UPDATE users SET status = ?, blacklist_reason = NULL, blacklist_time = NULL, blacklist_operator = NULL WHERE username = ?", status, targetUser);
+        }
         
         logOperation(operator, targetUser, "update_status", "Status changed to " + status + ". Reason: " + reason);
         
@@ -831,9 +894,9 @@ public class UserService {
         if (exists(username)) return false;
         long now = System.currentTimeMillis();
         jdbcTemplate.update(
-                "INSERT INTO users (username, password, current_role, seller_status, created_at) VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO users (username, password, current_role, seller_status, created_at, failed_login_attempts, lockout_end_time) VALUES (?, ?, ?, ?, ?, 0, NULL)",
                 username,
-                password,
+                passwordEncoder.encode(password),
                 "buyer",
                 "NONE",
                 now

@@ -107,6 +107,7 @@ const submitLogin = async () => {
     sessionStorage.setItem('role', res.role)
     sessionStorage.setItem('username', res.username)
     if (res.sellerStatus) sessionStorage.setItem('sellerStatus', res.sellerStatus)
+    if (res.status) sessionStorage.setItem('userStatus', res.status)
     if (res.realName) sessionStorage.setItem('realName', res.realName)
     sessionStorage.setItem('isVerified', res.isVerified ? '1' : '0')
     
@@ -127,12 +128,15 @@ const submitLogin = async () => {
     }
   } catch (error) {
     const code = error?.response?.status
+    const message = error?.response?.data?.message
     if (code === 401) {
-      ElMessage.error('账号或密码错误')
+      ElMessage.error(message || '账号或密码错误')
+    } else if (code === 403) {
+      ElMessage.error(message || '账户已锁定或无权访问')
     } else if (code === 500) {
       ElMessage.error('服务异常或后端未启动，请检查后端')
     } else {
-      ElMessage.error('登录失败：' + (error?.message || '未知错误'))
+      ElMessage.error('登录失败：' + (message || error?.message || '未知错误'))
     }
   }
 }

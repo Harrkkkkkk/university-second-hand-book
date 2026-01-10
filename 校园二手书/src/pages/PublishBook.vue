@@ -113,10 +113,57 @@
                   <el-radio-button label="九成新">九成新</el-radio-button>
                   <el-radio-button label="八成新">八成新</el-radio-button>
                 </el-radio-group>
-                <el-button link type="primary" size="small" @click="showConditionStandard" style="margin-left: 10px;">
-                  <el-icon><InfoFilled /></el-icon> 成色标准
+                <el-button link type="primary" size="small" @click="toggleConditionStandard" style="margin-left: 10px;">
+                  <el-icon><InfoFilled /></el-icon> {{ showStandard ? '收起标准' : '查看成色标准' }}
                 </el-button>
               </el-form-item>
+              
+              <!-- Inline Condition Standards -->
+              <div v-show="showStandard" class="inline-standards">
+                <div class="standards-content">
+                  <el-collapse v-model="activeStandardNames">
+                    <el-collapse-item title="一、全新" name="1">
+                      <div class="standard-detail">
+                        <p><strong>外观包装：</strong>保留原始塑封或包装，无破损、无褶皱；无塑封教材的封面、封底平整挺括，无折痕、无磨损、无污渍。</p>
+                        <p><strong>内页状态：</strong>内页纸张洁白干净，无泛黄、无霉斑、无油渍；无任何书写痕迹、勾画痕迹、批注痕迹，无贴纸、无印章。</p>
+                        <p><strong>装订工艺：</strong>装订牢固，无脱页、无掉页、无线头外露；书脊平直，无变形、无开裂。</p>
+                        <p><strong>附件配置：</strong>随书附赠的光盘、习题册、答案册、书签等附件齐全，且状态完好。</p>
+                        <p><strong>补充说明：</strong>仅拆封未使用的教材，若满足上述所有条件，可判定为全新。</p>
+                        <div class="standard-image">
+                          <img src="/images/condition/brand_new.jpg" alt="全新书籍示例" />
+                          <span class="image-caption">全新书籍示例图</span>
+                        </div>
+                      </div>
+                    </el-collapse-item>
+                    <el-collapse-item title="二、九成新" name="2">
+                      <div class="standard-detail">
+                        <p><strong>外观包装：</strong>封面、封底无明显磨损，边角轻微圆润（无明显磕碰缺口）；无大面积污渍，允许存在 1 - 2 处不影响阅读的轻微压痕。</p>
+                        <p><strong>内页状态：</strong>内页无书写、无勾画、无批注；纸张无明显泛黄，无霉斑、无油渍；允许存在少量自然翻阅产生的轻微折痕（单页折痕不超过 3 处）。</p>
+                        <p><strong>装订工艺：</strong>装订牢固，无脱页、无掉页；书脊无变形、无开裂，仅允许存在轻微的翻阅压痕。</p>
+                        <p><strong>附件配置：</strong>核心附件（如配套习题册）齐全；非核心附件（如光盘）缺失时，需明确标注，不影响成色判定。</p>
+                        <p><strong>补充说明：</strong>仅存在极轻微的使用痕迹，整体观感接近全新，不影响正常阅读和使用。</p>
+                        <div class="standard-image">
+                          <img src="/images/condition/90_new.jpg" alt="九成新书籍示例" />
+                          <span class="image-caption">九成新书籍示例图</span>
+                        </div>
+                      </div>
+                    </el-collapse-item>
+                    <el-collapse-item title="三、八成新" name="3">
+                      <div class="standard-detail">
+                        <p><strong>外观包装：</strong>封面、封底有轻微磨损，边角有明显圆润或轻微磕碰；允许存在少量污渍或浅淡划痕，无大面积破损、无缺角。</p>
+                        <p><strong>内页状态：</strong>内页允许存在少量不密集的书写、勾画或批注（单页标记不超过 5 处，且不覆盖关键知识点）；纸张轻微泛黄，无霉斑、无油渍；部分页面存在折痕，但无撕裂、无缺页。</p>
+                        <p><strong>装订工艺：</strong>装订基本牢固，无脱页风险；书脊有轻微变形或压痕，无开裂；允许存在少量线头，不影响翻阅。</p>
+                        <p><strong>附件配置：</strong>核心附件缺失时需明确标注；无附件不影响成色判定，但若附件缺失严重，需酌情下调成色等级。</p>
+                        <p><strong>补充说明：</strong>使用痕迹明显，但不影响内容阅读和理解，整体品相完好，无影响使用的破损。</p>
+                        <div class="standard-image">
+                          <img src="/images/condition/80_new.jpg" alt="八成新书籍示例" />
+                          <span class="image-caption">八成新书籍示例图</span>
+                        </div>
+                      </div>
+                    </el-collapse-item>
+                  </el-collapse>
+                </div>
+              </div>
 
               <el-form-item label="详细描述" prop="description">
                 <el-input 
@@ -207,6 +254,8 @@
         </div>
       </div>
     </div>
+
+
 
     <!-- Image Cropper Dialog -->
     <el-dialog
@@ -376,12 +425,12 @@ const fetchBookByIsbn = async () => {
   }
 }
 
-const showConditionStandard = () => {
-  ElMessageBox.alert(
-    '全新：几乎未使用\n九成新：轻微使用痕迹\n八成新：有明显使用痕迹但不缺页',
-    '成色标准',
-    { confirmButtonText: '了解' }
-  )
+const showStandard = ref(false)
+const conditionDialogVisible = ref(false)
+const activeStandardNames = ref(['1'])
+
+const toggleConditionStandard = () => {
+  showStandard.value = !showStandard.value
 }
 
 const submitPublish = async () => {
@@ -643,6 +692,35 @@ const resetForm = () => {
 
 .cropper-container {
   height: 400px;
+}
+
+.condition-standards {
+  text-align: left;
+}
+
+.standard-detail p {
+  margin: 8px 0;
+  line-height: 1.6;
+  color: #606266;
+}
+
+.standard-image {
+  margin-top: 15px;
+  text-align: center;
+}
+
+.standard-image img {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.image-caption {
+  display: block;
+  margin-top: 8px;
+  color: #909399;
+  font-size: 13px;
 }
 
 @media (max-width: 768px) {

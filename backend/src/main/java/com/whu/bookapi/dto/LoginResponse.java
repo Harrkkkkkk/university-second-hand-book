@@ -35,6 +35,12 @@ public class LoginResponse {
     /** Is Identity Verified */
     private boolean isVerified;
 
+    /** User Status (e.g., normal, blacklist) */
+    private String status;
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+
     public String getRealName() { return realName; }
     public void setRealName(String realName) { this.realName = realName; }
 

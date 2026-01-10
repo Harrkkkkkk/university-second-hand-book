@@ -154,7 +154,45 @@ export const updateUserInfo = (username, data) => {
  * Output: Promise<Array<OperationLog>> - List of logs
  */
 export const getOperationLogs = (params) => {
-  return request({ url: '/admin/users/logs', method: 'get', params, headers: { token: sessionStorage.getItem('token') } })
+    return request({
+        url: '/admin/logs',
+        method: 'get',
+        params,
+        headers: { token: sessionStorage.getItem('token') }
+    })
+}
+
+/**
+ * Function: getDashboardStats
+ * Description: Retrieves dashboard statistics (DAU, Transactions).
+ * Input: days (Number) - Number of days to retrieve
+ * Method: GET
+ * URL: /admin/stats/dashboard
+ */
+export const getDashboardStats = (days) => {
+    return request({
+        url: '/admin/stats/dashboard',
+        method: 'get',
+        params: { days },
+        headers: { token: sessionStorage.getItem('token') }
+    })
+}
+
+/**
+ * Function: exportStats
+ * Description: Exports statistics as CSV.
+ * Input: days (Number) - Number of days to export
+ * Method: GET
+ * URL: /admin/stats/export
+ */
+export const exportStats = (days) => {
+    return request({
+        url: '/admin/stats/export',
+        method: 'get',
+        params: { days },
+        responseType: 'blob', // Important for file download
+        headers: { token: sessionStorage.getItem('token') }
+    })
 }
 
 /**

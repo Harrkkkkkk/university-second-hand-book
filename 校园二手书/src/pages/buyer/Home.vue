@@ -30,7 +30,7 @@
           <el-autocomplete
             v-model="searchKey"
             :fetch-suggestions="querySearchAsync"
-            placeholder="搜索教材名称 / 作者 / ISBN..."
+            placeholder="搜索教材名称 / 作者 "
             :trigger-on-focus="false"
             @select="handleSelect"
             @keyup.enter="searchBooks"
@@ -41,7 +41,7 @@
               <el-icon class="search-icon"><Search /></el-icon>
             </template>
             <template #suffix>
-              <el-button type="primary" @click="searchBooks" class="search-btn" style="border-radius: 4px; margin-right: -10px;">搜索</el-button>
+              <el-button type="primary" @click="searchBooks" class="search-btn" style="border-radius: 4px; margin-right: -14px;">搜索</el-button>
             </template>
           </el-autocomplete>
         </div>
@@ -99,9 +99,9 @@
           </el-select>
 
           <div class="price-range">
-            <el-input v-model.number="minPrice" placeholder="¥ 最低" size="large" class="price-input" />
+            <el-input v-model.number="minPrice" type="number" placeholder="¥ 最低" size="large" class="price-input" />
             <span class="range-separator">-</span>
-            <el-input v-model.number="maxPrice" placeholder="¥ 最高" size="large" class="price-input" />
+            <el-input v-model.number="maxPrice" type="number" placeholder="¥ 最高" size="large" class="price-input" />
             <el-button circle :icon="Search" @click="loadBooks" type="primary" plain></el-button>
           </div>
         </div>
@@ -315,8 +315,8 @@ const loadBooks = async () => {
   try {
     const params = { bookName: searchKey.value, pageNum: currentPage.value, pageSize: pageSize.value, sortBy: sortBy.value }
     if (conditionLevel.value) params.conditionLevel = conditionLevel.value
-    if (minPrice.value != null) params.minPrice = minPrice.value
-    if (maxPrice.value != null) params.maxPrice = maxPrice.value
+    if (minPrice.value !== '' && minPrice.value != null) params.minPrice = minPrice.value
+    if (maxPrice.value !== '' && maxPrice.value != null) params.maxPrice = maxPrice.value
     
     // Check if we need to filter special chars logic here? 
     // Actually the check is done in searchBooks before calling loadBooks, but loadBooks is also called by pagination/reset.

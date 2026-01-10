@@ -36,7 +36,18 @@ service.interceptors.response.use(
         return response.data
     },
     (error) => {
-        console.error('请求失败：', error.message)
+        let msg = error.message
+        if (error.response && error.response.data) {
+            // Prefer backend error message if available
+            // Backend returns: {"message": "..."} or plain string
+            if (error.response.data.message) {
+                msg = error.response.data.message
+            } else if (typeof error.response.data === 'string') {
+                msg = error.response.data
+            }
+        }
+        console.error('请求失败：', msg)
+        error.message = msg // Override error message for UI display
         return Promise.reject(error)
     }
 )

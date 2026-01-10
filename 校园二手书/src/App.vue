@@ -1,6 +1,19 @@
 <template>
   <div id="app">
     <!-- Navigation Bar -->
+    <el-alert
+      v-if="userStatus === 'blacklist'"
+      title="您的账号已被加入黑名单，功能受限。"
+      type="error"
+      effect="dark"
+      center
+      show-icon
+    >
+      <template #default>
+        <span>请尽快提交申诉以恢复账号功能。</span>
+        <el-button type="primary" link @click="toAppeal" style="color: #fff; text-decoration: underline;">去申诉</el-button>
+      </template>
+    </el-alert>
     <el-header v-if="token" class="app-header">
       <div class="header-inner">
         <!-- Logo Area -->
@@ -101,6 +114,7 @@ const token = ref(sessionStorage.getItem('token') || '')
 const role = ref(sessionStorage.getItem('role') || '')
 const username = ref(sessionStorage.getItem('username') || '')
 const sellerStatus = ref(sessionStorage.getItem('sellerStatus') || 'NONE')
+const userStatus = ref(sessionStorage.getItem('userStatus') || 'normal')
 const activeIndex = ref('1')
 const unreadCount = ref(0)
 let timer = null
@@ -130,6 +144,10 @@ const updateStatus = async () => {
             sessionStorage.setItem('sellerStatus', userInfo.sellerStatus)
             sellerStatus.value = userInfo.sellerStatus
         }
+        if (userInfo.status && userInfo.status !== userStatus.value) {
+            sessionStorage.setItem('userStatus', userInfo.status)
+            userStatus.value = userInfo.status
+        }
         // 更新显示名称
         roleName.value = {
             buyer: '买家',
@@ -147,6 +165,10 @@ const toSellerApply = () => {
   router.push('/seller/apply')
 }
 
+const toAppeal = () => {
+  router.push('/appeal')
+}
+
 // 监听路由变化，同步登录状态和导航栏高亮
 watch(
     () => route.path,
@@ -155,6 +177,7 @@ watch(
       role.value = sessionStorage.getItem('role') || ''
       username.value = sessionStorage.getItem('username') || ''
       sellerStatus.value = sessionStorage.getItem('sellerStatus') || 'NONE'
+      userStatus.value = sessionStorage.getItem('userStatus') || 'normal'
       roleName.value = {
         buyer: '买家',
         seller: '卖家',

@@ -27,6 +27,14 @@
     <el-card>
       <el-tabs v-model="activeTab">
         <!-- 
+          Tab: Statistics
+          Function: View system statistics (DAU, Transactions).
+        -->
+        <el-tab-pane label="数据统计" name="statistics">
+          <Statistics />
+        </el-tab-pane>
+
+        <!-- 
           Tab: User Management
           Function: Search, view, edit users; manage blacklist/deletion; view logs.
         -->
@@ -36,6 +44,7 @@
             <el-input v-model="userSearchKeyword" placeholder="请输入用户ID/手机号/学号" style="width: 300px;" clearable @clear="loadUsers" @keyup.enter="loadUsers" />
             <el-button type="primary" @click="loadUsers">搜索</el-button>
             <el-button @click="showOperationLogs">查看操作日志</el-button>
+            <el-button @click="router.push('/admin/appeals')">申诉处理</el-button>
           </div>
 
           <el-table :data="userList" border v-loading="loadingUsers">
@@ -367,7 +376,9 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import PageHeader from '@/components/PageHeader.vue'
+import Statistics from './Statistics.vue'
 import { logoutAndBackToLogin } from '@/utils/auth.js'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { listUsers, setUserRole, listUnderReviewBooks, approveBook as apiApproveBook, rejectBook as apiRejectBook, listComplaints, approveComplaint as apiApproveComplaint, rejectComplaint as apiRejectComplaint, listSellerApplications, approveSeller, rejectSeller, updateUserStatus, updateUserInfo, getOperationLogs, getUserDetail, undoBookAudit as apiUndoBookAudit, undoComplaintAudit as apiUndoComplaintAudit, listPendingReviews, auditReview as apiAuditReview, undoReviewAudit as apiUndoReviewAudit } from '@/api/adminApi'
@@ -387,6 +398,8 @@ const resolveCoverUrl = (url) => {
   return url
 }
 
+const router = useRouter()
+
 // 退出登录
 const logout = () => {
   logoutAndBackToLogin()
@@ -395,7 +408,7 @@ const logout = () => {
 // ==========================================
 // State: Tab Management
 // ==========================================
-const activeTab = ref('userManage')
+const activeTab = ref('statistics') // Default to statistics or userManage based on preference
 
 // ==========================================
 // State: User Management

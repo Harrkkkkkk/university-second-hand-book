@@ -52,6 +52,22 @@ public class User {
     private String realName;
     /** Whether the user is identity verified */
     private boolean isVerified;
+    /** Failed login attempts count */
+    private int failedLoginAttempts;
+    /** Timestamp when account lockout ends */
+    private Long lockoutEndTime;
+
+    /** Reason for blacklisting */
+    private String blacklistReason;
+
+    public String getBlacklistReason() { return blacklistReason; }
+    public void setBlacklistReason(String blacklistReason) { this.blacklistReason = blacklistReason; }
+
+    public int getFailedLoginAttempts() { return failedLoginAttempts; }
+    public void setFailedLoginAttempts(int failedLoginAttempts) { this.failedLoginAttempts = failedLoginAttempts; }
+
+    public Long getLockoutEndTime() { return lockoutEndTime; }
+    public void setLockoutEndTime(Long lockoutEndTime) { this.lockoutEndTime = lockoutEndTime; }
 
     public String getRealName() { return realName; }
     public void setRealName(String realName) { this.realName = realName; }

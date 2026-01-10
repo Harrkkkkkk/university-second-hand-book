@@ -52,7 +52,7 @@ public class NotificationService {
         KeyHolder keyHolder = new GeneratedKeyHolder();
         String sql = "INSERT INTO notifications (to_user, type, title, content, create_time, is_read) VALUES (?, ?, ?, ?, ?, 0)";
         jdbcTemplate.update(connection -> {
-            var ps = connection.prepareStatement(sql, new String[]{"id"});
+            java.sql.PreparedStatement ps = connection.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS);
             ps.setString(1, username);
             ps.setString(2, type);
             ps.setString(3, title);
@@ -97,10 +97,11 @@ public class NotificationService {
         n.setTitle(title);
         n.setContent(content);
         n.setCreateTime(System.currentTimeMillis());
+        n.setRead(false);
         KeyHolder keyHolder = new GeneratedKeyHolder();
         String sql = "INSERT INTO notifications (to_user, type, title, content, create_time, is_read) VALUES ('*', ?, ?, ?, ?, 0)";
         jdbcTemplate.update(connection -> {
-            var ps = connection.prepareStatement(sql, new String[]{"id"});
+            java.sql.PreparedStatement ps = connection.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS);
             ps.setString(1, type);
             ps.setString(2, title);
             ps.setString(3, content);

@@ -61,6 +61,11 @@ public class ReviewController {
                                  @RequestBody Review review) {
         User u = userService.getByToken(token);
         if (u == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        
+        if ("blacklist".equals(u.getStatus())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(java.util.Map.of("message", "账号已黑名单，无法评论。原因：" + (u.getBlacklistReason() != null ? u.getBlacklistReason() : "无")));
+        }
+
         review.setUsername(u.getUsername());
         Review r = reviewService.add(review);
         return ResponseEntity.ok(r);

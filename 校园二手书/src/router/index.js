@@ -17,6 +17,7 @@ import { ElMessage } from 'element-plus'
 import Login from '@/pages/Login.vue'
 import Register from '@/pages/Register.vue'
 import IdentityVerify from '@/pages/IdentityVerify.vue'
+import Appeal from '@/pages/common/Appeal.vue'
 
 // 买家专属页面
 import BuyerHome from '@/pages/buyer/Home.vue'
@@ -41,6 +42,7 @@ import SellerApply from '@/pages/seller/Apply.vue'
 
 // 管理员页面
 import AdminDashboard from '@/pages/admin/Dashboard.vue'
+import AdminAppealList from '@/pages/admin/AppealList.vue'
 
 // 路由配置（核心：默认跳登录页）
 const routes = [
@@ -50,6 +52,7 @@ const routes = [
     { path: '/login', name: 'Login', component: Login },
     { path: '/register', name: 'Register', component: Register },
     { path: '/verify-identity', name: 'IdentityVerify', component: IdentityVerify, meta: { requireAuth: true, roles: ['buyer', 'seller', 'admin'] } },
+    { path: '/appeal', name: 'Appeal', component: Appeal, meta: { requireAuth: true, roles: ['buyer', 'seller', 'admin'] } },
 
     // ---------------------- 买家专属路由 ----------------------
     {
@@ -147,6 +150,12 @@ const routes = [
         path: '/admin/dashboard', // 管理员后台
         name: 'AdminDashboard',
         component: AdminDashboard,
+        meta: { requireAuth: true, roles: ['admin'] }
+    },
+    {
+        path: '/admin/appeals', // 管理员-申诉处理
+        name: 'AdminAppealList',
+        component: AdminAppealList,
         meta: { requireAuth: true, roles: ['admin'] }
     },
 

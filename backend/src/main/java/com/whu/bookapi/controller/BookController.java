@@ -94,6 +94,11 @@ public class BookController {
         if (user == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+        
+        if ("blacklist".equals(user.getStatus())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(java.util.Map.of("message", "账号已黑名单，无法发布教材。原因：" + (user.getBlacklistReason() != null ? user.getBlacklistReason() : "无")));
+        }
+
         Book created = bookService.add(book, user.getUsername());
         return ResponseEntity.ok(created);
     }

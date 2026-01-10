@@ -3,6 +3,7 @@ package com.whu.bookapi.controller;
 import com.whu.bookapi.dto.LoginRequest;
 import com.whu.bookapi.dto.LoginResponse;
 import com.whu.bookapi.model.User;
+import com.whu.bookapi.service.StatisticsService;
 import com.whu.bookapi.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -51,9 +52,11 @@ import java.util.Set;
 @RequestMapping("/user")
 public class UserController {
     private final UserService userService;
+    private final StatisticsService statisticsService;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService, StatisticsService statisticsService) {
         this.userService = userService;
+        this.statisticsService = statisticsService;
     }
 
     /**
@@ -81,6 +84,9 @@ public class UserController {
             m.put("message", resp.getMessage());
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(m);
         }
+        // Record login for statistics
+        statisticsService.recordLogin(req.getUsername());
+        
         return ResponseEntity.ok(resp);
     }
 

@@ -106,6 +106,11 @@ public class OrderController {
                                     @RequestParam("bookId") Long bookId) {
         User user = token == null ? null : userService.getByToken(token);
         if (user == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        
+        if ("blacklist".equals(user.getStatus())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(java.util.Map.of("message", "账号已黑名单，无法购买教材。原因：" + (user.getBlacklistReason() != null ? user.getBlacklistReason() : "无")));
+        }
+
         Book b = bookService.get(bookId);
         if (b == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         if (!"on_sale".equals(b.getStatus())) {

@@ -114,6 +114,13 @@ PREPARE stmt_users_last_audit_time FROM @users_last_audit_time_sql;
 EXECUTE stmt_users_last_audit_time;
 DEALLOCATE PREPARE stmt_users_last_audit_time;
 
+-- Add blacklist columns
+SET @users_has_blacklist_reason := (SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'blacklist_reason');
+SET @users_blacklist_reason_sql := IF(@users_has_blacklist_reason = 0, 'ALTER TABLE users ADD COLUMN blacklist_reason VARCHAR(512), ADD COLUMN blacklist_time BIGINT, ADD COLUMN blacklist_operator VARCHAR(64)', 'SELECT 1');
+PREPARE stmt_users_blacklist_reason FROM @users_blacklist_reason_sql;
+EXECUTE stmt_users_blacklist_reason;
+DEALLOCATE PREPARE stmt_users_blacklist_reason;
+
 CREATE TABLE IF NOT EXISTS operation_logs (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   operator VARCHAR(64) NOT NULL,
@@ -123,6 +130,12 @@ CREATE TABLE IF NOT EXISTS operation_logs (
   create_time BIGINT NOT NULL,
   INDEX idx_logs_target (target_user, create_time),
   INDEX idx_logs_time (create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS user_daily_activity (
+  username VARCHAR(64) NOT NULL,
+  activity_date DATE NOT NULL,
+  PRIMARY KEY (username, activity_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS user_roles (
@@ -391,15 +404,7 @@ INSERT IGNORE INTO user_roles (username, role) VALUES
 ('user1', 'buyer'),
 ('user1', 'seller');
 
-INSERT IGNORE INTO books (id, book_name, author, original_price, sell_price, seller_name, condition_level, stock, status, created_at) VALUES
-(1, 'Java编程思想', 'Bruce Eckel', 108, 30, '卖家1', '九成新', 10, 'on_sale', UNIX_TIMESTAMP() * 1000),
-(2, 'Python入门到精通', '张三', 89, 25, '卖家1', '九成新', 10, 'on_sale', UNIX_TIMESTAMP() * 1000),
-(3, '红楼梦', '曹雪芹', 45, 15, '卖家2', '九成新', 10, 'on_sale', UNIX_TIMESTAMP() * 1000),
-(4, '经济学原理', '曼昆', 68, 20, '卖家2', '九成新', 10, 'on_sale', UNIX_TIMESTAMP() * 1000),
-(5, '数据结构与算法', '李四', 79, 20, '卖家1', '九成新', 10, 'on_sale', UNIX_TIMESTAMP() * 1000),
-(6, '西游记', '吴承恩', 38, 12, '卖家2', '九成新', 10, 'on_sale', UNIX_TIMESTAMP() * 1000),
-(7, 'MySQL实战', '王五', 99, 28, '卖家1', '九成新', 10, 'on_sale', UNIX_TIMESTAMP() * 1000),
-(8, '财务管理', '赵六', 59, 18, '卖家2', '九成新', 10, 'on_sale', UNIX_TIMESTAMP() * 1000);
+
 
 -- Create Mock University Database Table
 CREATE TABLE IF NOT EXISTS university_students (
@@ -426,3 +431,16 @@ SET @users_is_verified_sql := IF(@users_has_is_verified = 0, 'ALTER TABLE users 
 PREPARE stmt_users_is_verified FROM @users_is_verified_sql;
 EXECUTE stmt_users_is_verified;
 DEALLOCATE PREPARE stmt_users_is_verified;
+
+-- Add brute-force protection columns
+SET @users_has_failed_attempts := (SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'failed_login_attempts');
+SET @users_failed_attempts_sql := IF(@users_has_failed_attempts = 0, 'ALTER TABLE users ADD COLUMN failed_login_attempts INT NOT NULL DEFAULT 0', 'SELECT 1');
+PREPARE stmt_users_failed_attempts FROM @users_failed_attempts_sql;
+EXECUTE stmt_users_failed_attempts;
+DEALLOCATE PREPARE stmt_users_failed_attempts;
+
+SET @users_has_lockout_time := (SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'lockout_end_time');
+SET @users_lockout_time_sql := IF(@users_has_lockout_time = 0, 'ALTER TABLE users ADD COLUMN lockout_end_time BIGINT', 'SELECT 1');
+PREPARE stmt_users_lockout_time FROM @users_lockout_time_sql;
+EXECUTE stmt_users_lockout_time;
+DEALLOCATE PREPARE stmt_users_lockout_time;

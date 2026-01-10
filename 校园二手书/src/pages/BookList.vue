@@ -19,9 +19,9 @@
           <el-input v-model="searchForm.bookName" placeholder="请输入教材名称"></el-input>
         </el-form-item>
         <el-form-item label="价格区间">
-          <el-input v-model="searchForm.minPrice" placeholder="最低价格" style="width: 100px;"></el-input>
+          <el-input v-model.number="searchForm.minPrice" type="number" placeholder="最低价格" style="width: 100px;"></el-input>
           <span style="margin: 0 5px;">-</span>
-          <el-input v-model="searchForm.maxPrice" placeholder="最高价格" style="width: 100px;"></el-input>
+          <el-input v-model.number="searchForm.maxPrice" type="number" placeholder="最高价格" style="width: 100px;"></el-input>
         </el-form-item>
         <el-form-item label="排序">
           <el-select v-model="searchForm.sortBy" placeholder="选择排序" style="width: 160px;">
@@ -85,7 +85,10 @@ let lastSortChange = 0
  */
 const loadBooks = async () => {
   try {
-    const res = await getBookPage(searchForm.value)
+    const params = { ...searchForm.value }
+    if (params.minPrice === '') delete params.minPrice
+    if (params.maxPrice === '') delete params.maxPrice
+    const res = await getBookPage(params)
     bookList.value = res.records || []
     total.value = res.total || 0
     if (bookList.value.length === 0) {

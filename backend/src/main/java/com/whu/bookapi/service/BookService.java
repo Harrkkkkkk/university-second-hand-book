@@ -430,9 +430,10 @@ public class BookService {
     /**
      * Function: delete
      * Description: Deletes a book listing from the database.
+     *              If the book has associated orders, performs a soft delete (status='deleted').
      *              Verifies that the operator is the owner of the book.
      * Called By: BookController.delete
-     * Table Accessed: books
+     * Table Accessed: books, orders
      * Table Updated: books
      * Input: id (Long) - The ID of the book to delete
      *        operator (String) - The username of the person performing the action
@@ -441,13 +442,41 @@ public class BookService {
      */
     public boolean delete(Long id, String operator) {
         if (id == null || operator == null) return false;
-        int updated = jdbcTemplate.update("DELETE FROM books WHERE id = ? AND seller_name = ?", id, operator);
-        return updated > 0;
+
+        // Check ownership and existence
+        Integer exists = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM books WHERE id = ? AND seller_name = ?", Integer.class, id, operator);
+        if (exists == null || exists == 0) return false;
+
+        // Check for associated orders
+        Integer orderCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM orders WHERE book_id = ?", Integer.class, id);
+
+        if (orderCount != null && orderCount > 0) {
+            // Soft delete if orders exist
+            jdbcTemplate.update(
+                    "UPDATE books SET status = 'deleted' WHERE id = ? AND seller_name = ?", id, operator);
+            // Always return true because we verified ownership, and if update returns 0 it means it's already deleted
+            return true;
+        } else {
+            // Hard delete if no orders
+            try {
+                int updated = jdbcTemplate.update(
+                        "DELETE FROM books WHERE id = ? AND seller_name = ?", id, operator);
+                return updated > 0;
+            } catch (Exception e) {
+                // Fallback to soft delete if hard delete fails (e.g. other FK constraints)
+                jdbcTemplate.update(
+                        "UPDATE books SET status = 'deleted' WHERE id = ? AND seller_name = ?", id, operator);
+                return true;
+            }
+        }
     }
 
     /**
      * Function: listBySeller
      * Description: Retrieves all books listed by a specific seller.
+     *              Excludes deleted books.
      * Called By: BookController.listBySeller
      * Table Accessed: books
      * Input: sellerName (String) - The seller's username
@@ -457,7 +486,7 @@ public class BookService {
     public java.util.List<Book> listBySeller(String sellerName) {
         if (sellerName == null) return new java.util.ArrayList<>();
         return jdbcTemplate.query(
-                "SELECT id, book_name, author, original_price, sell_price, description, seller_name, cover_url, isbn, publisher, publish_date, condition_level, stock, status, created_at, seller_type FROM books WHERE seller_name = ? ORDER BY id",
+                "SELECT id, book_name, author, original_price, sell_price, description, seller_name, cover_url, isbn, publisher, publish_date, condition_level, stock, status, created_at, seller_type FROM books WHERE seller_name = ? AND status != 'deleted' ORDER BY id",
                 (rs, rowNum) -> {
                     Book b = new Book();
                     b.setId(rs.getLong("id"));
