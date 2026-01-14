@@ -1,0 +1,19 @@
+[Unit]
+Description=Book Platform API Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/home/book-platform
+ExecStart=/bin/bash /home/book-platform/startup.sh
+ExecStop=/usr/bin/kill -TERM $MAINPID
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=book-platform
+
+[Install]
+WantedBy=multi-user.target
